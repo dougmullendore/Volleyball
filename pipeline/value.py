@@ -22,9 +22,8 @@ Everything is built from the official box score, in points:
 The parts are then scaled so that a team's players add up to the team's
 actual point margin, adjusted for the strength of the opponents faced, and
 compared with what bench players produce in the same playing time (the
-replacement level). Wins are counted the way they would add up on an
-otherwise average team; on a team that already wins nearly every match the
-same points buy fewer extra wins.
+replacement level). Points become wins at the rate seen in team results
+across Division I: the season point margin that goes with one extra win.
 """
 from __future__ import annotations
 
