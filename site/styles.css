@@ -65,7 +65,7 @@ a { color: var(--blue); text-underline-offset: 2px; }
 .nav a:hover { background: var(--ice); }
 .nav a[aria-current="page"] { background: var(--blue); color: var(--sheet); }
 
-main { padding-top: 36px; padding-bottom: 48px; min-height: 60vh; outline: none; }
+main.wrap { padding-top: 28px; padding-bottom: 48px; min-height: 60vh; outline: none; }
 .loading, .empty { color: var(--ink-2); padding: 40px 0; }
 .foot { color: var(--ink-2); font-size: .875rem; padding-top: 16px; padding-bottom: 32px; border-top: 1px solid var(--rule); }
 .foot p { margin: 4px 0; max-width: 70ch; }

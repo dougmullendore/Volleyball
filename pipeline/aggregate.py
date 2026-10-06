@@ -6,7 +6,7 @@ Output goes to <data>/site_data/ as small JSON files:
   players_<season>.json     one row per player (box score totals and rates)
   war_<season>.json         player value, split into its parts
   games_<season>.json       every finished match
-  cards/<team>.json         each team's players, every season, with percentiles
+  cards/b<n>.json           player cards with percentiles, a few teams per file
   recent.json               point-by-point flow of the latest notable matches
 """
 from __future__ import annotations
@@ -50,11 +50,38 @@ def player_id(team: str, first: str, last: str) -> str:
     return f"{team}~{norm(last)}~{norm(first)[:3]}"
 
 
+CARD_BUCKETS = 48
+
+
+def card_bucket(team: str) -> int:
+    """Which cards file a team is in. The site's app.js uses the same rule."""
+    return sum(ord(c) for c in team) % CARD_BUCKETS
+
+
 # ----------------------------------------------------------- season load --
+def identify(box: pd.DataFrame) -> pd.DataFrame:
+    """Add each row's player id and display name. A few box scores list only
+    jersey numbers; those rows take the name that number has in the team's
+    other matches, and stay unidentified (pid missing) if there is none."""
+    box = box.copy()
+    first, last = box["first"].str.strip(), box["last"].str.strip()
+    named = (first + last) != ""
+    known = box[named & box["number"].notna()].assign(f=first, l=last)
+    by_number = known.groupby(["team", "number"])[["f", "l"]].agg(lambda s: s.mode().iat[0])
+    need = box.index[~named & box["number"].notna()]
+    if len(need) and len(by_number):
+        found = by_number.reindex(pd.MultiIndex.from_arrays([box.loc[need, "team"], box.loc[need, "number"]]))
+        first.loc[need] = found["f"].fillna("").to_numpy()
+        last.loc[need] = found["l"].fillna("").to_numpy()
+    box["name"] = (first + " " + last).str.strip()
+    box["pid"] = [player_id(t, f, l) if (f or l) else None for t, f, l in zip(box["team"], first, last)]
+    return box
+
+
 def load_season(data: Path, season: int, info: dict):
     games = store.read(data, "games", season)
     games = games[(games["state"] == "F") & games["home_sets"].notna() & games["away_sets"].notna()].copy()
-    box = store.read(data, "box", season)
+    box = identify(store.read(data, "box", season))
     rallies = store.read(data, "rallies", season)
     teams = info.get(season, {})
     d1 = {t for t, v in teams.items() if v["d1"]}
@@ -198,9 +225,7 @@ def player_table(games, box, rallies, teams, d1) -> pd.DataFrame:
     those against schools outside Division I."""
     if not len(box):
         return pd.DataFrame()
-    b = box[box["team"].isin(d1)].copy()
-    b["pid"] = [player_id(t, f, l) for t, f, l in zip(b["team"], b["first"], b["last"])]
-    b["name"] = (b["first"].str.strip() + " " + b["last"].str.strip()).str.strip()
+    b = box[box["team"].isin(d1) & box["pid"].notna()]
     played = b[b["sets"] > 0]
     tot = played.groupby("pid")[STAT + ["starter"]].sum()
     tot["mp"] = played.groupby("pid")["game_id"].nunique()
@@ -308,7 +333,7 @@ def recent_matches(games, box, rallies, teams, d1, rating, pre, limit=14) -> lis
         lead = []
         for side in (0, 1):
             t = bx[bx["is_home"] == side].sort_values("k", ascending=False).head(1)
-            lead.append(None if not len(t) else {"name": (t["first"].iat[0] + " " + t["last"].iat[0]).strip(),
+            lead.append(None if not len(t) else {"name": t["name"].iat[0],
                                                  "k": int(t["k"].iat[0]), "e": int(t["e"].iat[0]), "ta": int(t["ta"].iat[0])})
         tot = {}
         for side in (0, 1):
@@ -381,11 +406,15 @@ def build_all(data: Path, log) -> dict:
         log(f"stats {season}: {len(games):,} matches, {len(trows)} teams, "
             f"{len(player_seasons.get(season, []))} players, {len(rallies):,} points")
 
+    # cards are stored a few teams to a file, so a page load fetches only one small file
     cards = scale.cards(info)
     for old in (out / "cards").glob("*.json"):
         old.unlink()
+    buckets = {}
     for team, doc in cards.items():
-        store.write_json(out / "cards" / f"{team}.json", doc, compact=True)
+        buckets.setdefault(card_bucket(team), {"metrics": doc.pop("metrics"), "teams": {}})["teams"][team] = doc
+    for b, doc in buckets.items():
+        store.write_json(out / "cards" / f"b{b}.json", doc, compact=True)
     index = scale.player_index(info)
     store.write_json(out / "player_index.json", index, compact=True)
 

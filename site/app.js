@@ -596,7 +596,10 @@
       controls.appendChild(el("label", { "class": "field search" }, ["Find a player", box, hits]));
       if (!cs.id) { holder.innerHTML = ""; holder.appendChild(el("p", { "class": "empty", text: "No player cards yet." })); return; }
 
-      return load("cards/" + cs.id.split("~")[0]).then(function (doc) {
+      var teamId = cs.id.split("~")[0], bucket = 0;
+      for (var ci = 0; ci < teamId.length; ci++) bucket += teamId.charCodeAt(ci);   // same rule as the pipeline
+      return load("cards/b" + (bucket % 48)).then(function (file) {
+        var doc = file.teams[teamId]; doc.metrics = file.metrics;
         var pl = doc.players[cs.id], years = Object.keys(pl.y).sort();
         if (!cs.season || !pl.y[cs.season]) cs.season = years[years.length - 1];
         var y = pl.y[cs.season], metrics = doc.metrics, group = POS_WORD[y.p] || "players";

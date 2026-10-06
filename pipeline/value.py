@@ -138,12 +138,10 @@ class Scale:
 
         # strength of schedule, in points: each match's opponent rating times the
         # sets played, shared out by how much of the match each player played
-        b = box[box["team"].isin(d1) & (box["sets"] > 0)].merge(games[["game_id", "home", "away"]], on="game_id")
+        b = box[box["team"].isin(d1) & (box["sets"] > 0) & box["pid"].notna()].merge(games[["game_id", "home", "away"]], on="game_id")
         opp = np.where(b["team"] == b["home"], b["away"], b["home"])
         b["opp_r"] = [rating.get(o, 2 * config.RATING_NEW_TEAM) for o in opp]
         team_sets = b.groupby(["game_id", "team"])["sets"].transform("max")
-        from .aggregate import player_id
-        b["pid"] = [player_id(t, f, l) for t, f, l in zip(b["team"], b["first"], b["last"])]
         b["w"] = b["sets"] * b["pid"].map(p["fse"] / p["sets"].clip(lower=1)).fillna(0.0)
         sum_w = b.groupby(["game_id", "team"])["w"].transform("sum").clip(lower=1e-9)
         b["sched"] = b["opp_r"] * team_sets * b["w"] / sum_w
