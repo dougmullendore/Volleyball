@@ -6,6 +6,10 @@ on:
   schedule:
     - cron: '47 10 * * *'   # 10:47 UTC = about 5:47am Central
   workflow_dispatch:
+    inputs:
+      minutes:
+        description: 'Stop downloading after this many minutes'
+        default: '150'
   push:
     branches: [main]
     paths:
@@ -50,6 +54,9 @@ jobs:
           pip install -r requirements.txt 2>&1 | tee data/logs/install.log
 
       - name: Run the pipeline
+        env:
+          # a run started by a code change downloads for a short while only; the nightly run does the rest
+          MAX_FETCH_MINUTES: ${{ inputs.minutes || (github.event_name == 'push' && '12') || '150' }}
         run: |
           set -o pipefail
           python -m pipeline.run data dist 2>&1 | tee data/logs/last_run.log
