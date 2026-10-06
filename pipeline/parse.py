@@ -190,7 +190,7 @@ def _tidy(plays: list, any_scored: bool) -> list:
     out, seen = [], set()
     for play in plays:
         tid, text, hs, vs, clock = play
-        if any_scored and hs is None and len(clock) == 5:
+        if any_scored and hs is None and (len(clock) == 5 or _classify(text)):
             continue                          # the unscored duplicate copy
         if clock and set(clock) <= set("0:"):
             continue                          # housekeeping entries stamped 00:00
@@ -242,7 +242,9 @@ def parse_pbp(game_id: int, pbp: dict, rosters: dict, home_tid: str, linescores:
     periods = doc.get("periods") or []
     names = Rosters(rosters)
     odd = {}
-    rows, sets_ok = [], 0
+
+    def note(key, n=1):
+        odd[key] = odd.get(key, 0) + n
 
     flat = []
     for per in periods:
@@ -260,27 +262,23 @@ def parse_pbp(game_id: int, pbp: dict, rosters: dict, home_tid: str, linescores:
     # the scored copy.
     any_scored = any(hs is not None and _classify(t) for _, plays in flat for _, t, hs, _, _ in plays)
 
+    # ---- pass 1: who won each point
+    sets = []                                 # (set_no, official, [(type, who, home_won, hs, vs, jumped)])
     for set_no, plays in flat:
         official = None
         if 0 < set_no <= len(linescores):
             official = (_int(linescores[set_no - 1].get("home"), None), _int(linescores[set_no - 1].get("visit"), None))
-        plays = _tidy(plays, any_scored)
-        set_rows = []
         hs = vs = 0
-        prev_home_won = None
-        n = 0
-        for tid, text, p_hs, p_vs, clock in plays:
+        points = []
+        for tid, text, p_hs, p_vs, clock in _tidy(plays, any_scored):
             kind = _classify(text)
             if kind is None:
                 if not _LINEUP.match(text):
-                    key = re.sub(r"\d+", "#", text)[:60]
-                    odd[key] = odd.get(key, 0) + 1
+                    note(re.sub(r"\d+", "#", text)[:60])
                 continue
-
-            ptype, who = kind
-            # who won the point: from the running score if there is one, else
-            # the feed lists the play under the team that won it
             jumped = False
+            # from the running score if there is one; otherwise the feed lists
+            # the play under the team that won it
             if p_hs is not None and p_vs is not None:
                 p_hs, p_vs = _int(p_hs), _int(p_vs)
                 dh, dv = p_hs - hs, p_vs - vs
@@ -293,22 +291,43 @@ def parse_pbp(game_id: int, pbp: dict, rosters: dict, home_tid: str, linescores:
                 elif dh >= 0 and dv >= 0:     # the feed skipped a point or two
                     home_won = (tid == home_tid) if (dh > 0 and dv > 0) else dh > 0
                     jumped = True
-                    odd["points missing from the feed"] = odd.get("points missing from the feed", 0) + dh + dv - 1
+                    note("points missing from the feed", dh + dv - 1)
                 else:
-                    odd["score went backwards"] = odd.get("score went backwards", 0) + 1
+                    note("score went backwards")
                     continue
                 hs, vs = p_hs, p_vs
             else:
                 home_won = (tid == home_tid)
                 hs, vs = hs + home_won, vs + (not home_won)
-            n += 1
+            points.append((kind[0], kind[1], home_won, hs, vs, jumped))
+        sets.append((set_no, official, points))
 
+    # ---- which side the feed calls "home". At neutral sites the play-by-play
+    # sometimes has the two teams the other way round from the scoreboard.
+    def final(points):
+        return (points[-1][3], points[-1][4]) if points else (0, 0)
+    straight = sum(1 for _, off, pts in sets if off and off == final(pts) and off[0] != off[1])
+    swapped = sum(1 for _, off, pts in sets if off and off == final(pts)[::-1] and off[0] != off[1])
+    flip = swapped > straight
+    if flip:
+        note("teams listed the other way round")
+
+    # ---- pass 2: the rows
+    rows, sets_ok = [], 0
+    for set_no, official, points in sets:
+        if flip:
+            points = [(t, who, not hw, v, h, j) for t, who, hw, h, v, j in points]
+        if not (official and points and official == final(points)):
+            continue
+        sets_ok += 1
+        prev_home_won = None
+        for n, (ptype, who, home_won, hs, vs, jumped) in enumerate(points, 1):
             p = [None, None, None]
             if ptype == "K":
                 p[0] = names.find(who[0] or "", home_won)
                 p[1] = names.find(who[1] or "", home_won) if who[1] else None
                 if p[0] is None and who[0] and names.find(who[0], not home_won) is not None:
-                    odd["kill credited to the other team"] = odd.get("kill credited to the other team", 0) + 1
+                    note("kill credited to the other team")
             elif ptype in ("AE", "BSE", "BHE", "ACE"):
                 p[0] = names.find(who[0] or "", not home_won) if who and who[0] else None
             elif ptype == "BLK":
@@ -326,14 +345,10 @@ def parse_pbp(game_id: int, pbp: dict, rosters: dict, home_tid: str, linescores:
             else:
                 serve_home = None if jumped else prev_home_won
             if not jumped and prev_home_won is not None and serve_home != prev_home_won:
-                odd["serve order mismatch"] = odd.get("serve order mismatch", 0) + 1
+                note("serve order mismatch")
             prev_home_won = home_won
-
-            set_rows.append([game_id, set_no, n, int(home_won), hs, vs, ptype, p[0], p[1], p[2],
-                             None if serve_home is None else int(serve_home)])
-        if official and official == (hs, vs) and hs + vs > 0:
-            sets_ok += 1
-            rows.extend(set_rows)
+            rows.append([game_id, set_no, n, int(home_won), hs, vs, ptype, p[0], p[1], p[2],
+                         None if serve_home is None else int(serve_home)])
     return rows, sets_ok, odd
 
 
