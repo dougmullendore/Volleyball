@@ -40,7 +40,8 @@ def update_season(data: Path, season: int, manifest: dict, today: dt.date,
                   deadline: float, log, odd: dict) -> dict:
     """Bring one season up to date. Returns a small summary dict."""
     info = manifest.setdefault(str(season), {})
-    if info.get("complete"):
+    reparse = info.get("parser") != config.PARSER_VERSION
+    if info.get("complete") and not reparse:
         return {"season": season, "skipped": "complete", "matches": info.get("matches", 0)}
     days = season_days(season)
     if days[0] > today.isoformat():
@@ -82,6 +83,10 @@ def update_season(data: Path, season: int, manifest: dict, today: dt.date,
     final = games[games["state"] == "F"]
     need = final[(final["detail"].fillna(0) == 0) | (final["date"] >= cutoff)
                  | ((final["detail"] == 2) & (final["date"] >= recheck))]
+    if reparse:
+        n_sets = final["set_scores"].str.split().str.len().fillna(0)
+        again = final[(final["detail"].fillna(0) > 0) & (final["pbp_sets"].fillna(0) < n_sets)]
+        need = pd.concat([need, again]).drop_duplicates("game_id").sort_values(["date", "game_id"])
     need_ids = [int(x) for x in need["game_id"]]
     basics = {int(r["game_id"]): r for r in need.to_dict("records")}
     log(f"season {season}: {len(games)} matches listed, {len(final)} final, {len(need_ids)} to download")
@@ -140,6 +145,8 @@ def update_season(data: Path, season: int, manifest: dict, today: dt.date,
     info["with_box"] = int((final["detail"] == 1).sum())
     info["with_points"] = int((final["pbp_sets"].fillna(0) > 0).sum())
     season_over = today > dt.date(season, *config.SEASON_END) + dt.timedelta(days=10)
+    if not timed_out and not failed:
+        info["parser"] = config.PARSER_VERSION
     info["complete"] = bool(season_over and not timed_out and not failed and not waiting
                             and settled >= set(days) and len(final) > 0)
     return {"season": season, "matches": info["matches"], "downloaded": done, "failed": failed,

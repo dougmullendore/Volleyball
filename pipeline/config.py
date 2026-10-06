@@ -26,6 +26,10 @@ SEASONS = _seasons_through_today()
 SPORT_CODE = "WVB"      # the NCAA's code for women's volleyball
 DIVISION = 1
 
+# Raise this when the play-by-play reader improves: matches whose points did
+# not all add up are then downloaded and read again.
+PARSER_VERSION = 2
+
 # Matches from the last few days are re-downloaded every night because
 # schools send in stat corrections after the match.
 REFRESH_DAYS = 3

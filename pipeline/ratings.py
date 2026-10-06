@@ -78,7 +78,7 @@ def walk(games: pd.DataFrame, info: dict, prior=None, min_step=None, keep=None):
     keep = config.RATING_SUMMER_KEEP if keep is None else keep
     rating, played = {}, {}
     final, rows = {}, []
-    done = games[(games["state"] == "F") & games["home_sets"].notna()]
+    done = games[(games["state"] == "F") & games["home_sets"].notna() & games["away_sets"].notna()]
     for season in sorted(done["season"].unique()):
         season = int(season)
         teams = info.get(season, {})
@@ -122,10 +122,10 @@ def design(pre: pd.DataFrame) -> np.ndarray:
 def fit_logit(X: np.ndarray, y: np.ndarray, ridge: float = 1e-3) -> np.ndarray:
     w = np.zeros(X.shape[1])
     for _ in range(40):
-        p = 1.0 / (1.0 + np.exp(-X @ w))
+        p = 1.0 / (1.0 + np.exp(-np.clip(X @ w, -30, 30)))
         grad = X.T @ (p - y) + ridge * w
         hess = (X * (p * (1 - p))[:, None]).T @ X + ridge * np.eye(X.shape[1])
-        step = np.linalg.solve(hess, grad)
+        step = np.clip(np.linalg.solve(hess, grad), -2.0, 2.0)
         w -= step
         if np.abs(step).max() < 1e-8:
             break
@@ -133,7 +133,7 @@ def fit_logit(X: np.ndarray, y: np.ndarray, ridge: float = 1e-3) -> np.ndarray:
 
 
 def predict(X: np.ndarray, w: np.ndarray) -> np.ndarray:
-    return 1.0 / (1.0 + np.exp(-X @ w))
+    return 1.0 / (1.0 + np.exp(-np.clip(X @ w, -30, 30)))
 
 
 def log_loss(p, y) -> float:
@@ -146,8 +146,8 @@ def backtest(pre: pd.DataFrame) -> dict:
     season stored is left out: its ratings start from nothing."""
     pre = pre[pre["both_d1"] == 1]
     seasons = sorted(pre["season"].unique())[1:]
-    if len(seasons) < 2:
-        return {}
+    if len(seasons) < 2 or len(pre[pre["season"].isin(seasons)]) < 500:
+        return {}                 # too little history to say anything about accuracy
     ps, ys, by = [], [], {}
     for s in seasons:
         train, test = pre[(pre["season"] != s) & pre["season"].isin(seasons)], pre[pre["season"] == s]
@@ -186,7 +186,7 @@ def simulate(season: int, games: pd.DataFrame, teams: dict, rating: dict, w: np.
         return (r["home"] in idx and r["away"] in idx and teams[r["home"]]["conf"]
                 and teams[r["home"]]["conf"] == teams[r["away"]]["conf"] and not r["round"])
 
-    done = g[(g["state"] == "F") & g["home_sets"].notna()]
+    done = g[(g["state"] == "F") & g["home_sets"].notna() & g["away_sets"].notna()]
     for r in done.to_dict("records"):
         hw = r["home_sets"] > r["away_sets"]
         for team, opp, won, sf, sa in ((r["home"], r["away"], hw, r["home_sets"], r["away_sets"]),
@@ -215,7 +215,7 @@ def simulate(season: int, games: pd.DataFrame, teams: dict, rating: dict, w: np.
         hi = np.array([pos[r["home"]] for r in rec]); ai = np.array([pos[r["away"]] for r in rec])
         cm = np.array([bool(is_conf(r)) for r in rec])
         z = w[0] * (draw[:, hi] - draw[:, ai]) + np.where(cm, w[1], w[2])[None, :]
-        home_win = rng.random(z.shape) < 1.0 / (1.0 + np.exp(-z))
+        home_win = rng.random(z.shape) < 1.0 / (1.0 + np.exp(-np.clip(z, -30, 30)))
         for j, r in enumerate(rec):
             hw = home_win[:, j]
             if r["home"] in idx:
@@ -257,7 +257,7 @@ def simulate(season: int, games: pd.DataFrame, teams: dict, rating: dict, w: np.
             "w": int(w_now[i]), "l": int(l_now[i]), "cw": int(cw_now[i]), "cl": int(cl_now[i]),
             "sw": int(sw_now[i]), "sl": int(sl_now[i]),
             "rating": round(float(rating.get(t, 0.0)), 2), "rank": rank[t],
-            "strength": round(100.0 / (1.0 + np.exp(-avg_gap * rating.get(t, 0.0))), 1),
+            "strength": round(100.0 / (1.0 + np.exp(-float(np.clip(avg_gap * rating.get(t, 0.0), -30, 30)))), 1),
             "sos": round(float(opp_sum[i] / opp_n[i]), 2) if opp_n[i] else None,
             "left": int(left_n[i]),
             "proj_w": round(float(tw[:, i].mean()), 1), "proj_l": round(float(games_total - tw[:, i].mean()), 1),
