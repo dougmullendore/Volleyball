@@ -210,8 +210,12 @@ class Scale:
         chk = pd.concat(chk).dropna(subset=["war"])
         if len(chk) >= 30:
             wins_pct = chk["w"] / chk["gp"]
+            done_seasons = sorted(self.seasons)[:-1] or sorted(self.seasons)
+            full_chk = chk[chk["season"].isin(done_seasons)]
             self.team_check = {
                 "team_seasons": int(len(chk)),
+                # what a team made only of replacement players would be expected to win
+                "replacement_win_pct": _r(0.5 - float(full_chk["war"].sum()) / max(1.0, float(full_chk["gp"].sum())), 3),
                 "corr_win_pct": _r(float(np.corrcoef(chk["war"], wins_pct)[0, 1]), 3),
                 "corr_rating": _r(float(np.corrcoef(chk["war"], chk["rating"].fillna(0))[0, 1]), 3),
                 "credit_scale": _r(self.credit_scale, 2),

@@ -50,6 +50,7 @@
     hit: function (v) { return v == null ? "" : (v < 0 ? MINUS : "") + Math.abs(v).toFixed(3).replace(/^0/, ""); },
     s1: function (v) { return v == null ? "" : (v > 0 ? "+" : "") + v.toFixed(1).replace("-", MINUS); },
     s2: function (v) { return v == null ? "" : (v > 0 ? "+" : "") + v.toFixed(2).replace("-", MINUS); },
+    si: function (v) { return v == null ? "" : (v > 0 ? "+" : "") + String(Math.round(v)).replace("-", MINUS); },
     txt: function (v) { return v == null ? "" : String(v); }
   };
   function niceDate(iso, withYear) {
@@ -154,7 +155,7 @@
       ["home", "Home", "", F.txt, { left: 1, grp: 1 }],
       ["hs", "Sets", "Sets won by the home team", F.int],
       ["scores", "Set scores", "Home score first in each set", F.txt, { left: 1, grp: 1, cls: "setscores" }],
-      ["pd", "Home pts", "Home points minus away points over the whole match", F.s1, { bar: 1 }],
+      ["pd", "Home pts", "Home points minus away points over the whole match", F.si, { bar: 1 }],
       ["p_win", "Winner's chance", "The winner's chance of winning before the match, from the two teams' ratings at the time. Low numbers are upsets", F.int, { grp: 1 }]
     ]
   };
@@ -743,7 +744,7 @@
       "<p class='lede'>A match record says who won. Points say by how much, and against whom. This site is built on points.</p>" +
       "<h2>Team ratings</h2>" +
       "<p>A rating is how many points per set a team is better than an average Division I team. After every match, the point margin per set is compared with what the two ratings predicted, and both teams move toward the result. Beating a strong team by two points a set counts for more than beating a weak one by four.</p>" +
-      "<p>Recent matches count more than old ones. Each team starts a season at three quarters of last season's rating, because rosters turn over. The rating does not know who is on the floor: an injury or a transfer only shows up once the scores change.</p>" +
+      "<p>Recent matches count more than old ones. Each team starts a season almost where it finished the last one: strong programs stay strong, and keeping nearly all of last season's rating predicted better than pulling teams back toward average. The rating does not know who is on the floor: an injury or a transfer only shows up once the scores change.</p>" +
       "<h2>Win probabilities</h2>" +
       "<p>A match's win probability comes from the gap between the two ratings plus an edge for the home team. The edge is measured separately for conference matches and everything else, because early-season tournaments are often on neutral courts where home and away are only labels.</p>" +
       "<p id='ab-pred'></p><div id='ab-chart'></div>" +
@@ -782,13 +783,13 @@
     if (vm.points_per_win) {
       var tc = vm.team_check;
       document.getElementById("ab-war").textContent = "The parts are scaled so that a team's players add up to its real point margin, then adjusted for the opponents faced. Replacement level is what bench players across Division I produce per set. Points become wins at about " + Math.round(vm.points_per_win) + " points per win, measured from team results." +
-        (tc ? " As a check, adding up each team's player WAR and comparing it with its winning percentage over " + tc.team_seasons + " team-seasons gives a correlation of " + tc.corr_win_pct.toFixed(2) + "." : "");
+        (tc ? " As a check, adding up each team's player WAR and comparing it with its winning percentage over " + tc.team_seasons + " team-seasons gives a correlation of " + tc.corr_win_pct.toFixed(2) + ", and " + tc.corr_rating.toFixed(2) + " with its rating. A team made only of replacement players would be expected to win about " + Math.round(100 * tc.replacement_win_pct) + "% of its matches." : "");
     }
     load("odds").then(function (o) {
       var m = o.model || {};
       if (!m.matches) { document.getElementById("ab-pred").textContent = "The model has not been tested yet: that needs at least two full seasons of results."; return; }
       document.getElementById("ab-pred").textContent = "Tested on " + m.matches.toLocaleString("en-US") + " matches from seasons the weights were not fitted on, the favorite won " + (100 * m.accuracy).toFixed(1) +
-        "% of the time. Always picking the home team wins " + (100 * Math.max(m.home_win_rate, 1 - m.home_win_rate)).toFixed(1) + "%. On log loss, the usual score for probabilities (lower is better), it scored " + m.log_loss.toFixed(3) + " against " + m.baseline_log_loss.toFixed(3) + " for that baseline.";
+        "% of the time. Always picking the home team wins " + (100 * Math.max(m.home_win_rate, 1 - m.home_win_rate)).toFixed(1) + "%. On log loss, the usual score for probabilities (lower is better), it scored " + m.log_loss.toFixed(3) + " against " + m.baseline_log_loss.toFixed(3) + " for that baseline. The few settings that control how fast ratings move were chosen on these same seasons, so expect it to do slightly worse on new ones.";
       if (m.calibration) document.getElementById("ab-chart").appendChild(calibration(m.calibration));
     }).catch(function () {});
   }

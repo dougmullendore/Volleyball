@@ -63,7 +63,11 @@ def identify(box: pd.DataFrame) -> pd.DataFrame:
     """Add each row's player id and display name. A few box scores list only
     jersey numbers; those rows take the name that number has in the team's
     other matches, and stay unidentified (pid missing) if there is none."""
-    box = box.copy()
+    # Some box scores (most of 2023 and 2024) list the whole roster and credit
+    # everyone with every set. Keep a row only if the player started or has
+    # at least one recorded stat.
+    touched = box[["k", "e", "ta", "ast", "sa", "se", "sv", "d", "ra", "re", "bs", "ba", "be", "bhe"]].sum(axis=1) > 0
+    box = box[touched | (box["starter"] == 1)].copy()
     first, last = box["first"].str.strip(), box["last"].str.strip()
     named = (first + last) != ""
     known = box[named & box["number"].notna()].assign(f=first, l=last)

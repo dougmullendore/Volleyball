@@ -4,7 +4,7 @@ A team's rating is how many points per set it is better than an average
 Division I team. It is a running average of each match's point margin per
 set, corrected for the opponent's rating at the time, so beating a strong
 team by two points a set counts for more than beating a weak one by four.
-Ratings carry over from last season, pulled part of the way back to average.
+Ratings carry over almost whole from last season.
 
 Nothing here knows about rosters: injuries, transfers and graduation only
 show up once the results change.

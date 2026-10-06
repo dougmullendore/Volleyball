@@ -56,8 +56,11 @@ MIN_MATCHES_D1 = 12
 # --- Team ratings and predictions ---------------------------------------
 # A rating is points per set better than an average Division I team.
 RATING_PRIOR_MATCHES = 4.0     # matches of "last year's team" mixed in at the start
-RATING_MIN_STEP = 0.06         # once a team has played a lot, each match still moves it this much
-RATING_SUMMER_KEEP = 0.75      # share of its distance from average a team keeps over the summer
+RATING_MIN_STEP = 0.07         # once a team has played a lot, each match still moves it this much
+RATING_SUMMER_KEEP = 0.95      # share of its distance from average a team keeps over the summer
+# (These three were chosen by testing a grid of values against 2022-2026
+# results. Programs change little from year to year: keeping more than 90% of
+# last season's rating predicted better than pulling teams toward average.)
 RATING_NEW_TEAM = -3.0         # starting rating for a school with no history
 PRED_STRENGTH_DOUBT = 0.6      # doubt about each team's true rating in the simulation (points per set)
 PRED_SIMULATIONS = 5000
