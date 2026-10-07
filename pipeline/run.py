@@ -15,6 +15,7 @@ Usage:  python -m pipeline.run <state_dir> <site_output_dir>
 from __future__ import annotations
 
 import datetime as dt
+import hashlib
 import json
 import os
 import shutil
@@ -187,6 +188,15 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
     if out.exists():
         shutil.rmtree(out)
     shutil.copytree(SITE_SRC, out)
+    # Give the script and stylesheet an address that changes whenever they do.
+    # Otherwise a browser can pair a new page with the copy of the old script
+    # it kept, and the page breaks until that copy expires.
+    page = (out / "index.html").read_text()
+    for name in ("app.js", "styles.css"):
+        stamp = hashlib.sha256((out / name).read_bytes()).hexdigest()[:10]
+        assert f'"{name}"' in page, f"index.html no longer refers to {name}"
+        page = page.replace(f'"{name}"', f'"{name}?v={stamp}"')
+    (out / "index.html").write_text(page)
     write_json(out / "data.json", {
         "site": config.SITE_NAME, "updated": now.isoformat(timespec="seconds"), "season": sel["season"],
         "poll": {"name": config.POLL_NAME, "through": through, "teams": ranked, "polls_seen": sel["polls_seen"]},

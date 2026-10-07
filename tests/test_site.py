@@ -81,6 +81,8 @@ def test_the_page_lists_only_ranked_teams_matches():
     res = run.build_site(state, out, dt.datetime(2026, 10, 7, tzinfo=UTC))
     data = json.loads((out / "data.json").read_text())
     assert (out / "index.html").exists() and (out / "app.js").exists()
+    page = (out / "index.html").read_text()        # script and stylesheet addresses change when the files do
+    assert 'src="app.js?v=' in page and 'href="styles.css?v=' in page
     assert data["poll"]["through"] == "2026-10-04" and len(data["poll"]["teams"]) == 25
     ranked = {t["id"]: t["rank"] for t in data["poll"]["teams"] if t["id"]}
     assert ranked["nebraska"] == 1 and ranked["penn-st"] == 18
