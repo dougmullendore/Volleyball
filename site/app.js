@@ -65,6 +65,10 @@
     var more = [];
     if (live) more.push(el("span", { "class": "live", text: "In progress " }));
     if (g.round) more.push(g.round + " ");
+    if (!fin && g.watch) {
+      more.push(g.watch.length ? el("span", { "class": "watch" }, [el("span", { "class": "sr", text: "Watch on " }), g.watch.join(", ")])
+        : el("span", { "class": "watch none", text: "No broadcast listed" }));
+    }
     if (fin || live) more.push(el("a", { href: data.game_page + g.id, text: "Box score", rel: "noopener" }));
     return el("li", { "class": "game" + (g.away.rank && g.home.rank ? " both" : "") }, [
       el("span", { "class": "when", text: when }), team("away", g.away, homeWon), mid, team("home", g.home, awayWon),
@@ -119,7 +123,7 @@
     listInto(holder, games);
     var both = games.filter(function (g) { return g.away.rank && g.home.rank; }).length;
     holder.appendChild(el("p", { "class": "note", text: games.length + " matches this week" + (both ? ", " + both + " of them between two ranked teams (marked with a yellow edge)" : "") +
-      ". The visiting team is on the left. Numbers are this week's rankings, also for earlier weeks. Choose a team above to see its whole season." }));
+      ". The visiting team is on the left, and the channel or streaming service is on the right for matches in the next two weeks. Numbers are this week's rankings, also for earlier weeks. Choose a team above to see its whole season." }));
   }
 
   fetch("data.json", { cache: "no-cache" }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (d) {

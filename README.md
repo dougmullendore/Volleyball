@@ -10,10 +10,26 @@ You do not need to run anything. GitHub does it all on a schedule.
 - **This week's top 25**: the AVCA coaches poll, with each team's record and
   how far it moved from last week. Choose a team to see its whole season.
 - **The matches**: every match this week involving a ranked team, grouped by
-  day. Upcoming matches show the start time in the reader's own time zone;
-  finished ones show the score in sets and link to the NCAA's box score. A
+  day. Upcoming matches show the start time in the reader's own time zone and
+  where to watch; finished ones show the score in sets and link to the NCAA's
+  box score. A
   match between two ranked teams has a yellow edge. Buttons step to earlier
   and later weeks.
+
+## Where to watch
+
+Each match in the next two weeks shows its TV channel or streaming service
+(ESPN+, Big Ten Network, B1G+, SEC Network+, ACC Network Extra and so on).
+The NCAA's scoreboard does not carry this, so it comes from two other public
+schedules, matched to the NCAA's matches by team and start time:
+
+- **ESPN's scoreboard**, which lists a channel for most matches.
+- **The Big Ten's schedule**, because ESPN leaves out Big Ten Network and FS1.
+
+"No broadcast listed" means neither schedule names a channel yet. Matches more
+than two weeks away show nothing, because networks are usually not announced
+that far ahead. Channels are refreshed every night and can change late; the
+page says so in its footer.
 
 ## When it updates
 
@@ -21,8 +37,8 @@ The file `.github/workflows/update.yml` tells GitHub when to run:
 
 | When | What it does |
 | --- | --- |
-| Every Monday about 4pm Central, and again about 9pm | Looks for the new top 25, then refreshes scores and schedule |
-| Every night about 5:47am Central | Refreshes scores and schedule |
+| Every Monday about 4pm Central, and again about 9pm | Looks for the new top 25, then refreshes scores, schedule and channels |
+| Every night about 5:47am Central | Refreshes scores, schedule and channels |
 | Whenever the code changes, or you press **Run workflow** on the **Actions** tab | Everything, straight away |
 
 The poll normally comes out on Monday afternoon. If both Monday looks miss it
@@ -39,17 +55,18 @@ result tomorrow morning.
 | --- | --- |
 | `pipeline/config.py` | Every setting: which poll, which day it is checked, season dates |
 | `pipeline/poll.py` | Reads the poll and decides when to look for a new one |
+| `pipeline/watch.py` | Finds the TV channel or stream for each upcoming match |
 | `pipeline/web.py` | Downloads the poll page and the NCAA scoreboard |
 | `pipeline/run.py` | The job: update the poll, update the scoreboard, build the page |
 | `site/` | The page itself (plain HTML, CSS and JavaScript, no build step) |
-| `tests/` | A saved poll page and a saved day of scores, with checks that both are read correctly |
+| `tests/` | A saved poll page, a saved day of scores and that day's TV listings, with checks that all are read correctly |
 
 Run the tests with `python tests/run_local.py`.
 
 Two side branches of this repository hold what the job produces:
 
 - `state`: every poll seen so far (`polls.json`), the season's matches
-  (`scoreboard.json`), and what happened on the last run (`status.json`,
+  (`scoreboard.json`), the channels found (`watch.json`), and what happened on the last run (`status.json`,
   `logs/last_run.log`).
 - `gh-pages`: the finished page.
 

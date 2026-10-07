@@ -2,12 +2,14 @@
 
   1. the coaches poll (looked for on Mondays; see poll.why_check)
   2. the season's scoreboard: every match, played or still to come
+  3. where to watch each of the ranked teams' matches in the next two weeks
 
 Usage:  python -m pipeline.run <state_dir> <site_output_dir>
 
 <state_dir> is the repository's `state` branch:
   polls.json        every poll seen, by the date it runs through
   scoreboard.json   the latest copy of each day's matches
+  watch.json        the TV channel or stream found for each upcoming match
   status.json       what happened on the last run
 """
 from __future__ import annotations
@@ -20,7 +22,7 @@ import sys
 import traceback
 from pathlib import Path
 
-from . import config, poll, web
+from . import config, poll, watch, web
 
 SITE_SRC = Path(__file__).resolve().parents[1] / "site"
 
@@ -116,7 +118,9 @@ def update_scoreboard(state: Path, season: int) -> dict:
     return {"season": season, "days": len(days), "days_failed": len(failed), "matches": n}
 
 
-def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
+def ranked_matches(state: Path) -> dict:
+    """The newest poll joined to the scoreboard: the ranked teams and every
+    match any of them plays."""
     polls = read_json(state / "polls.json", {})
     board = read_json(state / "scoreboard.json", {})
     if not polls or not board.get("days"):
@@ -143,17 +147,55 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
     for g in listed:
         for s in (g["away"], g["home"]):
             s["rank"] = rank.get(s["id"])
+    return {"through": through, "polls_seen": len(polls), "season": board["season"], "teams": ranked,
+            "games": listed, "names": names, "unmatched": unmatched}
+
+
+def update_watch(state: Path, now: dt.datetime) -> dict:
+    """Look up the channel for each ranked team's match in the next two weeks.
+    A channel found on an earlier night is kept if tonight's look finds nothing."""
+    sel = ranked_matches(state)
+    lo = (now - dt.timedelta(days=1)).timestamp()
+    hi = (now + dt.timedelta(days=config.WATCH_DAYS)).timestamp()
+    soon = [g for g in sel["games"] if g["state"] != "final" and g["start"] and lo <= g["start"] <= hi]
+    listings, failed = watch.fetch_listings(now.date(), log)
+    found = watch.assign(soon, listings, sel["names"])
+    stored = read_json(state / "watch.json", {})
+    keep = {str(g["id"]) for g in sel["games"] if g["state"] != "final"}
+    stored = {k: v for k, v in stored.items() if k in keep}           # finished matches are dropped
+    for g in soon:
+        chans = found.get(g["id"])
+        if chans or str(g["id"]) not in stored:
+            stored[str(g["id"])] = chans or []
+    write_json(state / "watch.json", stored, indent=0)
+    have = sum(1 for g in soon if stored.get(str(g["id"])))
+    log(f"watch: {len(listings):,} listings read; a channel for {have} of {len(soon)} matches in the next {config.WATCH_DAYS} days"
+        + (f"; could not read: {failed}" if failed else ""))
+    if failed and not listings:
+        raise RuntimeError("no TV listings could be read: " + "; ".join(failed)[:300])
+    return {"matches_soon": len(soon), "with_channel": have, "listings": len(listings), "failed": failed}
+
+
+def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
+    sel = ranked_matches(state)
+    through, ranked, listed, unmatched = sel["through"], sel["teams"], sel["games"], sel["unmatched"]
+    rank = {t["id"]: t["rank"] for t in ranked if t["id"]}
+    where = read_json(state / "watch.json", {})
+    for g in listed:
+        if g["state"] != "final" and str(g["id"]) in where:
+            g["watch"] = where[str(g["id"])]      # an empty list means: looked, nothing announced
     if out.exists():
         shutil.rmtree(out)
     shutil.copytree(SITE_SRC, out)
     write_json(out / "data.json", {
-        "site": config.SITE_NAME, "updated": now.isoformat(timespec="seconds"), "season": board["season"],
-        "poll": {"name": config.POLL_NAME, "through": through, "teams": ranked, "polls_seen": len(polls)},
+        "site": config.SITE_NAME, "updated": now.isoformat(timespec="seconds"), "season": sel["season"],
+        "poll": {"name": config.POLL_NAME, "through": through, "teams": ranked, "polls_seen": sel["polls_seen"]},
         "game_page": config.GAME_PAGE, "games": listed})
     (out / ".nojekyll").write_text("")
     log(f"site: poll through {through}, {len(listed)} matches listed for {len(rank)} ranked teams"
         + (f"; NOT MATCHED to a scoreboard team: {unmatched}" if unmatched else ""))
-    return {"poll_through": through, "matches_listed": len(listed), "teams_matched": len(rank), "unmatched": unmatched}
+    return {"poll_through": through, "matches_listed": len(listed), "teams_matched": len(rank), "unmatched": unmatched,
+            "with_channel": sum(1 for g in listed if g.get("watch"))}
 
 
 def main(state_dir: str, out_dir: str) -> int:
@@ -177,6 +219,7 @@ def main(state_dir: str, out_dir: str) -> int:
         # a failed look at the poll or the scoreboard leaves the stored copy in use
         stage("poll", lambda: update_poll(state, now, os.environ.get("CHECK_POLL") == "1"))
         stage("scoreboard", lambda: update_scoreboard(state, season_for(now.date())))
+        stage("watch", lambda: update_watch(state, now))
     stage("site", lambda: build_site(state, out, now))
     status["finished_utc"] = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
     status["ok"] = all(s["ok"] for s in status["stages"].values())

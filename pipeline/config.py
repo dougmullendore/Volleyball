@@ -27,7 +27,13 @@ SPORT_CODE = "WVB"      # women's volleyball
 DIVISION = 1
 GAME_PAGE = "https://www.ncaa.com/game/"
 
-# Be polite to the NCAA's servers.
+# Where to watch. Channels are looked up for matches in the next WATCH_DAYS
+# days; further out, networks have usually not been announced.
+WATCH_DAYS = 14
+ESPN_SCOREBOARD = "https://site.api.espn.com/apis/site/v2/sports/volleyball/womens-college-volleyball/scoreboard?limit=500&dates="
+BIGTEN_SCHEDULE = "https://bigten.org/services/responsive-calendar.ashx?start={start}&end={end}%2023:59:59&sport_id=28&school_id=0"
+
+# Be polite to the servers.
 FETCH_THREADS = 6
 FETCH_RETRIES = 4
 USER_AGENT = "Mozilla/5.0 (compatible; volleyball-stats-site/2.0)"

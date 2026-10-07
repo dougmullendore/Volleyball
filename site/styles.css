@@ -72,7 +72,7 @@ h2.quiet { font-size: 1.125rem; font-weight: 600; color: var(--ink-2); margin-bo
 .day { font: 600 1.25rem/1.2 "Barlow Condensed", sans-serif; color: var(--ink-2); margin: 26px 0 6px; }
 .day.today { color: var(--teal); }
 .games { list-style: none; margin: 0; padding: 0; background: var(--sheet); border: 1px solid var(--line); border-radius: 4px; }
-.game { display: grid; grid-template-columns: 5.5rem 1fr 5.25rem 1fr 6.5rem; align-items: center; gap: 12px; padding: 9px 12px; border-top: 1px solid var(--line); }
+.game { display: grid; grid-template-columns: 5.5rem 1fr 5.25rem 1fr 9.5rem; align-items: center; gap: 12px; padding: 9px 12px; border-top: 1px solid var(--line); }
 .game:first-child { border-top: 0; }
 .game.both { box-shadow: inset 4px 0 0 var(--ball); }
 .when { color: var(--ink-2); font-size: .9375rem; font-variant-numeric: tabular-nums; }
@@ -86,6 +86,9 @@ h2.quiet { font-size: 1.125rem; font-weight: 600; color: var(--ink-2); margin-bo
 .mid .w { color: var(--ink); } .mid .l { color: var(--lost); } .mid .dash { color: var(--lost); padding: 0 .2em; font-weight: 500; }
 .more { text-align: right; font-size: .875rem; color: var(--ink-2); }
 .more .live { color: var(--teal); font-weight: 600; }
+.more .watch { display: block; color: var(--ink); font-weight: 600; font-size: .9375rem; line-height: 1.25; }
+.more .watch.none { color: var(--ink-2); font-weight: 400; font-size: .875rem; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .note { color: var(--ink-2); font-size: .9375rem; margin: 14px 0 0; max-width: 70ch; }
 .empty { background: var(--sheet); border: 1px dashed var(--line); border-radius: 4px; padding: 20px 16px; margin: 20px 0 0; }
 .foot { color: var(--ink-2); font-size: .875rem; margin-top: 48px; padding-top: 16px; padding-bottom: 40px; border-top: 1px solid var(--line); }

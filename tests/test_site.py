@@ -92,3 +92,58 @@ def test_the_page_lists_only_ranked_teams_matches():
     listed = {g["id"] for g in data["games"]}
     for g in games:      # and none was left out
         assert (g["id"] in listed) == (g["home"]["id"] in ranked or g["away"]["id"] in ranked)
+
+
+# ------------------------------------------------------------ where to watch --
+from pipeline import watch  # noqa: E402
+
+
+def listings():
+    espn = json.load(gzip.open(FIX / "espn_20261003.json.gz"))
+    bigten = json.load(gzip.open(FIX / "bigten_20261003.json.gz"))
+    return watch.parse_espn(espn) + watch.parse_bigten(bigten)
+
+
+def test_channels_are_matched_to_matches():
+    games = [run.parse_contest(c) for c in contests()]
+    names = {s["id"]: s["name"] for g in games for s in (g["away"], g["home"])}
+    found = watch.assign(games, listings(), names)
+    assert len(found) >= 105                                   # nearly every match that day is in a listing
+    by_teams = {(g["away"]["id"], g["home"]["id"]): found.get(g["id"]) for g in games}
+    assert by_teams[("louisville", "notre-dame")] == ["ACC Network Extra"]     # ESPN writes "ACCNX"
+    assert by_teams[("virginia", "stanford")] == ["ACC Network Extra"]
+    assert by_teams[("nebraska", "maryland")] == ["B1G+"]      # both sources list it; shown once
+    assert by_teams[("mercer", "east-tenn-st")] == []          # in the listing, but no channel announced
+
+
+def test_channel_names_are_tidied():
+    assert watch.channel("BTN") == watch.channel("Big Ten Network") == "Big Ten Network"
+    assert watch.channel("ESPN +") == "ESPN+" and watch.channel("SECN+") == "SEC Network+"
+    assert watch.channel("No Stream") is None and watch.channel("") is None
+    rows = [{"date_utc": "2026-10-08T22:30:00", "tba": False, "school": {"title": "Indiana"}, "opponent": {"title": "Nebraska"},
+             "media": {"tv": "BTN", "video": {"url": "https://www.foxsports.com/live"}}},
+            {"date_utc": "2026-10-09T23:00:00", "tba": False, "school": {"title": "Ohio State"}, "opponent": {"title": "Washington"},
+             "media": {"tv": None, "video": {"url": "https://www.bigtenplus.com/en-int/livestream/x/1"}}},
+            {"date_utc": None, "tba": True, "school": {"title": "Penn State"}, "opponent": {"title": "Northwestern"}, "media": {"tv": None}}]
+    got = watch.parse_bigten(rows)
+    assert [(g["teams"], g["channels"]) for g in got] == [(["Indiana", "Nebraska"], ["BTN"]), (["Ohio State", "Washington"], ["B1G+"])]
+
+
+def test_the_page_carries_channels_for_matches_not_yet_played():
+    state, out = Path(tempfile.mkdtemp(prefix="state")), Path(tempfile.mkdtemp(prefix="site")) / "dist"
+    found = poll.parse_page(poll_page())
+    run.write_json(state / "polls.json", {found["through"]: found["rows"]})
+    games = [run.parse_contest(c) for c in contests()]
+    for g in games:                                            # pretend the day has not been played yet
+        g["state"] = "upcoming"
+    played = next(g for g in games if g["home"]["id"] == "penn-st")
+    played["state"] = "final"
+    run.write_json(state / "scoreboard.json", {"season": 2026, "days": {"2026-10-03": games}})
+    ranked = run.ranked_matches(state)
+    where = watch.assign(ranked["games"], listings(), ranked["names"])
+    run.write_json(state / "watch.json", {str(k): v for k, v in where.items()})
+    run.build_site(state, out, dt.datetime(2026, 10, 2, tzinfo=UTC))
+    data = json.loads((out / "data.json").read_text())
+    shown = {(g["away"]["id"], g["home"]["id"]): g.get("watch") for g in data["games"]}
+    assert shown[("nebraska", "maryland")] == ["B1G+"] and shown[("louisville", "notre-dame")] == ["ACC Network Extra"]
+    assert shown[("iowa", "penn-st")] is None                  # finished: no channel shown
