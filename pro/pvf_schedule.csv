@@ -1,0 +1,320 @@
+season,date,home_team,away_team,home_team_set_wins,away_team_set_wins,result,match_id,phase
+2024,2024-01-24,Omaha Supernovas,Atlanta Vibe,2,3,2:3,2125267,regular season
+2024,2024-01-25,Grand Rapids Rise,Columbus Fury,3,0,3:0,2125268,regular season
+2024,2024-01-26,Orlando Valkyries,Atlanta Vibe,2,3,2:3,2125269,regular season
+2024,2024-02-01,Atlanta Vibe,San Diego Mojo,3,0,3:0,2125270,regular season
+2024,2024-02-03,Omaha Supernovas,San Diego Mojo,3,0,3:0,2125271,regular season
+2024,2024-02-07,Omaha Supernovas,Vegas Thrill,2,3,2:3,2125274,regular season
+2024,2024-02-09,Atlanta Vibe,Grand Rapids Rise,1,3,1:3,2125275,regular season
+2024,2024-02-10,Orlando Valkyries,Vegas Thrill,3,1,3:1,2125276,regular season
+2024,2024-02-12,Grand Rapids Rise,Omaha Supernovas,1,3,1:3,2125278,regular season
+2024,2024-02-12,Atlanta Vibe,Orlando Valkyries,3,2,3:2,2125279,regular season
+2024,2024-02-15,Vegas Thrill,Omaha Supernovas,1,3,1:3,2125280,regular season
+2024,2024-02-16,Orlando Valkyries,Columbus Fury,3,1,3:1,2125281,regular season
+2024,2024-02-18,Grand Rapids Rise,Atlanta Vibe,3,2,3:2,2125282,regular season
+2024,2024-02-18,Omaha Supernovas,Orlando Valkyries,3,1,3:1,2125283,regular season
+2024,2024-02-19,Vegas Thrill,San Diego Mojo,3,0,3:0,2125284,regular season
+2024,2024-02-21,Columbus Fury,Omaha Supernovas,3,1,3:1,2125285,regular season
+2024,2024-02-22,Vegas Thrill,Orlando Valkyries,1,3,1:3,2125286,regular season
+2024,2024-02-23,San Diego Mojo,Grand Rapids Rise,3,1,3:1,2125287,regular season
+2024,2024-02-24,Vegas Thrill,Columbus Fury,0,3,0:3,2125288,regular season
+2024,2024-02-25,Orlando Valkyries,Omaha Supernovas,1,3,1:3,2125289,regular season
+2024,2024-02-26,Columbus Fury,Vegas Thrill,3,1,3:1,2125290,regular season
+2024,2024-02-29,San Diego Mojo,Vegas Thrill,2,3,2:3,2125291,regular season
+2024,2024-02-29,Atlanta Vibe,Omaha Supernovas,0,3,0:3,2125292,regular season
+2024,2024-03-01,Orlando Valkyries,Grand Rapids Rise,3,1,3:1,2125293,regular season
+2024,2024-03-02,San Diego Mojo,Atlanta Vibe,0,3,0:3,2125294,regular season
+2024,2024-03-03,Orlando Valkyries,Columbus Fury,2,3,2:3,2125295,regular season
+2024,2024-03-04,Vegas Thrill,Atlanta Vibe,0,3,0:3,2125296,regular season
+2024,2024-03-04,San Diego Mojo,Grand Rapids Rise,3,2,3:2,2125297,regular season
+2024,2024-03-09,Orlando Valkyries,Omaha Supernovas,2,3,2:3,2125300,regular season
+2024,2024-03-09,Grand Rapids Rise,Columbus Fury,3,1,3:1,2125298,regular season
+2024,2024-03-09,Atlanta Vibe,Vegas Thrill,3,1,3:1,2125299,regular season
+2024,2024-03-11,San Diego Mojo,Orlando Valkyries,2,3,2:3,2125302,regular season
+2024,2024-03-11,Columbus Fury,Vegas Thrill,1,3,1:3,2125301,regular season
+2024,2024-03-14,Omaha Supernovas,Atlanta Vibe,1,3,1:3,2125303,regular season
+2024,2024-03-16,Omaha Supernovas,Orlando Valkyries,3,1,3:1,2125304,regular season
+2024,2024-03-17,Grand Rapids Rise,Vegas Thrill,2,3,2:3,2125305,regular season
+2024,2024-03-20,Columbus Fury,Grand Rapids Rise,1,3,1:3,2125306,regular season
+2024,2024-03-21,Atlanta Vibe,Orlando Valkyries,3,0,3:0,2125307,regular season
+2024,2024-03-24,Vegas Thrill,San Diego Mojo,0,3,0:3,2125309,regular season
+2024,2024-03-24,Columbus Fury,Atlanta Vibe,3,1,3:1,2125308,regular season
+2024,2024-03-26,Vegas Thrill,Grand Rapids Rise,1,3,1:3,2125310,regular season
+2024,2024-03-27,Atlanta Vibe,Columbus Fury,3,0,3:0,2125311,regular season
+2024,2024-03-28,Omaha Supernovas,Grand Rapids Rise,3,1,3:1,2125312,regular season
+2024,2024-03-29,Columbus Fury,Orlando Valkyries,0,3,0:3,2125313,regular season
+2024,2024-03-30,Omaha Supernovas,Vegas Thrill,3,0,3:0,2125314,regular season
+2024,2024-03-30,Atlanta Vibe,San Diego Mojo,3,0,3:0,2125315,regular season
+2024,2024-04-01,Grand Rapids Rise,Atlanta Vibe,1,3,1:3,2125316,regular season
+2024,2024-04-02,San Diego Mojo,Omaha Supernovas,3,1,3:1,2125317,regular season
+2024,2024-04-04,Omaha Supernovas,Columbus Fury,3,1,3:1,2125318,regular season
+2024,2024-04-06,Grand Rapids Rise,Orlando Valkyries,2,3,2:3,2125319,regular season
+2024,2024-04-07,San Diego Mojo,Columbus Fury,3,1,3:1,2125320,regular season
+2024,2024-04-08,Vegas Thrill,Atlanta Vibe,0,3,0:3,2125321,regular season
+2024,2024-04-10,San Diego Mojo,Atlanta Vibe,0,3,0:3,2125322,regular season
+2024,2024-04-11,Orlando Valkyries,Grand Rapids Rise,0,3,0:3,2125323,regular season
+2024,2024-04-12,Columbus Fury,San Diego Mojo,2,3,2:3,2125324,regular season
+2024,2024-04-13,Atlanta Vibe,Omaha Supernovas,3,1,3:1,2125326,regular season
+2024,2024-04-13,Grand Rapids Rise,Vegas Thrill,3,2,3:2,2125325,regular season
+2024,2024-04-14,Orlando Valkyries,San Diego Mojo,2,3,2:3,2125327,regular season
+2024,2024-04-16,Atlanta Vibe,Grand Rapids Rise,3,1,3:1,2125328,regular season
+2024,2024-04-17,Vegas Thrill,Columbus Fury,3,0,3:0,2125329,regular season
+2024,2024-04-18,Grand Rapids Rise,Orlando Valkyries,3,1,3:1,2125330,regular season
+2024,2024-04-19,Columbus Fury,Atlanta Vibe,3,1,3:1,2125331,regular season
+2024,2024-04-20,Vegas Thrill,Grand Rapids Rise,1,3,1:3,2125332,regular season
+2024,2024-04-20,Omaha Supernovas,San Diego Mojo,3,2,3:2,2125333,regular season
+2024,2024-04-21,Orlando Valkyries,Atlanta Vibe,1,3,1:3,2125334,regular season
+2024,2024-04-23,San Diego Mojo,Omaha Supernovas,3,2,3:2,2125335,regular season
+2024,2024-04-26,Omaha Supernovas,Grand Rapids Rise,2,3,2:3,2125336,regular season
+2024,2024-04-26,San Diego Mojo,Vegas Thrill,2,3,2:3,2125337,regular season
+2024,2024-04-26,Columbus Fury,Orlando Valkyries,3,1,3:1,2125338,regular season
+2024,2024-04-28,Columbus Fury,Grand Rapids Rise,3,0,3:0,2125339,regular season
+2024,2024-04-28,Atlanta Vibe,Vegas Thrill,3,0,3:0,2125340,regular season
+2024,2024-04-29,San Diego Mojo,Orlando Valkyries,3,2,3:2,2125341,regular season
+2024,2024-05-01,Vegas Thrill,Orlando Valkyries,3,2,3:2,2125342,regular season
+2024,2024-05-02,Atlanta Vibe,Columbus Fury,3,0,3:0,2125343,regular season
+2024,2024-05-04,Grand Rapids Rise,San Diego Mojo,1,3,1:3,2125345,regular season
+2024,2024-05-04,Columbus Fury,Omaha Supernovas,1,3,1:3,2125344,regular season
+2024,2024-05-05,Grand Rapids Rise,San Diego Mojo,3,0,3:0,2125346,regular season
+2024,2024-05-06,Vegas Thrill,Omaha Supernovas,0,3,0:3,2125347,regular season
+2024,2024-05-07,San Diego Mojo,Columbus Fury,3,1,3:1,2125348,regular season
+2024,2024-05-09,Omaha Supernovas,Columbus Fury,3,0,3:0,2125349,regular season
+2024,2024-05-09,Orlando Valkyries,San Diego Mojo,2,3,2:3,2125350,regular season
+2024,2024-05-11,Orlando Valkyries,Vegas Thrill,3,0,3:0,2125351,regular season
+2024,2024-05-11,Columbus Fury,San Diego Mojo,1,3,1:3,2125352,regular season
+2024,2024-05-12,Grand Rapids Rise,Omaha Supernovas,3,2,3:2,2125353,regular season
+2024,2024-05-15,Atlanta Vibe,Grand Rapids Rise,2,3,2:3,2145783,finals
+2024,2024-05-15,Omaha Supernovas,San Diego Mojo,3,2,3:2,2145784,finals
+2024,2024-05-18,Omaha Supernovas,Grand Rapids Rise,3,0,3:0,2145785,finals
+2025,2025-01-09,Orlando Valkyries,San Diego Mojo,3,0,3:0,2160916,regular season
+2025,2025-01-10,Vegas Thrill,Grand Rapids Rise,3,2,3:2,2160918,regular season
+2025,2025-01-10,Omaha Supernovas,Atlanta Vibe,3,2,3:2,2160917,regular season
+2025,2025-01-11,Columbus Fury,San Diego Mojo,1,3,1:3,2160919,regular season
+2025,2025-01-11,Indy Ignite,Orlando Valkyries,3,1,3:1,2160920,regular season
+2025,2025-01-12,Vegas Thrill,Atlanta Vibe,0,3,0:3,2160921,regular season
+2025,2025-01-12,Grand Rapids Rise,Omaha Supernovas,0,3,0:3,2160922,regular season
+2025,2025-01-16,Atlanta Vibe,Columbus Fury,3,2,3:2,2160923,regular season
+2025,2025-01-16,San Diego Mojo,Orlando Valkyries,1,3,1:3,2160925,regular season
+2025,2025-01-16,Indy Ignite,Grand Rapids Rise,3,0,3:0,2160924,regular season
+2025,2025-01-17,Vegas Thrill,Omaha Supernovas,3,2,3:2,2160926,regular season
+2025,2025-01-18,Columbus Fury,Indy Ignite,2,3,2:3,2160927,regular season
+2025,2025-01-19,Atlanta Vibe,Grand Rapids Rise,0,3,0:3,2160928,regular season
+2025,2025-01-19,Vegas Thrill,Orlando Valkyries,3,2,3:2,2160930,regular season
+2025,2025-01-19,Omaha Supernovas,San Diego Mojo,1,3,1:3,2160929,regular season
+2025,2025-01-23,Atlanta Vibe,Vegas Thrill,3,1,3:1,2160931,regular season
+2025,2025-01-24,San Diego Mojo,Indy Ignite,3,1,3:1,2160933,regular season
+2025,2025-01-24,Columbus Fury,Omaha Supernovas,0,3,0:3,2160932,regular season
+2025,2025-01-26,Columbus Fury,Grand Rapids Rise,2,3,2:3,2160934,regular season
+2025,2025-01-26,Orlando Valkyries,Vegas Thrill,1,3,1:3,2160935,regular season
+2025,2025-01-30,San Diego Mojo,Atlanta Vibe,1,3,1:3,2160936,regular season
+2025,2025-01-30,Grand Rapids Rise,Orlando Valkyries,3,2,3:2,2160937,regular season
+2025,2025-01-31,Omaha Supernovas,Columbus Fury,3,0,3:0,2160938,regular season
+2025,2025-01-31,Vegas Thrill,Indy Ignite,3,2,3:2,2160939,regular season
+2025,2025-02-02,Orlando Valkyries,Omaha Supernovas,3,0,3:0,2160943,regular season
+2025,2025-02-02,Grand Rapids Rise,San Diego Mojo,3,0,3:0,2160942,regular season
+2025,2025-02-02,Indy Ignite,Columbus Fury,3,0,3:0,2160941,regular season
+2025,2025-02-02,Vegas Thrill,Atlanta Vibe,3,1,3:1,2160940,regular season
+2025,2025-02-06,Indy Ignite,Omaha Supernovas,0,3,0:3,2160945,regular season
+2025,2025-02-06,Atlanta Vibe,Orlando Valkyries,0,3,0:3,2160944,regular season
+2025,2025-02-07,San Diego Mojo,Vegas Thrill,0,3,0:3,2160947,regular season
+2025,2025-02-07,Columbus Fury,Grand Rapids Rise,3,2,3:2,2160946,regular season
+2025,2025-02-08,Atlanta Vibe,Omaha Supernovas,1,3,1:3,2160948,regular season
+2025,2025-02-08,Orlando Valkyries,Indy Ignite,3,1,3:1,2160949,regular season
+2025,2025-02-12,Columbus Fury,Orlando Valkyries,1,3,1:3,2160950,regular season
+2025,2025-02-13,Indy Ignite,San Diego Mojo,3,1,3:1,2160952,regular season
+2025,2025-02-13,Grand Rapids Rise,Atlanta Vibe,1,3,1:3,2160951,regular season
+2025,2025-02-15,Orlando Valkyries,Grand Rapids Rise,3,0,3:0,2160953,regular season
+2025,2025-02-16,Atlanta Vibe,Indy Ignite,3,2,3:2,2160954,regular season
+2025,2025-02-16,Omaha Supernovas,San Diego Mojo,3,0,3:0,2160955,regular season
+2025,2025-02-17,Columbus Fury,Vegas Thrill,3,1,3:1,2160956,regular season
+2025,2025-02-20,Indy Ignite,Atlanta Vibe,3,1,3:1,2160957,regular season
+2025,2025-02-20,San Diego Mojo,Omaha Supernovas,1,3,1:3,2160959,regular season
+2025,2025-02-20,Orlando Valkyries,Vegas Thrill,3,0,3:0,2160960,regular season
+2025,2025-02-20,Grand Rapids Rise,Columbus Fury,2,3,2:3,2160958,regular season
+2025,2025-02-22,Team Shondell,Team Collier,3,0,3:0,2167801,all-star
+2025,2025-02-23,Columbus Fury,Atlanta Vibe,3,0,3:0,2160961,regular season
+2025,2025-02-27,Indy Ignite,Vegas Thrill,3,1,3:1,2160963,regular season
+2025,2025-02-27,Omaha Supernovas,Orlando Valkyries,0,3,0:3,2160964,regular season
+2025,2025-02-27,San Diego Mojo,Grand Rapids Rise,3,1,3:1,2160962,regular season
+2025,2025-03-01,San Diego Mojo,Columbus Fury,3,1,3:1,2160966,regular season
+2025,2025-03-01,Orlando Valkyries,Atlanta Vibe,3,2,3:2,2160965,regular season
+2025,2025-03-02,Vegas Thrill,Grand Rapids Rise,0,3,0:3,2160967,regular season
+2025,2025-03-02,Omaha Supernovas,Indy Ignite,3,0,3:0,2160968,regular season
+2025,2025-03-05,Grand Rapids Rise,San Diego Mojo,3,0,3:0,2160970,regular season
+2025,2025-03-05,Columbus Fury,Omaha Supernovas,0,3,0:3,2160969,regular season
+2025,2025-03-05,Vegas Thrill,Indy Ignite,1,3,1:3,2160971,regular season
+2025,2025-03-07,Atlanta Vibe,Vegas Thrill,3,2,3:2,2160972,regular season
+2025,2025-03-09,Atlanta Vibe,Indy Ignite,3,1,3:1,2160975,regular season
+2025,2025-03-09,San Diego Mojo,Grand Rapids Rise,1,3,1:3,2160974,regular season
+2025,2025-03-09,Orlando Valkyries,Columbus Fury,3,1,3:1,2160973,regular season
+2025,2025-03-13,Grand Rapids Rise,Atlanta Vibe,1,3,1:3,2160976,regular season
+2025,2025-03-13,Indy Ignite,Omaha Supernovas,2,3,2:3,2160977,regular season
+2025,2025-03-13,Orlando Valkyries,San Diego Mojo,2,3,2:3,2160978,regular season
+2025,2025-03-14,Columbus Fury,Vegas Thrill,3,0,3:0,2160979,regular season
+2025,2025-03-15,Grand Rapids Rise,Indy Ignite,1,3,1:3,2160981,regular season
+2025,2025-03-15,Orlando Valkyries,Omaha Supernovas,1,3,1:3,2160982,regular season
+2025,2025-03-15,Atlanta Vibe,San Diego Mojo,3,2,3:2,2160980,regular season
+2025,2025-03-19,San Diego Mojo,Orlando Valkyries,1,3,1:3,2160983,regular season
+2025,2025-03-20,Indy Ignite,Columbus Fury,3,2,3:2,2160984,regular season
+2025,2025-03-20,Grand Rapids Rise,Vegas Thrill,1,3,1:3,2160985,regular season
+2025,2025-03-21,Atlanta Vibe,Orlando Valkyries,3,1,3:1,2160986,regular season
+2025,2025-03-22,Omaha Supernovas,Indy Ignite,0,3,0:3,2160987,regular season
+2025,2025-03-23,Columbus Fury,Atlanta Vibe,0,3,0:3,2160988,regular season
+2025,2025-03-28,Grand Rapids Rise,Columbus Fury,3,2,3:2,2160990,regular season
+2025,2025-03-28,Atlanta Vibe,San Diego Mojo,3,1,3:1,2160989,regular season
+2025,2025-03-28,Omaha Supernovas,Vegas Thrill,3,0,3:0,2160991,regular season
+2025,2025-03-30,Atlanta Vibe,Columbus Fury,3,0,3:0,2160992,regular season
+2025,2025-03-30,Orlando Valkyries,Indy Ignite,2,3,2:3,2160994,regular season
+2025,2025-03-30,Omaha Supernovas,Grand Rapids Rise,3,1,3:1,2160993,regular season
+2025,2025-03-30,Vegas Thrill,San Diego Mojo,1,3,1:3,2160995,regular season
+2025,2025-04-05,Omaha Supernovas,Orlando Valkyries,3,1,3:1,2160998,regular season
+2025,2025-04-05,Grand Rapids Rise,Vegas Thrill,3,0,3:0,2160997,regular season
+2025,2025-04-05,Columbus Fury,Indy Ignite,3,1,3:1,2160996,regular season
+2025,2025-04-08,San Diego Mojo,Atlanta Vibe,2,3,2:3,2160999,regular season
+2025,2025-04-10,Orlando Valkyries,Grand Rapids Rise,3,1,3:1,2161000,regular season
+2025,2025-04-10,Vegas Thrill,Omaha Supernovas,1,3,1:3,2161001,regular season
+2025,2025-04-12,San Diego Mojo,Omaha Supernovas,3,1,3:1,2161004,regular season
+2025,2025-04-12,Indy Ignite,Grand Rapids Rise,2,3,2:3,2161003,regular season
+2025,2025-04-12,Orlando Valkyries,Atlanta Vibe,0,3,0:3,2161002,regular season
+2025,2025-04-13,Vegas Thrill,Columbus Fury,0,3,0:3,2161005,regular season
+2025,2025-04-16,Columbus Fury,San Diego Mojo,3,1,3:1,2161006,regular season
+2025,2025-04-17,Omaha Supernovas,Grand Rapids Rise,0,3,0:3,2161007,regular season
+2025,2025-04-17,Indy Ignite,Vegas Thrill,2,3,2:3,2161008,regular season
+2025,2025-04-18,Columbus Fury,Orlando Valkyries,0,3,0:3,2161009,regular season
+2025,2025-04-19,San Diego Mojo,Vegas Thrill,3,2,3:2,2161012,regular season
+2025,2025-04-19,Omaha Supernovas,Atlanta Vibe,0,3,0:3,2161010,regular season
+2025,2025-04-19,Grand Rapids Rise,Indy Ignite,3,1,3:1,2161011,regular season
+2025,2025-04-25,Vegas Thrill,San Diego Mojo,3,2,3:2,2161015,regular season
+2025,2025-04-25,Omaha Supernovas,Columbus Fury,3,2,3:2,2161013,regular season
+2025,2025-04-25,Indy Ignite,Orlando Valkyries,1,3,1:3,2161014,regular season
+2025,2025-04-26,Atlanta Vibe,Grand Rapids Rise,3,2,3:2,2161016,regular season
+2025,2025-04-27,Indy Ignite,San Diego Mojo,3,1,3:1,2161018,regular season
+2025,2025-04-27,Omaha Supernovas,Vegas Thrill,3,0,3:0,2161019,regular season
+2025,2025-04-27,Orlando Valkyries,Columbus Fury,3,1,3:1,2161017,regular season
+2025,2025-04-30,Grand Rapids Rise,Orlando Valkyries,2,3,2:3,2161020,regular season
+2025,2025-05-01,Indy Ignite,Atlanta Vibe,2,3,2:3,2161021,regular season
+2025,2025-05-01,San Diego Mojo,Columbus Fury,3,0,3:0,2161022,regular season
+2025,2025-05-02,Grand Rapids Rise,Omaha Supernovas,1,3,1:3,2161023,regular season
+2025,2025-05-02,Vegas Thrill,Orlando Valkyries,1,3,1:3,2161024,regular season
+2025,2025-05-03,San Diego Mojo,Indy Ignite,3,1,3:1,2161025,regular season
+2025,2025-05-04,Atlanta Vibe,Omaha Supernovas,1,3,1:3,2161027,regular season
+2025,2025-05-04,Vegas Thrill,Columbus Fury,2,3,2:3,2161026,regular season
+2025,2025-05-09,Atlanta Vibe,Orlando Valkyries,1,3,1:3,2220754,finals
+2025,2025-05-09,Omaha Supernovas,Indy Ignite,2,3,2:3,2220753,finals
+2025,2025-05-11,Orlando Valkyries,Indy Ignite,3,1,3:1,2220755,finals
+2026,2026-01-08,Atlanta Vibe,Columbus Fury,1,3,1:3,2256597,regular season
+2026,2026-01-08,Omaha Supernovas,San Diego Mojo,3,0,3:0,2256598,regular season
+2026,2026-01-09,Orlando Valkyries,Grand Rapids Rise,3,2,3:2,2256599,regular season
+2026,2026-01-10,Columbus Fury,Omaha Supernovas,1,3,1:3,2256600,regular season
+2026,2026-01-10,Dallas Pulse,Indy Ignite,1,3,1:3,2256601,regular season
+2026,2026-01-11,Atlanta Vibe,Grand Rapids Rise,3,0,3:0,2256602,regular season
+2026,2026-01-11,San Diego Mojo,Orlando Valkyries,1,3,1:3,2256603,regular season
+2026,2026-01-14,Grand Rapids Rise,Columbus Fury,3,2,3:2,2256604,regular season
+2026,2026-01-15,Dallas Pulse,San Diego Mojo,3,1,3:1,2256605,regular season
+2026,2026-01-16,Omaha Supernovas,Atlanta Vibe,2,3,2:3,2256606,regular season
+2026,2026-01-17,Columbus Fury,Indy Ignite,2,3,2:3,2256607,regular season
+2026,2026-01-18,Omaha Supernovas,Orlando Valkyries,2,3,2:3,2256609,regular season
+2026,2026-01-18,San Diego Mojo,Atlanta Vibe,3,2,3:2,2256608,regular season
+2026,2026-01-22,Orlando Valkyries,Indy Ignite,1,3,1:3,2256612,regular season
+2026,2026-01-22,Omaha Supernovas,Columbus Fury,1,3,1:3,2256611,regular season
+2026,2026-01-22,Atlanta Vibe,Dallas Pulse,2,3,2:3,2256610,regular season
+2026,2026-01-23,San Diego Mojo,Grand Rapids Rise,1,3,1:3,2256613,regular season
+2026,2026-01-24,Indy Ignite,Omaha Supernovas,1,3,1:3,2256614,regular season
+2026,2026-01-25,Orlando Valkyries,Dallas Pulse,2,3,2:3,2256616,regular season
+2026,2026-01-29,Grand Rapids Rise,Orlando Valkyries,0,3,0:3,2256619,regular season
+2026,2026-01-29,Indy Ignite,Atlanta Vibe,3,1,3:1,2256617,regular season
+2026,2026-01-29,Columbus Fury,Dallas Pulse,0,3,0:3,2256618,regular season
+2026,2026-01-30,Omaha Supernovas,San Diego Mojo,3,2,3:2,2256620,regular season
+2026,2026-01-31,Columbus Fury,Orlando Valkyries,2,3,2:3,2256621,regular season
+2026,2026-01-31,Indy Ignite,Dallas Pulse,3,0,3:0,2256622,regular season
+2026,2026-02-01,Grand Rapids Rise,Omaha Supernovas,1,3,1:3,2256624,regular season
+2026,2026-02-01,Atlanta Vibe,San Diego Mojo,3,1,3:1,2256623,regular season
+2026,2026-02-05,Dallas Pulse,Omaha Supernovas,0,3,0:3,2256625,regular season
+2026,2026-02-06,Orlando Valkyries,Atlanta Vibe,2,3,2:3,2256626,regular season
+2026,2026-02-06,Indy Ignite,Grand Rapids Rise,3,1,3:1,2256628,regular season
+2026,2026-02-06,San Diego Mojo,Columbus Fury,3,1,3:1,2256627,regular season
+2026,2026-02-08,Dallas Pulse,Grand Rapids Rise,3,1,3:1,2256629,regular season
+2026,2026-02-08,Orlando Valkyries,Omaha Supernovas,2,3,2:3,2256630,regular season
+2026,2026-02-09,San Diego Mojo,Indy Ignite,3,1,3:1,2256631,regular season
+2026,2026-02-12,Omaha Supernovas,Dallas Pulse,2,3,2:3,2256632,regular season
+2026,2026-02-12,Grand Rapids Rise,San Diego Mojo,2,3,2:3,2256633,regular season
+2026,2026-02-13,Indy Ignite,Orlando Valkyries,3,1,3:1,2256634,regular season
+2026,2026-02-14,Grand Rapids Rise,Atlanta Vibe,3,0,3:0,2256635,regular season
+2026,2026-02-14,Columbus Fury,Dallas Pulse,0,3,0:3,2256636,regular season
+2026,2026-02-15,Omaha Supernovas,Orlando Valkyries,0,3,0:3,2256638,regular season
+2026,2026-02-15,Indy Ignite,San Diego Mojo,3,0,3:0,2256637,regular season
+2026,2026-02-19,Dallas Pulse,Indy Ignite,0,3,0:3,2256640,regular season
+2026,2026-02-19,Atlanta Vibe,Columbus Fury,3,1,3:1,2256639,regular season
+2026,2026-02-21,Atlanta Vibe,Indy Ignite,1,3,1:3,2256641,regular season
+2026,2026-02-22,Dallas Pulse,Grand Rapids Rise,3,0,3:0,2256643,regular season
+2026,2026-02-22,San Diego Mojo,Omaha Supernovas,3,2,3:2,2256644,regular season
+2026,2026-02-22,Orlando Valkyries,Columbus Fury,1,3,1:3,2256642,regular season
+2026,2026-02-26,Omaha Supernovas,Atlanta Vibe,1,3,1:3,2256645,regular season
+2026,2026-02-26,Grand Rapids Rise,San Diego Mojo,0,3,0:3,2256646,regular season
+2026,2026-02-27,Dallas Pulse,Orlando Valkyries,1,3,1:3,2256648,regular season
+2026,2026-02-27,Columbus Fury,Indy Ignite,0,3,0:3,2256647,regular season
+2026,2026-03-01,Indy Ignite,Omaha Supernovas,3,1,3:1,2256652,regular season
+2026,2026-03-01,Atlanta Vibe,Dallas Pulse,2,3,2:3,2256649,regular season
+2026,2026-03-01,San Diego Mojo,Columbus Fury,3,1,3:1,2256650,regular season
+2026,2026-03-01,Orlando Valkyries,Grand Rapids Rise,1,3,1:3,2256651,regular season
+2026,2026-03-05,Orlando Valkyries,Columbus Fury,3,1,3:1,2256653,regular season
+2026,2026-03-07,San Diego Mojo,Atlanta Vibe,1,3,1:3,2256654,regular season
+2026,2026-03-07,Grand Rapids Rise,Omaha Supernovas,3,1,3:1,2256656,regular season
+2026,2026-03-07,Orlando Valkyries,Dallas Pulse,0,3,0:3,2256655,regular season
+2026,2026-03-08,Indy Ignite,Grand Rapids Rise,3,1,3:1,2256657,regular season
+2026,2026-03-10,Columbus Fury,Omaha Supernovas,0,3,0:3,2256658,regular season
+2026,2026-03-12,Indy Ignite,Orlando Valkyries,3,0,3:0,2256659,regular season
+2026,2026-03-13,Atlanta Vibe,Grand Rapids Rise,1,3,1:3,2256660,regular season
+2026,2026-03-13,Dallas Pulse,Columbus Fury,3,0,3:0,2256661,regular season
+2026,2026-03-14,Omaha Supernovas,Indy Ignite,3,2,3:2,2256662,regular season
+2026,2026-03-14,Orlando Valkyries,San Diego Mojo,3,0,3:0,2256663,regular season
+2026,2026-03-15,Dallas Pulse,Atlanta Vibe,3,0,3:0,2256664,regular season
+2026,2026-03-18,Grand Rapids Rise,Dallas Pulse,1,3,1:3,2256665,regular season
+2026,2026-03-19,Indy Ignite,Columbus Fury,3,1,3:1,2256667,regular season
+2026,2026-03-19,Atlanta Vibe,Orlando Valkyries,3,0,3:0,2256666,regular season
+2026,2026-03-20,Omaha Supernovas,Grand Rapids Rise,3,0,3:0,2256668,regular season
+2026,2026-03-21,Dallas Pulse,San Diego Mojo,3,1,3:1,2256669,regular season
+2026,2026-03-24,Columbus Fury,Orlando Valkyries,3,0,3:0,2256670,regular season
+2026,2026-03-25,Grand Rapids Rise,Indy Ignite,3,1,3:1,2256671,regular season
+2026,2026-03-25,San Diego Mojo,Omaha Supernovas,3,1,3:1,2256672,regular season
+2026,2026-03-26,Dallas Pulse,Atlanta Vibe,3,2,3:2,2256673,regular season
+2026,2026-03-28,Team Launiere,Team Meske,2,1,2:1,2398230,all-star
+2026,2026-04-02,Atlanta Vibe,Omaha Supernovas,1,3,1:3,2256674,regular season
+2026,2026-04-03,Columbus Fury,San Diego Mojo,0,3,0:3,2256675,regular season
+2026,2026-04-03,Grand Rapids Rise,Dallas Pulse,1,3,1:3,2256676,regular season
+2026,2026-04-04,Atlanta Vibe,Orlando Valkyries,1,3,1:3,2256677,regular season
+2026,2026-04-04,Omaha Supernovas,Indy Ignite,0,3,0:3,2256678,regular season
+2026,2026-04-05,Columbus Fury,Grand Rapids Rise,3,2,3:2,2256679,regular season
+2026,2026-04-05,San Diego Mojo,Dallas Pulse,3,2,3:2,2256680,regular season
+2026,2026-04-09,San Diego Mojo,Indy Ignite,2,3,2:3,2256681,regular season
+2026,2026-04-10,Omaha Supernovas,Grand Rapids Rise,1,3,1:3,2256683,regular season
+2026,2026-04-10,Columbus Fury,Atlanta Vibe,2,3,2:3,2256682,regular season
+2026,2026-04-11,San Diego Mojo,Orlando Valkyries,3,2,3:2,2256684,regular season
+2026,2026-04-12,Indy Ignite,Atlanta Vibe,3,0,3:0,2256685,regular season
+2026,2026-04-12,Omaha Supernovas,Dallas Pulse,0,3,0:3,2256687,regular season
+2026,2026-04-12,Grand Rapids Rise,Columbus Fury,3,2,3:2,2256686,regular season
+2026,2026-04-16,Orlando Valkyries,Omaha Supernovas,0,3,0:3,2256688,regular season
+2026,2026-04-17,Atlanta Vibe,San Diego Mojo,0,3,0:3,2256689,regular season
+2026,2026-04-17,Grand Rapids Rise,Indy Ignite,3,1,3:1,2256691,regular season
+2026,2026-04-17,Dallas Pulse,Columbus Fury,3,0,3:0,2256690,regular season
+2026,2026-04-19,Atlanta Vibe,Omaha Supernovas,0,3,0:3,2256692,regular season
+2026,2026-04-19,Orlando Valkyries,San Diego Mojo,0,3,0:3,2256695,regular season
+2026,2026-04-19,Columbus Fury,Grand Rapids Rise,1,3,1:3,2256693,regular season
+2026,2026-04-19,Indy Ignite,Dallas Pulse,3,1,3:1,2256694,regular season
+2026,2026-04-22,Grand Rapids Rise,Atlanta Vibe,3,2,3:2,2256696,regular season
+2026,2026-04-23,Orlando Valkyries,Indy Ignite,0,3,0:3,2256697,regular season
+2026,2026-04-24,Omaha Supernovas,Columbus Fury,3,1,3:1,2256698,regular season
+2026,2026-04-24,San Diego Mojo,Dallas Pulse,2,3,2:3,2256699,regular season
+2026,2026-04-25,Grand Rapids Rise,Orlando Valkyries,2,3,2:3,2256700,regular season
+2026,2026-04-26,Columbus Fury,San Diego Mojo,0,3,0:3,2256702,regular season
+2026,2026-04-26,Atlanta Vibe,Indy Ignite,1,3,1:3,2256701,regular season
+2026,2026-04-30,San Diego Mojo,Grand Rapids Rise,3,0,3:0,2256703,regular season
+2026,2026-05-01,Indy Ignite,Columbus Fury,3,2,3:2,2256705,regular season
+2026,2026-05-01,Orlando Valkyries,Atlanta Vibe,3,1,3:1,2256704,regular season
+2026,2026-05-01,Dallas Pulse,Omaha Supernovas,3,0,3:0,2256706,regular season
+2026,2026-05-03,Dallas Pulse,Orlando Valkyries,1,3,1:3,2256707,regular season
+2026,2026-05-03,Columbus Fury,Atlanta Vibe,0,3,0:3,2256615,regular season
+2026,2026-05-03,Indy Ignite,San Diego Mojo,3,1,3:1,2256708,regular season
+2026,2026-05-07,Dallas Pulse,San Diego Mojo,3,1,3:1,2464511,finals
+2026,2026-05-07,Indy Ignite,Omaha Supernovas,2,3,2:3,2464510,finals
+2026,2026-05-09,Dallas Pulse,Omaha Supernovas,3,2,3:2,2464512,finals

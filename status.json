@@ -1,0 +1,64 @@
+{
+ "started_utc": "2026-10-10T21:03:03+00:00",
+ "commit": "f93b9d28f95d",
+ "stages": {
+  "scores now": {
+   "ok": true,
+   "result": {
+    "season": 2026,
+    "days": 1,
+    "days_failed": 0,
+    "matches": 4823
+   }
+  },
+  "box scores now": {
+   "ok": true,
+   "result": {
+    "fetched": 24,
+    "failed": 0
+   }
+  },
+  "site": {
+   "ok": true,
+   "result": {
+    "poll_through": "2026-10-04",
+    "matches_listed": 562,
+    "teams_matched": 25,
+    "unmatched": [],
+    "with_channel": 74,
+    "players": 396,
+    "regulars": 254,
+    "d1_teams": 348,
+    "d1_matches": 4823,
+    "d1_players": 5536,
+    "d1_regulars": 3830,
+    "with_odds": 260,
+    "teams_rated": 371,
+    "match_pages": 2895
+   }
+  },
+  "pro leagues": {
+   "ok": true,
+   "result": {
+    "lovb": {
+     "season": 2026,
+     "matches": 66,
+     "played": 66,
+     "teams": 6,
+     "players": 98,
+     "box_scores": 66
+    },
+    "mlv": {
+     "season": 2026,
+     "matches": 115,
+     "played": 115,
+     "teams": 8,
+     "players": 144,
+     "box_scores": 115
+    }
+   }
+  }
+ },
+ "finished_utc": "2026-10-10T21:03:14+00:00",
+ "ok": true
+}

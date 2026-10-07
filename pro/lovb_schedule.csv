@@ -1,0 +1,127 @@
+season,date,home_team,away_team,home_team_set_wins,away_team_set_wins,result,match_id,phase
+2025,2025-01-08,Atlanta,Salt Lake,1,3,1:3,2161068,Week 1
+2025,2025-01-09,Houston,Austin,3,2,3:2,2161288,Week 1
+2025,2025-01-10,Austin,Madison,3,0,3:0,2161289,Week 1
+2025,2025-01-10,Houston,Nebraska,0,3,0:3,2161290,Week 1
+2025,2025-01-15,Austin,Atlanta,1,3,1:3,2161291,Week 2
+2025,2025-01-17,Madison,Salt Lake,3,2,3:2,2161292,Week 2
+2025,2025-01-18,Salt Lake,Houston,1,3,1:3,2161293,Week 2
+2025,2025-01-18,Madison,Nebraska,1,3,1:3,2161294,Week 2
+2025,2025-01-22,Salt Lake,Houston,3,1,3:1,2161295,Week 3
+2025,2025-01-24,Nebraska,Madison,3,1,3:1,2161296,Week 3
+2025,2025-01-25,Madison,Atlanta,2,3,2:3,2161297,Week 3
+2025,2025-01-25,Nebraska,Austin,0,3,0:3,2161298,Week 3
+2025,2025-01-29,Madison,Houston,0,3,0:3,2161299,Week 4
+2025,2025-01-31,Atlanta,Salt Lake,3,0,3:0,2161300,Week 4
+2025,2025-02-01,Atlanta,Nebraska,3,1,3:1,2161302,Week 4
+2025,2025-02-01,Salt Lake,Austin,3,2,3:2,2161301,Week 4
+2025,2025-02-05,Austin,Houston,1,3,1:3,2161303,Week 5
+2025,2025-02-07,Salt Lake,Atlanta,1,3,1:3,2161304,Week 5
+2025,2025-02-08,Atlanta,Madison,3,0,3:0,2161305,Week 5
+2025,2025-02-08,Salt Lake,Nebraska,2,3,2:3,2161306,Week 5
+2025,2025-02-14,Houston,Madison,3,0,3:0,2161311,Week 6
+2025,2025-02-14,Salt Lake,Austin,1,3,1:3,2161312,Week 6
+2025,2025-02-15,Nebraska,Houston,1,3,1:3,2161313,Week 6
+2025,2025-02-15,Atlanta,Austin,3,1,3:1,2161314,Week 6
+2025,2025-02-16,Salt Lake,Madison,3,1,3:1,2161315,Week 6
+2025,2025-02-16,Nebraska,Austin,1,3,1:3,2161316,Week 6
+2025,2025-02-16,Atlanta,Houston,1,3,1:3,2161317,Week 6
+2025,2025-02-19,Austin,Houston,3,1,3:1,2161307,Week 7
+2025,2025-02-20,Houston,Nebraska,3,0,3:0,2161308,Week 7
+2025,2025-02-20,Austin,Salt Lake,3,1,3:1,2161309,Week 7
+2025,2025-02-21,Atlanta,Madison,3,2,3:2,2161310,Week 7
+2025,2025-02-27,Houston,Salt Lake,0,3,0:3,2161318,Week 8
+2025,2025-02-28,Madison,Nebraska,3,1,3:1,2161319,Week 8
+2025,2025-03-01,Nebraska,Atlanta,2,3,2:3,2161320,Week 8
+2025,2025-03-01,Madison,Austin,3,0,3:0,2161321,Week 8
+2025,2025-03-06,Nebraska,Salt Lake,1,3,1:3,2161322,Week 9
+2025,2025-03-07,Atlanta,Houston,2,3,2:3,2161323,Week 9
+2025,2025-03-08,Houston,Madison,1,3,1:3,2161324,Week 9
+2025,2025-03-08,Atlanta,Austin,3,1,3:1,2161325,Week 9
+2025,2025-03-13,Madison,Nebraska,3,1,3:1,2161326,Week 10
+2025,2025-03-14,Houston,Atlanta,3,2,3:2,2161327,Week 10
+2025,2025-03-15,Atlanta,Salt Lake,3,2,3:2,2161328,Week 10
+2025,2025-03-15,Houston,Austin,3,1,3:1,2161329,Week 10
+2025,2025-03-20,Salt Lake,Madison,2,3,2:3,2161330,Week 11
+2025,2025-03-21,Nebraska,Austin,2,3,2:3,2161331,Week 11
+2025,2025-03-22,Nebraska,Houston,1,3,1:3,2161333,Week 11
+2025,2025-03-22,Austin,Atlanta,0,3,0:3,2161332,Week 11
+2025,2025-03-27,Houston,Atlanta,1,3,1:3,2161334,Week 12
+2025,2025-03-28,Austin,Nebraska,2,3,2:3,2161335,Week 12
+2025,2025-03-29,Nebraska,Salt Lake,2,3,2:3,2161336,Week 12
+2025,2025-03-29,Austin,Madison,2,3,2:3,2161337,Week 12
+2025,2025-04-03,Nebraska,Atlanta,0,3,0:3,2161338,Week 13
+2025,2025-04-04,Salt Lake,Madison,1,3,1:3,2161360,Week 13
+2025,2025-04-05,Madison,Houston,0,3,0:3,2161361,Week 13
+2025,2025-04-05,Salt Lake,Austin,3,2,3:2,2161362,Week 13
+2025,2025-04-10,Salt Lake,Austin,2,3,2:3,2161391,Week 14
+2025,2025-04-10,Madison,Nebraska,1,3,1:3,2161392,Week 14
+2025,2025-04-11,Atlanta,Austin,2,3,2:3,2161393,Week 14
+2025,2025-04-11,Houston,Nebraska,2,3,2:3,2161394,Week 14
+2025,2025-04-13,Austin,Nebraska,3,0,3:0,2161395,Week 14
+2026,2026-01-07,Austin,Nebraska,3,2,3:2,2251769,Week 1
+2026,2026-01-08,Houston,Salt Lake,0,3,0:3,2251770,Week 1
+2026,2026-01-10,Madison,Salt Lake,3,0,3:0,2251771,Week 1
+2026,2026-01-11,Nebraska,Houston,3,2,3:2,2251773,Week 1
+2026,2026-01-11,Austin,Atlanta,3,2,3:2,2251772,Week 1
+2026,2026-01-14,Atlanta,Austin,3,1,3:1,2251774,Week 2
+2026,2026-01-16,Madison,Nebraska,3,1,3:1,2251775,Week 2
+2026,2026-01-18,Nebraska,Atlanta,3,0,3:0,2251776,Week 2
+2026,2026-01-21,Madison,Austin,2,3,2:3,2251777,Week 3
+2026,2026-01-22,Salt Lake,Houston,3,0,3:0,2251778,Week 3
+2026,2026-01-24,Austin,Houston,0,3,0:3,2251779,Week 3
+2026,2026-01-24,Salt Lake,Madison,3,2,3:2,2251780,Week 3
+2026,2026-01-28,Atlanta,Houston,1,3,1:3,2251782,Week 4
+2026,2026-01-29,Salt Lake,Austin,3,2,3:2,2251783,Week 4
+2026,2026-01-30,Nebraska,Madison,3,2,3:2,2251784,Week 4
+2026,2026-01-31,Salt Lake,Atlanta,3,0,3:0,2251785,Week 4
+2026,2026-02-01,Nebraska,Austin,1,3,1:3,2251787,Week 4
+2026,2026-02-01,Houston,Madison,3,0,3:0,2251786,Week 4
+2026,2026-02-04,Austin,Atlanta,3,2,3:2,2251788,Week 5
+2026,2026-02-05,Madison,Salt Lake,1,3,1:3,2251789,Week 5
+2026,2026-02-07,Madison,Atlanta,0,3,0:3,2251792,Week 5
+2026,2026-02-07,Salt Lake,Nebraska,3,1,3:1,2251791,Week 5
+2026,2026-02-07,Houston,Austin,3,2,3:2,2251790,Week 5
+2026,2026-02-11,Houston,Nebraska,3,0,3:0,2251793,Week 6
+2026,2026-02-13,Salt Lake,Austin,3,0,3:0,2251794,Week 6
+2026,2026-02-14,Atlanta,Nebraska,3,0,3:0,2251795,Week 6
+2026,2026-02-15,Houston,Madison,3,0,3:0,2251796,Week 6
+2026,2026-02-19,Houston,Atlanta,1,3,1:3,2251797,Week 7
+2026,2026-02-20,Austin,Madison,3,2,3:2,2251798,Week 7
+2026,2026-02-21,Salt Lake,Houston,1,3,1:3,2251799,Week 7
+2026,2026-02-22,Atlanta,Austin,3,1,3:1,2251800,Week 7
+2026,2026-02-22,Nebraska,Madison,2,3,2:3,2251801,Week 7
+2026,2026-02-25,Austin,Salt Lake,3,1,3:1,2251802,Week 8
+2026,2026-02-26,Houston,Nebraska,2,3,2:3,2251803,Week 8
+2026,2026-03-01,Atlanta,Salt Lake,3,1,3:1,2251804,Week 8
+2026,2026-03-04,Madison,Houston,0,3,0:3,2251805,Week 9
+2026,2026-03-05,Salt Lake,Atlanta,2,3,2:3,2251806,Week 9
+2026,2026-03-06,Austin,Houston,1,3,1:3,2251807,Week 9
+2026,2026-03-07,Nebraska,Salt Lake,3,0,3:0,2251809,Week 9
+2026,2026-03-07,Atlanta,Madison,1,3,1:3,2251808,Week 9
+2026,2026-03-11,Houston,Austin,3,1,3:1,2251810,Week 10
+2026,2026-03-12,Madison,Nebraska,0,3,0:3,2251811,Week 10
+2026,2026-03-14,Houston,Atlanta,3,0,3:0,2251812,Week 10
+2026,2026-03-14,Salt Lake,Nebraska,3,2,3:2,2251813,Week 10
+2026,2026-03-15,Madison,Austin,3,1,3:1,2251814,Week 10
+2026,2026-03-18,Nebraska,Atlanta,0,3,0:3,2251815,Week 11
+2026,2026-03-20,Austin,Nebraska,1,3,1:3,2251816,Week 11
+2026,2026-03-21,Atlanta,Salt Lake,3,0,3:0,2251817,Week 11
+2026,2026-03-21,Madison,Houston,3,0,3:0,2251818,Week 11
+2026,2026-03-25,Atlanta,Nebraska,2,3,2:3,2251781,Week 12
+2026,2026-03-25,Houston,Salt Lake,3,0,3:0,2251963,Week 12
+2026,2026-03-26,Austin,Madison,3,1,3:1,2251964,Week 12
+2026,2026-03-28,Nebraska,Salt Lake,3,0,3:0,2251966,Week 12
+2026,2026-03-28,Atlanta,Madison,3,0,3:0,2251965,Week 12
+2026,2026-04-01,Nebraska,Houston,3,1,3:1,2251967,Week 13
+2026,2026-04-02,Madison,Atlanta,2,3,2:3,2251969,Week 13
+2026,2026-04-02,Austin,Salt Lake,3,0,3:0,2251968,Week 13
+2026,2026-04-04,Atlanta,Houston,2,3,2:3,2251970,Week 13
+2026,2026-04-04,Salt Lake,Madison,3,1,3:1,2251972,Week 13
+2026,2026-04-04,Nebraska,Austin,2,3,2:3,2251971,Week 13
+2026,2026-04-10,Atlanta,Austin,0,3,0:3,2251973,Week 14
+2026,2026-04-10,Houston,Salt Lake,3,2,3:2,2251974,Week 14
+2026,2026-04-11,Atlanta,Austin,3,3,3:3,2251975,Week 14
+2026,2026-04-12,Houston,Salt Lake,0,4,0:4,2251976,Week 14
+2026,2026-04-16,Austin,Salt Lake,2,3,2:3,2251977,Week 15
+2026,2026-04-18,Austin,Salt Lake,4,2,4:2,2251978,Week 15
