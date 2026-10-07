@@ -50,7 +50,8 @@
     var fin = g.state === "final", live = g.state === "live", scored = (fin || live) && g.away.sets != null && g.home.sets != null;
     var awayWon = fin && scored && g.away.sets > g.home.sets, homeWon = fin && scored && g.home.sets > g.away.sets;
     var t = g.start ? new Date(g.start * 1000) : null;
-    var when = fin ? "Final" : t && !isNaN(t) ? t.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : "Time not set";
+    var note = g.state === "other" ? (g.note ? g.note.charAt(0).toUpperCase() + g.note.slice(1) : "Not played") : "";
+    var when = fin ? "Final" : note ? note : t && !isNaN(t) ? t.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : "Time not set";
     function team(side, s, lost) {
       var kids = [el("span", { "class": "name", text: s.name }), rankTag(s.rank)];
       if (side === "home") kids.reverse();
@@ -63,7 +64,6 @@
       : el("span", { "class": "mid at", text: "at" });
     var more = [];
     if (live) more.push(el("span", { "class": "live", text: "In progress " }));
-    if (g.state === "other") more.push(g.note ? g.note.charAt(0).toUpperCase() + g.note.slice(1) + " " : "");
     if (g.round) more.push(g.round + " ");
     if (fin || live) more.push(el("a", { href: data.game_page + g.id, text: "Box score", rel: "noopener" }));
     return el("li", { "class": "game" + (g.away.rank && g.home.rank ? " both" : "") }, [
