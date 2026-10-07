@@ -1,78 +1,57 @@
 # GOAT Volleyball
 
-A stats website for the top 25 teams in Division I women's college
-volleyball. Every night it downloads the NCAA's public scores, box scores and
-play-by-play, reads the national coaches poll, rates every team, values every
-player, and rebuilds the site for the 25 ranked teams.
+One page: every match played by the top 25 teams in Division I women's college
+volleyball, week by week.
 
 You do not need to run anything. GitHub does it all on a schedule.
 
-## What is on the site
+## What the page shows
 
-| Page | What it shows |
+- **This week's top 25**: the AVCA coaches poll, with each team's record and
+  how far it moved from last week. Choose a team to see its whole season.
+- **The matches**: every match this week involving a ranked team, grouped by
+  day. Upcoming matches show the start time in the reader's own time zone;
+  finished ones show the score in sets and link to the NCAA's box score. A
+  match between two ranked teams has a yellow edge. Buttons step to earlier
+  and later weeks.
+
+## When it updates
+
+The file `.github/workflows/update.yml` tells GitHub when to run:
+
+| When | What it does |
 | --- | --- |
-| Home | A point-by-point chart of each recent top match, plus season leaders |
-| Matches | Every result involving a ranked team, with how likely it looked beforehand; win probabilities for the next week |
-| Standings | Projected wins and conference-title odds for the ranked teams, from simulating the rest of the regular season |
-| Teams | Poll place, rating, strength of schedule, sideout and break rates, hitting, serving, blocking |
-| WAR | Wins above replacement for every player on a ranked team, split into attack, serve, receive, block, dig and set |
-| Cards | One card per player: where she ranks among all Division I players at her position in each part of the game |
-| Players | Box-score tables: attacking, serving and passing, blocking and defense |
-| About | How the numbers work and how well the predictions tested |
+| Every Monday about 4pm Central, and again about 9pm | Looks for the new top 25, then refreshes scores and schedule |
+| Every night about 5:47am Central | Refreshes scores and schedule |
+| Whenever the code changes, or you press **Run workflow** on the **Actions** tab | Everything, straight away |
 
-Seasons covered: 2021 to today for team results and ratings, 2022 to today for
-player numbers (the NCAA's feed has no box scores before that). A new season
-is added automatically each August.
+The poll normally comes out on Monday afternoon. If both Monday looks miss it
+(a late poll, or the page being down), the nightly run notices that the newest
+poll it has is more than eight days old and looks again every night until it
+finds the new one. In between, the page keeps showing the last poll it has.
 
-## Which teams are shown
+Scores are refreshed once a night, so a match played this evening shows its
+result tomorrow morning.
 
-Only the 25 teams in the AVCA coaches poll, with their players and matches.
+## Where things are
 
-- **This season:** the current poll, read every night from ncaa.com's rankings
-  page. When a new poll comes out (usually Monday) the teams on the site change
-  with it. Each poll is kept in `polls/` on the `data` branch, so the last one
-  of the year becomes that season's final list by itself.
-- **2021 to 2025:** the final poll of each season, in `polls/final_polls.csv`.
-  It was taken once from the coaches association's own archive spreadsheet and
-  never needs updating.
-- If no poll can be found for a season, the site falls back to the top 25 by
-  its own rating and says so on the page.
+| Path | What it is |
+| --- | --- |
+| `pipeline/config.py` | Every setting: which poll, which day it is checked, season dates |
+| `pipeline/poll.py` | Reads the poll and decides when to look for a new one |
+| `pipeline/web.py` | Downloads the poll page and the NCAA scoreboard |
+| `pipeline/run.py` | The job: update the poll, update the scoreboard, build the page |
+| `site/` | The page itself (plain HTML, CSS and JavaScript, no build step) |
+| `tests/` | A saved poll page and a saved day of scores, with checks that both are read correctly |
 
-Every Division I match is still downloaded and used. Ratings, strength of
-schedule, replacement level and card percentiles all compare a team or player
-with the whole division, not just with the 25 shown.
+Run the tests with `python tests/run_local.py`.
 
-To show every Division I team again, set `SHOW_TOP = 0` in
-`pipeline/config.py`. To show a different number, change the 25 (the poll only
-ranks 25, so a bigger number has no effect).
+Two side branches of this repository hold what the job produces:
 
-## How it runs
-
-The file `.github/workflows/update.yml` tells GitHub to run the pipeline:
-
-- every night at about 5:45am Central
-- whenever the code changes (these runs download for a few minutes only)
-- whenever you press **Run workflow** on the repository's **Actions** tab
-
-Each run does these things, in order:
-
-1. **Fetch**: download any finished matches not stored yet, re-check the last
-   three days for stat corrections, and refresh the schedule of matches still
-   to be played.
-2. **Poll**: read the current coaches poll. If the page cannot be read, the
-   last poll stored is used and the run carries on.
-3. **Ratings**: rate every team from its point margins and opponents, work out
-   win probabilities for the coming week, and simulate the rest of the season.
-4. **Stats**: build the team, player, WAR, match and card tables for the
-   ranked teams.
-5. **Site**: put the pages and tables together.
-
-Results are stored on two side branches of this repository:
-
-- `data`: the downloaded matches, the stored polls and `status.json` (what happened on the last
-  run). `logs/last_run.log` has the full log, and `logs/oddities.json` counts
-  play-by-play lines the reader did not understand.
-- `gh-pages`: the finished website.
+- `state`: every poll seen so far (`polls.json`), the season's matches
+  (`scoreboard.json`), and what happened on the last run (`status.json`,
+  `logs/last_run.log`).
+- `gh-pages`: the finished page.
 
 ## Turning the website on
 
@@ -81,39 +60,17 @@ One-time setup in the repository's **Settings**:
 **Settings → Pages → Build and deployment → Source: "Deploy from a branch"**,
 then choose branch `gh-pages` and folder `/ (root)`, and save.
 
-A minute or two later the site is live at
+A minute or two later the page is live at
 `https://dougmullendore.github.io/Volleyball/`.
 
-## Where things are
+## Good to know
 
-| Path | What it is |
-| --- | --- |
-| `pipeline/config.py` | Every setting: first season, site name, rating and value weights |
-| `pipeline/ncaa_api.py` | Talks to the NCAA's feed |
-| `pipeline/parse.py` | Turns raw scoreboards, box scores and play-by-play into rows |
-| `pipeline/fetch.py` | Decides what to download and stores it |
-| `pipeline/polls.py` | Reads the coaches poll and decides which teams the site shows |
-| `polls/final_polls.csv` | The final top 25 of each season from 2021 to 2025 |
-| `pipeline/ratings.py` | Team ratings, win probabilities, season simulation |
-| `pipeline/value.py` | Player value (points added and WAR) and player cards |
-| `pipeline/aggregate.py` | Builds the tables the site shows |
-| `site/` | The web pages (plain HTML, CSS and JavaScript, no build step) |
-| `tests/` | Ten real matches and a saved copy of the poll page, with checks that they are read correctly |
-
-Run the tests with `python tests/run_local.py`.
-
-## Things the public data cannot do
-
-- There is no shot-location data, so there is no expected-points model.
-- The play-by-play does not name the server and lists substitutions too
-  loosely to know who is on the court, so there are no lineup or
-  with-or-without numbers.
-- The poll shows a team's place today (or at the end of a finished season),
-  not its place on the day of each match. The small number beside a team in
-  the match list is that current or final place.
-- A team that drops out of the poll leaves the site until it is ranked again;
-  its matches against ranked teams stay in the match list.
-- Players have no ID in the feed. A player is matched by school and name, so
-  a transfer shows up as two players.
+- The numbers beside teams are this week's rankings, including on earlier
+  weeks' matches. A team that drops out of the poll drops off the page.
+- The scoreboard only says "home" and "away"; at neutral-site tournaments those
+  are just labels.
+- The earlier, larger version of this site (ratings, WAR, player cards) is in
+  this repository's history, last at commit `17ce558`. Its downloaded matches
+  are still on the `data` branch, which nothing uses any more.
 
 Not affiliated with or endorsed by the NCAA, the AVCA or any school.

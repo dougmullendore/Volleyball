@@ -1,23 +1,14 @@
-name: Update data and site
+name: Update the site
 
-# Runs every night after the late West Coast and Hawaii matches finish, whenever the code
-# changes, and on demand from the Actions tab.
 on:
   schedule:
-    - cron: '47 10 * * *'   # 10:47 UTC = about 5:47am Central
+    - cron: '47 10 * * *'   # every night, about 5:47am Central: scores and schedule
+    - cron: '13 21 * * 1'   # Monday afternoon (about 4pm Central): look for the new top 25
+    - cron: '13 2 * * 2'    # Monday evening (about 9pm Central): look again in case it came out late
   workflow_dispatch:
-    inputs:
-      minutes:
-        description: 'Stop downloading after this many minutes'
-        default: '150'
   push:
     branches: [main]
-    paths:
-      - 'pipeline/**'
-      - 'site/**'
-      - 'polls/**'
-      - 'requirements.txt'
-      - '.github/workflows/update.yml'
+    paths: ['pipeline/**', 'site/**', '.github/workflows/update.yml']
 
 concurrency:
   group: update
@@ -29,62 +20,55 @@ permissions:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 240
+    timeout-minutes: 20
     env:
       REPO_URL: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
     steps:
       - uses: actions/checkout@v4
 
-      - name: Get the stored data
+      - name: Get what was stored last time
         run: |
-          if git ls-remote --exit-code --heads "$REPO_URL" data >/dev/null 2>&1; then
-            git clone --quiet --depth 1 --branch data "$REPO_URL" data
+          if git ls-remote --exit-code --heads "$REPO_URL" state >/dev/null 2>&1; then
+            git clone --quiet --depth 1 --branch state "$REPO_URL" state
           else
-            mkdir data && git -C data init -q -b data
+            mkdir state && git -C state init -q -b state
           fi
-          mkdir -p data/logs
+          mkdir -p state/logs
 
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
-          cache: pip
 
-      - name: Install libraries
-        run: |
-          set -o pipefail
-          pip install -r requirements.txt 2>&1 | tee data/logs/install.log
-
-      - name: Run the pipeline
+      - name: Update the poll and the scoreboard, and build the page
         env:
-          # a run started by a code change downloads for a short while only; the nightly run does the rest
-          MAX_FETCH_MINUTES: ${{ inputs.minutes || (github.event_name == 'push' && '12') || '150' }}
+          # The job itself looks for a new poll on Mondays. A run started by hand or by a
+          # code change looks straight away, whatever the day.
+          CHECK_POLL: ${{ github.event_name != 'schedule' && '1' || '0' }}
         run: |
           set -o pipefail
-          python -m pipeline.run data dist 2>&1 | tee data/logs/last_run.log
+          python -m pipeline.run state dist 2>&1 | tee state/logs/last_run.log
 
-      - name: Save the data
+      - name: Save what was stored
         if: always()
         run: |
-          cd data
-          echo "${{ job.status }} $(date -u +%FT%TZ) ${GITHUB_SHA::12}" > logs/job_status.txt
+          cd state
           git config user.name "volleyball-bot"
           git config user.email "volleyball-bot@users.noreply.github.com"
           git add -A
           if git rev-parse -q --verify HEAD >/dev/null; then
-            git commit -q --amend -m "Data as of $(date -u +%F)" || true
+            git commit -q --amend -m "State as of $(date -u +%FT%TZ)" || true
           else
-            git commit -q -m "Data as of $(date -u +%F)"
+            git commit -q -m "State as of $(date -u +%FT%TZ)"
           fi
-          git push -q -f "$REPO_URL" HEAD:data
+          git push -q -f "$REPO_URL" HEAD:state
 
       - name: Publish the site
         if: always() && hashFiles('dist/index.html') != ''
         run: |
           cd dist
-          touch .nojekyll
           git init -q -b gh-pages
           git config user.name "volleyball-bot"
           git config user.email "volleyball-bot@users.noreply.github.com"
           git add -A
-          git commit -q -m "Site build $(date -u +%F)"
+          git commit -q -m "Site build $(date -u +%FT%TZ)"
           git push -q -f "$REPO_URL" gh-pages
