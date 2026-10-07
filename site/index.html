@@ -14,25 +14,31 @@
 <a class="skip" href="#matches">Skip to the matches</a>
 <header class="mast">
   <div class="wrap mast-row">
-    <span class="brand"><svg viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="12"/><path d="M14 2c5 4 7 9 6 15M3.500 9.500c6-1 11 1 15 6M9 25c-1-6 1-11 6-15"/></svg><span id="brand">GOAT Volleyball</span></span>
-    <span class="mast-note" id="poll-date"></span>
+    <a class="brand" href="#/"><svg viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="12"/><path d="M14 2c5 4 7 9 6 15M3.500 9.500c6-1 11 1 15 6M9 25c-1-6 1-11 6-15"/></svg><span id="brand">GOAT Volleyball</span></a>
+    <nav class="pages" aria-label="Pages">
+      <a href="#/" data-page="matches">Matches</a>
+      <a href="#/rankings" data-page="rankings">Rankings</a>
+    </nav>
   </div>
 </header>
 <main class="wrap">
-  <h1>Top 25 matches</h1>
-  <p class="lede" id="lede">Every match played by a ranked team in women's college volleyball.</p>
-
-  <section aria-labelledby="h-ranks">
-    <h2 id="h-ranks" class="quiet">This week's top 25</h2>
-    <ol class="ranks" id="ranks"></ol>
+  <section id="page-matches">
+    <h1>Top 25 matches</h1>
+    <p class="lede" id="lede">Every match played by a ranked team in women's college volleyball.</p>
+    <div id="matches" tabindex="-1">
+      <div class="bar">
+        <h2 id="h-list">Loading the matches…</h2>
+        <div class="nav" id="nav"></div>
+      </div>
+      <div id="list"></div>
+    </div>
   </section>
 
-  <section id="matches" aria-labelledby="h-list" tabindex="-1">
-    <div class="bar">
-      <h2 id="h-list">Loading the matches…</h2>
-      <div class="nav" id="nav"></div>
-    </div>
-    <div id="list"></div>
+  <section id="page-rankings" hidden>
+    <h1>Top 25 rankings</h1>
+    <p class="lede" id="rank-lede"></p>
+    <ol class="ranks" id="ranks"></ol>
+    <p class="note" id="rank-note"></p>
   </section>
 </main>
 <footer class="wrap foot">

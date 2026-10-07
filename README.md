@@ -1,20 +1,20 @@
 # GOAT Volleyball
 
-One page: every match played by the top 25 teams in Division I women's college
-volleyball, week by week.
+Every match played by the top 25 teams in Division I women's college
+volleyball, week by week, with the rankings on a second page.
 
 You do not need to run anything. GitHub does it all on a schedule.
 
-## What the page shows
+## What the site shows
 
-- **This week's top 25**: the AVCA coaches poll, with each team's record and
-  how far it moved from last week. Choose a team to see its whole season.
-- **The matches**: every match this week involving a ranked team, grouped by
+- **Rankings** (second page): the AVCA coaches poll, with each team's record
+  and how far it moved from last week. Choose a team to see its matches.
+- **Matches** (first page): every match this week involving a ranked team, grouped by
   day. Upcoming matches show the start time in the reader's own time zone and
   where to watch; finished ones show the score in sets and link to the NCAA's
   box score. A
   match between two ranked teams has a yellow edge. Buttons step to earlier
-  and later weeks.
+  and later weeks, and a menu narrows the list to one team's whole season.
 
 ## Where to watch
 

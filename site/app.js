@@ -29,19 +29,17 @@
     return el("span", { "class": "rk" + (rank ? "" : " none"), text: rank ? String(rank) : "", "aria-label": rank ? "ranked " + rank : null });
   }
 
-  // ---- the 25 ----
+  // ---- the rankings page ----
   function drawRanks() {
     var ol = $("ranks");
     ol.innerHTML = "";
     data.poll.teams.forEach(function (t) {
       var move = t.prev == null ? ["new", "up", "not ranked last week"] : t.prev > t.rank ? ["▲" + (t.prev - t.rank), "up", "up " + (t.prev - t.rank) + " from last week"]
-        : t.prev < t.rank ? ["▼" + (t.rank - t.prev), "", "down " + (t.rank - t.prev) + " from last week"] : null;
-      var b = el("button", { type: "button", "aria-pressed": String(state.team === t.id), disabled: !t.id,
-        title: t.id ? "Show " + t.name + "'s whole season" : "No matches found for this team",
-        onclick: function () { state.team = state.team === t.id ? null : t.id; draw(); $("matches").scrollIntoView({ block: "start", behavior: "smooth" }); } }, [
-        rankTag(t.rank), el("span", { "class": "nm", text: t.name }),
-        el("span", { "class": "rec" }, [t.record || "", move ? el("span", { "class": "mv " + move[1], text: move[0], "aria-label": move[2] }) : null])]);
-      ol.appendChild(el("li", {}, [b]));
+        : t.prev < t.rank ? ["▼" + (t.rank - t.prev), "", "down " + (t.rank - t.prev) + " from last week"] : ["", "", ""];
+      var name = t.id ? el("a", { "class": "nm", href: "#/", text: t.name, title: "Show " + t.name + "'s matches",
+        onclick: function () { state.team = t.id; } }) : el("span", { "class": "nm", text: t.name });
+      ol.appendChild(el("li", {}, [rankTag(t.rank), name, el("span", { "class": "rec", text: t.record || "" }),
+        el("span", { "class": "mv " + move[1], text: move[0], "aria-label": move[2] || null })]));
     });
   }
 
@@ -87,18 +85,21 @@
 
   // ---- the page ----
   function draw() {
-    drawRanks();
     var holder = $("list"), nav = $("nav"), head = $("h-list");
     holder.innerHTML = ""; nav.innerHTML = "";
     var weeks = {};
     data.games.forEach(function (g) { weeks[monday(g.date)] = 1; });
     var first = Object.keys(weeks).sort()[0], last = Object.keys(weeks).sort().pop();
+    var pick = el("select", { id: "f-team", "aria-label": "Show one team", onchange: function () { state.team = pick.value || null; draw(); } },
+      [el("option", { value: "", text: "All 25 teams" })].concat(data.poll.teams.filter(function (x) { return x.id; }).map(function (x) {
+        return el("option", { value: x.id, text: x.rank + ". " + x.name, selected: x.id === state.team });
+      })));
+    nav.appendChild(pick);
 
     if (state.team) {
       var t = data.poll.teams.filter(function (x) { return x.id === state.team; })[0];
       var mine = data.games.filter(function (g) { return g.away.id === t.id || g.home.id === t.id; });
       head.textContent = "No. " + t.rank + " " + t.name + ", whole season";
-      nav.appendChild(el("button", { type: "button", text: "Back to all 25", onclick: function () { state.team = null; draw(); } }));
       var next = mine.filter(function (g) { return g.state !== "final" && g.date >= today; }), done = mine.filter(function (g) { return g.state === "final" || g.date < today; });
       if (next.length) { holder.appendChild(el("p", { "class": "note", text: next.length + " still to play, " + done.length + " played." })); listInto(holder, next); }
       if (done.length) { holder.appendChild(el("h3", { "class": "day", text: "Already played, newest first" })); listInto(holder, done, true); }
@@ -123,19 +124,32 @@
     listInto(holder, games);
     var both = games.filter(function (g) { return g.away.rank && g.home.rank; }).length;
     holder.appendChild(el("p", { "class": "note", text: games.length + " matches this week" + (both ? ", " + both + " of them between two ranked teams (marked with a yellow edge)" : "") +
-      ". The visiting team is on the left, and the channel or streaming service is on the right for matches in the next two weeks. Numbers are this week's rankings, also for earlier weeks. Choose a team above to see its whole season." }));
+      ". The visiting team is on the left, and the channel or streaming service is on the right for matches in the next two weeks. Numbers are this week's rankings, also for earlier weeks. Choose a team to see its whole season." }));
+  }
+
+  function route() {
+    var page = /^#\/?rankings/.test(location.hash) ? "rankings" : "matches";
+    $("page-matches").hidden = page !== "matches";
+    $("page-rankings").hidden = page !== "rankings";
+    Array.prototype.forEach.call(document.querySelectorAll(".pages a"), function (a) {
+      if (a.dataset.page === page) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
+    });
+    document.title = (page === "rankings" ? "Top 25 rankings" : "Top 25 matches") + " | " + data.site;
+    if (page === "rankings") drawRanks(); else draw();
+    window.scrollTo(0, 0);
   }
 
   fetch("data.json", { cache: "no-cache" }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (d) {
     data = d;
     $("brand").textContent = d.site;
-    var through = short(d.poll.through);
-    $("poll-date").textContent = d.poll.name + ", through matches of " + through;
-    $("lede").textContent = "Every match played by a team in the " + d.poll.name + ", week by week. The rankings are checked for a new poll every Monday.";
+    $("lede").textContent = "Every match played by a team in the " + d.poll.name + ", week by week.";
+    $("rank-lede").textContent = "The " + d.poll.name + ", through matches of " + day(d.poll.through).toLocaleDateString(undefined, { month: "long", day: "numeric" }) + ".";
+    $("rank-note").textContent = "Record and movement from last week's poll. This page is checked for a new poll every Monday. Choose a team to see its matches.";
     var u = new Date(d.updated);
     $("foot-updated").textContent = "Scores and schedule updated " + (isNaN(u) ? d.updated : u.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })) +
       ". Rankings: " + d.poll.name + " through " + day(d.poll.through).toLocaleDateString(undefined, { dateStyle: "long" }) + ".";
-    draw();
+    window.addEventListener("hashchange", route);
+    route();
   }).catch(function () {
     $("h-list").textContent = "The matches could not be loaded";
     $("list").appendChild(el("p", { "class": "empty", text: "Reload the page to try again. If this keeps happening, the nightly update may not have run yet." }));
