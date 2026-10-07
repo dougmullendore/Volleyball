@@ -74,5 +74,15 @@ VALUE_SETTER_SHARE = 0.25
 # Fallback until there is a full season to measure it from.
 VALUE_POINTS_PER_WIN = 20.0
 
+# --- Which teams the site shows -------------------------------------------
+# The site shows only the teams in the national coaches poll (AVCA Top 25)
+# and their players and matches. Every Division I match is still downloaded
+# and used behind the scenes, because ratings, schedule strength and
+# replacement level all need the full field.
+# Set SHOW_TOP = 0 to show every Division I team again.
+SHOW_TOP = 25
+POLL_NAME = "AVCA coaches poll"
+POLL_URL = "https://www.ncaa.com/rankings/volleyball-women/d1/avca-rankings"
+
 SITE_NAME = "GOAT Volleyball"
-SITE_TAGLINE = "Women's college volleyball ratings, projections and player value"
+SITE_TAGLINE = "The top 25 in women's college volleyball: ratings, projections and player value"

@@ -261,3 +261,6 @@ dl.gloss dt { font-weight: 700; }
 .sets span { border: 1px solid var(--rule); border-radius: 3px; padding: 1px 6px; font-size: .875rem; background: var(--sheet); }
 .stats td.setscores { color: var(--ink-2); font-size: .875rem; }
 .cov { max-width: 720px; }
+
+/* a team's place in the coaches poll, shown small before its name */
+.pollrk { display: inline-block; min-width: 1.5em; margin-right: 2px; color: var(--ink-2); font-size: .8125rem; font-variant-numeric: tabular-nums; text-align: right; }

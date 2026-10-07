@@ -54,6 +54,10 @@ def main(data_dir: str, out_dir: str) -> int:
         from . import fetch
         return fetch.update_all(data, log, max_minutes=float(os.environ.get("MAX_FETCH_MINUTES", "150")))
 
+    def do_poll():
+        from . import polls, ratings
+        return polls.update(data, ratings.team_info(ratings.load_games(data)), log)
+
     def do_ratings():
         from . import ratings
         return ratings.build(data, data / "site_data", log)
@@ -67,6 +71,9 @@ def main(data_dir: str, out_dir: str) -> int:
         return build_site.build(data, out, log)
 
     stage("fetch", do_fetch)
+    from . import config
+    if config.SHOW_TOP:
+        stage("poll", do_poll)      # if this fails, the last poll stored is used
     stage("ratings", do_ratings)
     stage("stats", do_stats)
     stage("site", do_site)

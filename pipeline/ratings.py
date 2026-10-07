@@ -297,6 +297,12 @@ def build(data: Path, out_dir: Path, log) -> dict:
     today = dt.datetime.now(dt.timezone.utc).date()
     teams, rating = info[season], final[season]
     rows, games_left = simulate(season, games, teams, rating, w, today.isoformat(), np.random.default_rng(season))
+    # Every team is simulated (conference races need the whole conference), but
+    # only the teams the site shows are written out.
+    from . import polls
+    show = (polls.shown(data, info, final).get(season) or {}).get("teams")
+    if show is not None:
+        rows = [dict(r, poll=show[r["id"]]["rank"], poll_prev=show[r["id"]]["prev"]) for r in rows if r["id"] in show]
 
     # the coming week, with each side's chance
     g = games[(games["season"] == season) & (games["state"] != "F") & (games["date"] >= today.isoformat())
@@ -305,6 +311,8 @@ def build(data: Path, out_dir: Path, log) -> dict:
     for r in g.sort_values(["date", "start_epoch", "game_id"]).to_dict("records"):
         h, a = r["home"], r["away"]
         if h not in rating or a not in rating or not (teams[h]["d1"] and teams[a]["d1"]):
+            continue
+        if show is not None and h not in show and a not in show:
             continue
         same = bool(teams[h]["conf"]) and teams[h]["conf"] == teams[a]["conf"] and not r["round"]
         p = float(predict(np.array([[rating[h] - rating[a], float(same), 1.0 - same]]), w)[0])

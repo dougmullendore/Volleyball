@@ -60,6 +60,17 @@
   }
   function seasonInfo(id) { return meta.seasons.filter(function (s) { return s.id === id; })[0]; }
   function confName(id) { return (meta.conferences || {})[id] || id || ""; }
+  // The site shows only the teams in the coaches poll. These say so in words.
+  function top() { return meta.show_top || 0; }
+  function pollNote(seasonId) {
+    var s = seasonInfo(seasonId), p = s && s.poll;
+    if (!top() || !p) return "";
+    if (p.source === "rating") return "No " + meta.poll_name + " is on file for " + s.label + ", so these are the top " + top() + " teams by this site's own rating.";
+    var current = s.id === meta.seasons[0].id && p.source === "poll";
+    return "Teams are the top " + top() + " of the " + (current ? "" : "final ") + meta.poll_name + (current ? "" : " of " + s.label) +
+      (p.through ? ", through matches of " + niceDate(p.through, true) : "") + "." + (current ? " The list changes when a new poll comes out, usually on Mondays." : "");
+  }
+  function ranked(text) { return top() ? text : null; }
 
   // ------------------------------------------------------------ tooltip --
   function showTip(html, x, y) {
@@ -129,11 +140,12 @@
     ]),
     teams: [
       ["team", "Team", "", F.txt, { name: 1 }],
+      ["poll", "Poll", "Place in the coaches poll: the current poll this season, the final poll for finished seasons. Tied teams share a number", F.int, { asc: 1, top: 1 }],
       ["conf_name", "Conf", "Conference", F.txt, { left: 1 }],
       ["w", "W", "Match wins", F.int],
       ["l", "L", "Match losses", F.int],
       ["rating", "Rating", "Points per set better than an average Division I team, adjusted for opponents and weighted toward recent matches", F.s2, { grp: 1, bar: 1 }],
-      ["rank", "Rank", "Rank by rating among Division I teams", F.int, { asc: 1 }],
+      ["rank", "Rtg rank", "Rank by this site's rating among all Division I teams", F.int, { asc: 1 }],
       ["sos", "SOS", "Strength of schedule: the average rating of the opponents played so far", F.s2, { sign: 1 }],
       ["pt_pct", "Pt%", "Share of all points won", F.pct, { grp: 1, mid: 50 }],
       ["so_pct", "SO%", "Sideout rate: share of points won when the other team serves. From the play-by-play", F.pct],
@@ -150,9 +162,9 @@
     ],
     matches: [
       ["date", "Date", "", function (v) { return niceDate(v, true); }, { name: 1 }],
-      ["away", "Away", "The team listed second. At neutral sites home and away are only labels", F.txt, { left: 1 }],
+      ["away", "Away", "The team listed second. At neutral sites home and away are only labels. A small number is the team's place in that season's poll shown here, not its place on the day of the match", F.txt, { left: 1, rk: "ar" }],
       ["as", "Sets", "Sets won by the away team", F.int],
-      ["home", "Home", "", F.txt, { left: 1, grp: 1 }],
+      ["home", "Home", "", F.txt, { left: 1, grp: 1, rk: "hr" }],
       ["hs", "Sets", "Sets won by the home team", F.int],
       ["scores", "Set scores", "Home score first in each set", F.txt, { left: 1, grp: 1, cls: "setscores" }],
       ["pd", "Home pts", "Home points minus away points over the whole match", F.si, { bar: 1 }],
@@ -162,16 +174,16 @@
   var PLAYER_TABS = [["players", "Attacking"], ["serving", "Serving and passing"], ["defense", "Blocking and defense"]];
   var POS = [["", "All positions"], ["OH", "Outside and opposite"], ["MB", "Middles"], ["S", "Setters"], ["L/DS", "Liberos and DS"]];
   var PAGES = {
-    war: { title: "Wins above replacement", file: "war", sort: "war", needPlayers: 1, lede: "One number for a player's whole box score: how many more matches she was worth than a bench player would have been. It rewards efficiency and adjusts for the schedule.",
+    war: { title: "Wins above replacement", file: "war", sort: "war", needPlayers: 1, lede: "One number for a player's whole box score: how many more matches she was worth than a bench player would have been. It rewards efficiency and adjusts for the schedule.", topLede: "Players on the ranked teams. One number for a player's whole box score: how many more matches she was worth than a Division I bench player would have been. It rewards efficiency and adjusts for the schedule.",
       min: { key: "sp", label: "Minimum sets played", steps: [0, 10, 20, 40, 60, 80], share: 0.4 }, search: "name", pos: 1, conf: 1, noun: "players" },
-    players: { title: "Players", file: "players", tabs: PLAYER_TABS, sort: "k_set", needPlayers: 1, lede: "Kills, errors and efficiency for every hitter.",
+    players: { title: "Players", file: "players", tabs: PLAYER_TABS, sort: "k_set", needPlayers: 1, lede: "Kills, errors and efficiency for every hitter.", topLede: "Kills, errors and efficiency for every hitter on a ranked team.",
       min: { key: "ta", label: "Minimum swings", steps: [0, 25, 50, 100, 200, 300], share: 0.25 }, search: "name", pos: 1, conf: 1, noun: "players" },
     serving: { title: "Players", nav: "players", file: "players", tabs: PLAYER_TABS, sort: "sa_set", needPlayers: 1, lede: "The first two contacts of every rally: serving, serve receive and setting.",
       min: { key: "sp", label: "Minimum sets played", steps: [0, 10, 20, 40, 60, 80], share: 0.4 }, search: "name", pos: 1, conf: 1, noun: "players" },
-    defense: { title: "Players", nav: "players", file: "players", tabs: PLAYER_TABS, sort: "d_set", needPlayers: 1, lede: "Digs and blocks for every player.",
+    defense: { title: "Players", nav: "players", file: "players", tabs: PLAYER_TABS, sort: "d_set", needPlayers: 1, lede: "Digs and blocks for every player.", topLede: "Digs and blocks for every player on a ranked team.",
       min: { key: "sp", label: "Minimum sets played", steps: [0, 10, 20, 40, 60, 80], share: 0.4 }, search: "name", pos: 1, conf: 1, noun: "players" },
-    teams: { title: "Teams", file: "teams", sort: "rating", lede: "Every Division I team, rated by how it wins and loses points and who it has played.", search: "team", conf: 1, noun: "teams" },
-    matches: { title: "Matches", file: "games", tabs: [["matches", "Results"], ["upcoming", "Upcoming"]], sort: "date", lede: "Every finished match, with how likely the result looked beforehand.", search: "_teams", conf: 1, noun: "matches" }
+    teams: { title: "Teams", file: "teams", sort: "rating", lede: "Every Division I team, rated by how it wins and loses points and who it has played.", topLede: "The ranked teams, rated by how they win and lose points and who they have played. Ratings and ranks by rating are measured against all of Division I.", search: "team", conf: 1, noun: "teams" },
+    matches: { title: "Matches", file: "games", tabs: [["matches", "Results"], ["upcoming", "Upcoming"]], sort: "date", lede: "Every finished match, with how likely the result looked beforehand.", topLede: "Every finished match involving a ranked team, with how likely the result looked beforehand.", search: "_teams", conf: 1, noun: "matches" }
   };
 
   // -------------------------------------------------------------- pages --
@@ -198,12 +210,13 @@
   }
 
   function tablePage(kind) {
-    var page = PAGES[kind], cols = COLS[kind];
-    var st = state.tables[kind] || (state.tables[kind] = { sort: page.sort, dir: -1, q: "", pos: "", conf: "", min: null });
+    var page = PAGES[kind], cols = COLS[kind].filter(function (c) { return top() || !(c[4] || {}).top; });
+    var st = state.tables[kind] || (state.tables[kind] = kind === "teams" && top() ? { sort: "poll", dir: 1, q: "", pos: "", conf: "", min: null }
+      : { sort: page.sort, dir: -1, q: "", pos: "", conf: "", min: null });
     main.innerHTML = "";
     main.appendChild(el("h1", { text: page.title }));
     if (page.tabs) main.appendChild(tabBar(page.tabs, kind));
-    main.appendChild(el("p", { "class": "lede", text: page.lede }));
+    main.appendChild(el("p", { "class": "lede", text: (top() && page.topLede) || page.lede }));
     var controls = el("div", { "class": "controls" });
     var holder = el("div");
     main.appendChild(controls); main.appendChild(holder);
@@ -252,6 +265,7 @@
         holder.appendChild(statsTable(cols, shown, st, draw, cap));
         holder.appendChild(el("p", { "class": "note", text: "Showing " + Math.min(cap, shown.length).toLocaleString("en-US") + " of " + rows.length.toLocaleString("en-US") + " " + page.noun +
           (info ? ", through " + niceDate(info.through, true) : "") + "." + extra + " Select a column heading to sort; hover it for what it means." }));
+        if (pollNote(state.season)) holder.appendChild(el("p", { "class": "note", text: pollNote(state.season) }));
         if (page.needPlayers && info && info.with_box < info.matches) holder.appendChild(el("p", { "class": "note", text: "Box scores are available for " + info.with_box.toLocaleString("en-US") + " of " + info.matches.toLocaleString("en-US") + " matches this season. A player who changed schools appears once for each school." }));
       }
       draw();
@@ -305,6 +319,7 @@
         var o = c[4] || {}, v = r[c[0]], cls = [], inner = esc(c[3](v));
         if (o.name) cls.push("name"); if (o.left) cls.push("l"); if (o.grp) cls.push("grp"); if (o.cls) cls.push(o.cls);
         if (o.link && r.id) inner = '<a href="#/player-' + esc(r.id) + '">' + inner + "</a>";
+        if (o.rk && top()) inner = '<span class="pollrk">' + (r[o.rk] || "") + "</span> " + inner;
         if (st.sort === c[0]) cls.push("sorted");
         var mid = o.bar ? (o.bar === 1 ? 0 : o.bar) : (o.mid || 0);
         if ((o.bar === 1 || o.sign || o.mid) && v != null && v !== mid) inner = '<span class="' + (v > mid ? "pos" : "neg") + '">' + inner + "</span>";
@@ -429,12 +444,13 @@
   // ------------------------------------------------- standings and odds --
   var ODDS_COLS = [
     ["team", "Team", "", F.txt, { name: 1 }],
+    ["poll", "Poll", "Place in the current coaches poll", F.int, { asc: 1, top: 1 }],
     ["conf_name", "Conf", "Conference", F.txt, { left: 1 }],
     ["w", "W", "Match wins so far", F.int],
     ["l", "L", "Match losses so far", F.int],
     ["conf_rec", "Conf", "Conference record so far", F.txt, { left: 1 }],
     ["rating", "Rating", "Points per set better than an average Division I team", F.s2, { grp: 1, sign: 1 }],
-    ["rank", "Rank", "Rank by rating among Division I teams", F.int, { asc: 1 }],
+    ["rank", "Rtg rank", "Rank by this site's rating among all Division I teams", F.int, { asc: 1 }],
     ["strength", "Strength", "Chance of beating an average Division I team on a neutral court, in percent", F.pct, { mid: 50 }],
     ["proj_w", "Proj W", "Average regular-season wins across the simulated seasons", F.d1, { grp: 1 }],
     ["proj_l", "Proj L", "Average regular-season losses across the simulated seasons", F.d1],
@@ -443,10 +459,11 @@
     ["title", "Win conf", "Chance of finishing with the best regular-season conference record, in percent. Ties are shared", F.pct, { bar: 0.0001 }]
   ];
   function oddsPage() {
-    var st = state.odds || (state.odds = { sort: "rating", dir: -1, conf: "", q: "" });
+    var st = state.odds || (state.odds = top() ? { sort: "poll", dir: 1, conf: "", q: "" } : { sort: "rating", dir: -1, conf: "", q: "" });
+    var cols = ODDS_COLS.filter(function (c) { return top() || !(c[4] || {}).top; });
     main.innerHTML = "";
     main.appendChild(el("h1", { text: "Projected standings" }));
-    main.appendChild(el("p", { "class": "lede", text: "Where every team is headed. The rest of the regular season is played out thousands of times using each team's current rating; the numbers are how often each thing happened." }));
+    main.appendChild(el("p", { "class": "lede", text: (top() ? "Where the ranked teams are headed. " : "Where every team is headed. ") + "The rest of the regular season is played out thousands of times using each team's current rating; the numbers are how often each thing happened." }));
     var controls = el("div", { "class": "controls" }), holder = el("div");
     main.appendChild(controls); main.appendChild(holder);
     holder.appendChild(el("p", { "class": "loading", text: "Loading…" }));
@@ -454,7 +471,7 @@
       var rows = o.teams.map(function (r) { var c = {}; for (var k in r) c[k] = r[k];
         c.conf_name = confName(r.conf); c.conf_rec = r.cw + "–" + r.cl; c.range = r.w_lo + " to " + r.w_hi;
         c.proj_conf = r.proj_cw.toFixed(1) + "–" + r.proj_cl.toFixed(1); return c; });
-      controls.appendChild(confSelect(st, rows, function () { st.sort = st.conf ? "title" : "rating"; st.dir = -1; draw(); }, "f-odds-conf"));
+      controls.appendChild(confSelect(st, rows, function () { st.sort = st.conf ? "title" : top() ? "poll" : "rating"; st.dir = st.sort === "poll" ? 1 : -1; draw(); }, "f-odds-conf"));
       var q = el("input", { type: "search", id: "f-odds-search", value: st.q, placeholder: "Team", oninput: function () { st.q = q.value; draw(); } });
       controls.appendChild(el("label", { "class": "field" }, ["Search", q]));
       function draw() {
@@ -462,9 +479,11 @@
         var needle = st.q.trim().toLowerCase();
         var shown = rows.filter(function (r) { return (!st.conf || r.conf === st.conf) && (!needle || r.team.toLowerCase().indexOf(needle) >= 0); });
         if (!shown.length) { holder.appendChild(el("p", { "class": "empty", text: "No teams match. Clear the search." })); return; }
-        holder.appendChild(statsTable(ODDS_COLS, shown, st, draw));
+        holder.appendChild(statsTable(cols, shown, st, draw));
         holder.appendChild(el("p", { "class": "note", text: o.season + " season, " + o.games_left.toLocaleString("en-US") + " regular-season matches left, " + o.sims.toLocaleString("en-US") +
-          " simulated seasons. Conference tournaments and the NCAA tournament are not simulated. The model knows results, not rosters: an injury or a returning starter only shows up once the scores change." }));
+          " simulated seasons. Conference tournaments and the NCAA tournament are not simulated. The model knows results, not rosters: an injury or a returning starter only shows up once the scores change." +
+          (top() ? " Every Division I team is simulated, so the conference chances count the unranked teams in each league too." : "") }));
+        if (pollNote(o.season)) holder.appendChild(el("p", { "class": "note", text: pollNote(o.season) }));
       }
       draw();
     }).catch(function () {
@@ -482,18 +501,18 @@
     main.innerHTML = "";
     main.appendChild(el("h1", { text: "Matches" }));
     main.appendChild(tabBar(PAGES.matches.tabs, "upcoming"));
-    main.appendChild(el("p", { "class": "lede", text: "The next week of matches with each team's chance of winning." }));
+    main.appendChild(el("p", { "class": "lede", text: top() ? "The next week of matches involving a ranked team, with each side's chance of winning." : "The next week of matches with each team's chance of winning." }));
     var controls = el("div", { "class": "controls" }), holder = el("div", { "class": "fixtures" });
     main.appendChild(controls); main.appendChild(holder);
     holder.appendChild(el("p", { "class": "loading", text: "Loading…" }));
     load("odds").then(function (o) {
       var rank = {};
-      o.teams.forEach(function (t) { rank[t.id] = t.rank; });
+      o.teams.forEach(function (t) { rank[t.id] = top() ? t.poll : t.rank; });
       var all = o.upcoming.map(function (g) { var c = {}; for (var k in g) c[k] = g[k]; c.best = Math.min(rank[g.home_id] || 999, rank[g.away_id] || 999); return c; });
       var seg = el("div", { "class": "seg", role: "group", "aria-label": "Which matches" }, [[true, "Top 50 teams"], [false, "All matches"]].map(function (x) {
         return el("button", { type: "button", "aria-pressed": String(st.top === x[0]), text: x[1], onclick: function () { st.top = x[0]; upcomingPage(); } });
       }));
-      controls.appendChild(seg);
+      if (!top()) controls.appendChild(seg);
       controls.appendChild(confSelect(st, all.map(function (g) { return { conf: g.conf }; }), draw, "f-up-conf"));
       var q = el("input", { type: "search", id: "f-up-search", value: st.q, placeholder: "Team", oninput: function () { st.q = q.value; draw(); } });
       controls.appendChild(el("label", { "class": "field" }, ["Search", q]));
@@ -503,7 +522,7 @@
         var list = all.filter(function (g) {
           if (needle) return (g.home + " " + g.away).toLowerCase().indexOf(needle) >= 0;
           if (st.conf) return g.conf === st.conf;
-          return !st.top || g.best <= 50;
+          return top() || !st.top || g.best <= 50;
         });
         if (!list.length) { holder.appendChild(el("p", { "class": "empty", text: all.length ? "No matches fit these filters in the next week." : "No matches are scheduled in the next week." })); return; }
         var day = null, box = null;
@@ -523,7 +542,7 @@
           ]));
         });
         var m = o.model || {};
-        holder.appendChild(el("p", { "class": "note", text: "Away team on the left, home team on the right; a number before a name is the team's rank by rating. " +
+        holder.appendChild(el("p", { "class": "note", text: "Away team on the left, home team on the right; a number before a name is the team's " + (top() ? "place in the coaches poll. " : "rank by rating. ") +
           (m.accuracy ? "Tested on " + m.matches.toLocaleString("en-US") + " past matches it had not seen, the favorite won " + Math.round(m.accuracy * 100) + "% of the time." : "") }));
       }
       draw();
@@ -567,7 +586,8 @@
   function cardPage(wanted) {
     main.innerHTML = "";
     main.appendChild(el("h1", { text: "Player cards" }));
-    main.appendChild(el("p", { "class": "lede", text: "Where a player ranks at her position in each part of the game. A bar at 90 means she was better than 90% of regulars at that position." }));
+    main.appendChild(el("p", { "class": "lede", text: "Where a player ranks at her position in each part of the game. A bar at 90 means she was better than 90% of " + (top() ? "Division I " : "") + "regulars at that position." +
+      (top() ? " Cards cover players on ranked teams, for the seasons their team was in the top " + top() + "." : "") }));
     var controls = el("div", { "class": "controls" }), holder = el("div");
     main.appendChild(controls); main.appendChild(holder);
     holder.appendChild(el("p", { "class": "loading", text: "Loading…" }));
@@ -592,7 +612,7 @@
           .slice(0, 8).forEach(function (p) {
             hits.appendChild(el("a", { href: "#/player-" + p.id, role: "option", text: p.name + ", " + p.pos + ", " + p.team }));
           });
-        if (!hits.children.length) hits.appendChild(el("span", { text: "No player by that name in these seasons." }));
+        if (!hits.children.length) hits.appendChild(el("span", { text: top() ? "No player by that name on a ranked team in these seasons." : "No player by that name in these seasons." }));
       });
       controls.appendChild(el("label", { "class": "field search" }, ["Find a player", box, hits]));
       if (!cs.id) { holder.innerHTML = ""; holder.appendChild(el("p", { "class": "empty", text: "No player cards yet." })); return; }
@@ -664,12 +684,12 @@
         });
         holder.appendChild(el("div", { "class": "tablewrap fit" }, [el("table", { "class": "stats plain" }, [
           el("thead", {}, [el("tr", {}, cols.map(function (c) { return el("th", { scope: "col", "class": c[1] || "", text: c[0] }); }))]), tb])]));
-        holder.appendChild(el("p", { "class": "note", text: "Seasons at " + doc.team + " only. A player who changed schools has a separate card for each. Select a season to see its card." }));
+        holder.appendChild(el("p", { "class": "note", text: "Seasons at " + doc.team + " only" + (top() ? ", and only those in which it was in the top " + top() : "") + ". A player who changed schools has a separate card for each. Select a season to see its card." }));
         document.title = pl.n + " | " + meta.site;
       });
     }).catch(function () {
       holder.innerHTML = "";
-      holder.appendChild(el("p", { "class": "empty", text: "Player cards could not be loaded. Reload the page to try again." }));
+      holder.appendChild(el("p", { "class": "empty", text: top() ? "There is no card for that player. Cards cover players on ranked teams; use the search box to find one." : "Player cards could not be loaded. Reload the page to try again." }));
     });
   }
 
@@ -679,6 +699,7 @@
     var hero = el("section", { "class": "hero" });
     hero.appendChild(el("h1", { text: "Every rally, counted." }));
     hero.appendChild(el("p", { "class": "lede", text: "A 3–1 win can be a rout or four coin flips. The chart follows the lead point by point through each set of a recent match: above the line the home team is ahead, below it the visitors are." }));
+    if (pollNote(meta.seasons[0].id)) hero.appendChild(el("p", { "class": "note", style: "margin:0 0 14px", text: "This site covers the top " + top() + ": their matches, their players and where they are headed. " + pollNote(meta.seasons[0].id) }));
     main.appendChild(hero);
     var strip = el("div", { "class": "gamestrip", role: "group", "aria-label": "Recent matches" });
     var grid = el("div", { "class": "rinkgrid" });
@@ -728,7 +749,7 @@
       }
       var by = function (rows, k) { return rows.slice().sort(function (a, b) { return (b[k] == null ? -1e9 : b[k]) - (a[k] == null ? -1e9 : a[k]); }); };
       var when = latest.label + ", through " + niceDate(latest.through);
-      if (d[0].length) leaders.appendChild(block("Team ratings", by(d[0], "rating"), "rating", F.s2, "teams", "Points per set better than average. " + when, "All teams"));
+      if (d[0].length) leaders.appendChild(block("Team ratings", by(d[0], "rating"), "rating", F.s2, "teams", "Points per set better than an average Division I team. " + when, top() ? "All " + top() + " teams" : "All teams"));
       if (d[1].length) leaders.appendChild(block("Wins above replacement", by(d[1], "war"), "war", F.d2, "war", when, "Full WAR table"));
       if (d[2] && d[2].teams.length) leaders.appendChild(block("Projected wins", by(d[2].teams, "proj_w"), "proj_w", F.d1, "standings", "Regular season, " + d[2].sims.toLocaleString("en-US") + " simulated seasons", "Projected standings"));
     }).catch(function () {});
@@ -742,6 +763,8 @@
     main.appendChild(p);
     p.innerHTML =
       "<p class='lede'>A match record says who won. Points say by how much, and against whom. This site is built on points.</p>" +
+      (top() ? "<h2>Which teams are here</h2><p>The site shows the " + top() + " teams in the " + esc(meta.poll_name) + ", the national top " + top() + " voted on by Division I head coaches, along with their players and every match they play. For this season that is the current poll, re-read every night; when a team drops out of the poll it leaves the site, and its replacement arrives with its whole season. For finished seasons it is the final poll, published after the national championship.</p>" +
+        "<p>Nothing is measured against only those " + top() + ". Every Division I match is still collected, so ratings, schedule strength, replacement level and card percentiles all compare a team or player with the whole division. A hitter at the 60th percentile is better than 60% of Division I regulars at her position, not 60% of the hitters shown here.</p>" : "") +
       "<h2>Team ratings</h2>" +
       "<p>A rating is how many points per set a team is better than an average Division I team. After every match, the point margin per set is compared with what the two ratings predicted, and both teams move toward the result. Beating a strong team by two points a set counts for more than beating a weak one by four.</p>" +
       "<p>Recent matches count more than old ones. Each team starts a season almost where it finished the last one: strong programs stay strong, and keeping nearly all of last season's rating predicted better than pulling teams back toward average. The rating does not know who is on the floor: an injury or a transfer only shows up once the scores change.</p>" +
@@ -763,7 +786,7 @@
       "<h2>What is missing</h2>" +
       "<p>Volleyball has no public equivalent of hockey's shot locations, so there is no expected-points model here. Player seasons are tied to a school: a player who transfers shows up as two players. Box scores before 2022 are empty in the NCAA's feed, so player numbers start in 2022, and 2021 is used only to start the team ratings.</p>" +
       "<h2>Glossary</h2><dl class='gloss' id='ab-gloss'></dl>" +
-      "<h2>Data</h2><p>Matches come from the NCAA's public scoreboard, box score and play-by-play feeds and are refreshed every night. Matches from the last three days are re-checked for stat corrections. Every match involving a Division I team is included; ratings for schools outside Division I are rough because they appear only a few times.</p>";
+      "<h2>Data</h2><p>Matches come from the NCAA's public scoreboard, box score and play-by-play feeds and are refreshed every night. Matches from the last three days are re-checked for stat corrections. Every match involving a Division I team is " + (top() ? "collected" : "included") + "; ratings for schools outside Division I are rough because they appear only a few times." + (top() ? " The poll is read from ncaa.com's rankings page; final polls for 2021 to 2025 come from the American Volleyball Coaches Association's archive." : "") + "</p>";
     var seen = {}, gl = document.getElementById("ab-gloss");
     ["teams", "war", "players", "serving", "defense"].reduce(function (acc, k) { return acc.concat(COLS[k].map(function (c) { return [c[1], c[2]]; })); }, []).forEach(function (g) {
       if (!g[1] || seen[g[0]] || /^(W|L|Team|Conf|Player)$/.test(g[0])) return;
@@ -777,7 +800,7 @@
       tb.appendChild(tr);
     });
     cov.appendChild(el("div", { "class": "tablewrap fit cov" }, [el("table", { "class": "stats plain" }, [
-      el("thead", {}, [el("tr", {}, [["Season", "l"], ["Matches"], ["With a box score"], ["With every point"]].map(function (c) { return el("th", { scope: "col", "class": c[1] || "", text: c[0] }); }))]), tb])]));
+      el("thead", {}, [el("tr", {}, [["Season", "l"], [top() ? "Division I matches collected" : "Matches"], ["With a box score"], ["With every point"]].map(function (c) { return el("th", { scope: "col", "class": c[1] || "", text: c[0] }); }))]), tb])]));
     cov.appendChild(el("p", { "class": "note", text: "A match counts as having every point only when the parsed points add up to the official score of every set." }));
     var vm = meta.value || {};
     if (vm.points_per_win) {

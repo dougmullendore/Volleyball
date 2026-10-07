@@ -275,8 +275,10 @@ class Scale:
             ok[m] = setter
         return v[CARD_METRICS], ok
 
-    def cards(self, info):
-        """{team: card document} with every player's seasons and percentiles."""
+    def cards(self, info, shown=None):
+        """{team: card document} with every player's seasons and percentiles.
+        Percentiles are always against all of Division I; `shown` only limits
+        which teams' cards are written ({season: {"teams": {...}}})."""
         out = {}
         for season, p in self.seasons.items():
             v, ok = self._card_values(p)
@@ -291,7 +293,10 @@ class Scale:
                     ranks = v.loc[pool, m].rank(pct=True, ascending=(m != "re_pct"))
                     pct.loc[pool, m] = (ranks * 100).round().clip(1, 99)
             teams = info.get(season, {})
+            keep = (shown or {}).get(season, {}).get("teams") if shown else None
             for pid, r in p.iterrows():
+                if keep is not None and r["team"] not in keep:
+                    continue
                 doc = out.setdefault(r["team"], {"team": teams.get(r["team"], {}).get("name", r["team"]),
                                                  "metrics": CARD_METRICS, "players": {}})
                 doc["team"] = teams.get(r["team"], {}).get("name", doc["team"])
@@ -309,13 +314,16 @@ class Scale:
                 }
         return out
 
-    def player_index(self, info):
+    def player_index(self, info, shown=None):
         """Everyone with a card, for the search box."""
         best = {}
         for season in sorted(self.seasons):
             p = self.seasons[season]
             teams = info.get(season, {})
+            keep = (shown or {}).get(season, {}).get("teams") if shown else None
             for pid, r in p[p["sets"] >= 5].iterrows():
+                if keep is not None and r["team"] not in keep:
+                    continue
                 best[pid] = [pid, r["name"], teams.get(r["team"], {}).get("name", r["team"]), POS_LABEL[r["pos"]],
                              season, _r(r["war"])]
         return {"cols": ["id", "name", "team", "pos", "season", "war"], "rows": list(best.values())}

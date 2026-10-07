@@ -18,7 +18,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from . import config, ratings, store, value
+from . import config, polls, ratings, store, value
 
 STAT = ["sets", "k", "e", "ta", "ast", "sa", "se", "sv", "d", "ra", "re", "bs", "ba", "be", "bhe"]
 POS_GROUPS = {"S": "S", "OH": "OH", "O": "OH", "OPP": "OH", "RS": "OH", "RH": "OH", "OH/OPP": "OH",
@@ -263,6 +263,14 @@ def player_table(games, box, rallies, teams, d1) -> pd.DataFrame:
     return tot.join(extra.astype(int))
 
 
+def only_teams(table: dict, keep) -> dict:
+    """A columns-plus-rows table cut down to the players of the teams in `keep`."""
+    if keep is None:
+        return table
+    i = table["cols"].index("team_id")
+    return {"cols": table["cols"], "rows": [r for r in table["rows"] if r[i] in keep]}
+
+
 def player_rows(p: pd.DataFrame, teams: dict) -> dict:
     """The players table as columns plus rows, to keep the file small."""
     cols = ["id", "name", "team", "team_id", "conf", "pos", "mp", "sp", "k", "e", "ta", "hit", "k_set", "kill_pct",
@@ -289,8 +297,9 @@ def player_rows(p: pd.DataFrame, teams: dict) -> dict:
 
 
 # ------------------------------------------------------------------ games --
-def games_table(games, teams, pre) -> list[dict]:
+def games_table(games, teams, pre, show=None) -> list[dict]:
     p = pre.set_index("game_id")["p_home"].to_dict() if len(pre) else {}
+    rk = {t: v["rank"] for t, v in (show or {}).items()}
     out = []
     for r in games.sort_values(["date", "game_id"], ascending=False).to_dict("records"):
         ph = p.get(r["game_id"])
@@ -303,24 +312,28 @@ def games_table(games, teams, pre) -> list[dict]:
                     "scores": r["set_scores"], "ap": vp, "hp": hp,
                     "pd": (hp - vp) if hp is not None else None,
                     "p_win": _r(100 * (ph if hw else 1 - ph), 0) if ph is not None else None,
+                    "ar": rk.get(r["away"]), "hr": rk.get(r["home"]),
                     "round": r["round"],
                     "conf": teams[r["home"]]["conf"] if teams[r["home"]]["conf"] == teams[r["away"]]["conf"] else ""})
     return out
 
 
-def recent_matches(games, box, rallies, teams, d1, rating, pre, limit=14) -> list[dict]:
-    """The latest matches between Division I teams that have every point, best matchups first."""
+def recent_matches(games, box, rallies, teams, d1, rating, pre, limit=14, show=None) -> list[dict]:
+    """The latest matches between Division I teams that have every point, best matchups first.
+    With `show`, only matches involving one of those teams."""
     if not len(rallies):
         return []
     n_sets = games["set_scores"].str.split().str.len()
     g = games[(games["pbp_sets"] == n_sets) & (n_sets > 0) & games["home"].isin(d1) & games["away"].isin(d1)]
+    if show is not None:
+        g = g[g["home"].isin(show) | g["away"].isin(show)]
     # only matches where no point is missing from the feed
     points = games["set_scores"].map(lambda s: sum(int(x) for part in s.split() for x in part.split("-")))
     have = rallies.groupby("game_id").size()
     g = g[g["game_id"].map(have).fillna(0).astype(int) == points[g.index]]
     if not len(g):
         return []
-    last = sorted(g["date"].unique())[-3:]
+    last = sorted(g["date"].unique())[-(3 if show is None else 5):]
     g = g[g["date"].isin(last)].copy()
     g["quality"] = [rating.get(h, -9) + rating.get(a, -9) for h, a in zip(g["home"], g["away"])]
     g = g.sort_values(["quality"], ascending=False).head(limit).sort_values(["date", "quality"], ascending=[False, False])
@@ -379,39 +392,49 @@ def build_all(data: Path, log) -> dict:
             scale.add_season(season, p, games, box, teams, d1, final.get(season, {}))
             player_seasons[season] = p
     scale.finish(weights.get("per_point"))
+    # Which teams the site shows each season (the coaches poll top 25). All the
+    # numbers above and below are still worked out from every Division I match.
+    shown = polls.shown(data, info, final)
 
     for season in sorted(loaded, reverse=True):
         games, box, rallies, teams, d1 = loaded[season]
         rating = final.get(season, {})
         spre = pre[pre["season"] == season] if len(pre) else pre
         is_current = season == max(loaded)
+        show = shown[season]["teams"] if season in shown else None
         trows = team_table(games, box, rallies, teams, d1, rating, odds.get("teams") if is_current and odds.get("season") == season else None)
+        if show is not None:
+            trows = [dict(r, poll=show[r["id"]]["rank"], poll_prev=show[r["id"]]["prev"]) for r in trows if r["id"] in show]
         store.write_json(out / f"teams_{season}.json", trows, compact=True)
-        store.write_json(out / f"games_{season}.json", games_table(games[games["home"].isin(d1) | games["away"].isin(d1)], teams, spre), compact=True)
+        listed = d1 if show is None else set(show)
+        store.write_json(out / f"games_{season}.json", games_table(games[games["home"].isin(listed) | games["away"].isin(listed)], teams, spre, show), compact=True)
         n_sets = games["set_scores"].str.split().str.len()
         smeta = {"id": season, "label": str(season), "matches": int(len(games)), "teams": len(d1),
+                 "shown": len(trows),
+                 "poll": {"source": shown[season]["source"], "through": shown[season]["through"]} if season in shown else None,
                  "through": str(games["date"].max()),
                  "with_box": int((games["detail"] == 1).sum()),
                  "with_points": int(((games["pbp_sets"] == n_sets) & (n_sets > 0)).sum()),
                  "players": season in player_seasons and len(player_seasons[season]) > 0}
-        for t in d1:
+        for t in listed:
             c = teams[t]["conf"]
             if c:
                 conf_names.setdefault(c, value.conference_name(c))
         if smeta["players"]:
             p = player_seasons[season]
-            store.write_json(out / f"players_{season}.json", player_rows(p, teams), compact=True)
-            war = scale.war_table(season, teams)
+            store.write_json(out / f"players_{season}.json", only_teams(player_rows(p, teams), show), compact=True)
+            war = only_teams(scale.war_table(season, teams), show)
             store.write_json(out / f"war_{season}.json", war, compact=True)
             summary[season] = scale.season_summary(season)
         seasons_meta.append(smeta)
         if is_current:
-            store.write_json(out / "recent.json", recent_matches(games, box, rallies, teams, d1, rating, spre), compact=True)
-        log(f"stats {season}: {len(games):,} matches, {len(trows)} teams, "
+            store.write_json(out / "recent.json", recent_matches(games, box, rallies, teams, d1, rating, spre, show=show), compact=True)
+        log(f"stats {season}: {len(games):,} matches, {len(d1)} teams ({len(trows)} shown"
+            + (f", {shown[season]['source']}" if season in shown else "") + "), "
             f"{len(player_seasons.get(season, []))} players, {len(rallies):,} points")
 
     # cards are stored a few teams to a file, so a page load fetches only one small file
-    cards = scale.cards(info)
+    cards = scale.cards(info, shown)
     for old in (out / "cards").glob("*.json"):
         old.unlink()
     buckets = {}
@@ -419,11 +442,12 @@ def build_all(data: Path, log) -> dict:
         buckets.setdefault(card_bucket(team), {"metrics": doc.pop("metrics"), "teams": {}})["teams"][team] = doc
     for b, doc in buckets.items():
         store.write_json(out / "cards" / f"b{b}.json", doc, compact=True)
-    index = scale.player_index(info)
+    index = scale.player_index(info, shown)
     store.write_json(out / "player_index.json", index, compact=True)
 
     meta = {
         "site": config.SITE_NAME, "tagline": config.SITE_TAGLINE,
+        "show_top": config.SHOW_TOP, "poll_name": config.POLL_NAME,
         "updated_utc": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
         "seasons": seasons_meta, "conferences": dict(sorted(conf_names.items(), key=lambda kv: kv[1])),
         "value": {"points_per_win": _r(scale.points_per_win, 1), "dig_weight": config.VALUE_DIG,

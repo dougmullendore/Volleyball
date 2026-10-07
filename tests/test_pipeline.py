@@ -140,3 +140,104 @@ def test_tables_build(data_dir, monkeypatch):
         for s, score in zip(g["sets"], g["scores"].split()):
             h, v = map(int, score.split("-"))
             assert sum(c.isupper() for c in s) == h and sum(c.islower() for c in s) == v
+
+
+# ------------------------------------------------- the coaches poll (top 25) --
+from pipeline import polls  # noqa: E402
+
+FEED_NAMES = {   # id and short name exactly as the match feed gives them
+    "arizona-st": "Arizona St.", "penn-st": "Penn St.", "texas-am": "Texas A&M", "michigan-st": "Michigan St.",
+    "michigan": "Michigan", "north-carolina": "North Carolina", "north-carolina-st": "NC State",
+    "miami-fl": "Miami (FL)", "miami-oh": "Miami (OH)", "southern-california": "Southern California",
+    "western-ky": "Western Ky.", "texas": "Texas", "texas-st": "Texas St.", "washington": "Washington",
+    "washington-st": "Washington St.", "ole-miss": "Ole Miss", "hawaii": "Hawaii", "iowa-st": "Iowa St.",
+    "iowa": "Iowa", "florida": "Florida", "florida-st": "Florida St.", "nebraska": "Nebraska", "byu": "BYU",
+}
+
+
+def test_poll_page_is_read():
+    page = gzip.open(FIX / "avca_poll.html.gz", "rt", encoding="utf-8").read()
+    poll = polls.parse_page(page)
+    assert poll["through"] == "2026-10-04"
+    rows = poll["rows"]
+    assert [r["rank"] for r in rows] == list(range(1, 26))
+    assert rows[0] == {"rank": 1, "school": "Nebraska", "votes": 47, "points": 1559, "record": "15-0", "prev": 1}
+    assert rows[21]["school"] == "Michigan State" and rows[21]["prev"] is None     # "NR": not ranked last week
+    assert polls.season_of("2026-10-04") == 2026 and polls.season_of("2026-01-05") == 2025
+
+
+def test_poll_names_find_the_right_team():
+    teams = {t: {"name": n, "d1": True} for t, n in FEED_NAMES.items()}
+    want = {"Arizona State": "arizona-st", "Penn State": "penn-st", "Texas A&M": "texas-am", "Michigan State": "michigan-st",
+            "Michigan": "michigan", "North Carolina": "north-carolina", "Miami (FL)": "miami-fl", "USC": "southern-california",
+            "Southern California": "southern-california", "Western Kentucky": "western-ky", "Texas": "texas",
+            "Washington State": "washington-st", "Washington": "washington", "Hawai'i": "hawaii", "Iowa State": "iowa-st",
+            "Florida State": "florida-st", "Florida": "florida", "Nebraska (47)": "nebraska", "BYU": "byu"}
+    for school, team in want.items():
+        assert polls.match_school(school, teams) == team, school
+    assert polls.match_school("Slippery Rock", teams) is None
+
+
+def test_final_polls_file_is_complete():
+    finals = polls._final_file()
+    assert set(finals) >= {2021, 2022, 2023, 2024, 2025}
+    for season, rows in finals.items():
+        assert len(rows) == 25 and len({r["team"] for r in rows}) == 25, season
+        assert min(r["rank"] for r in rows) == 1 and max(r["rank"] for r in rows) == 25, season
+
+
+def test_only_poll_teams_are_shown(data_dir, monkeypatch):
+    import shutil
+    import tempfile
+    data = Path(tempfile.mkdtemp(prefix="top")) / "data"
+    shutil.copytree(data_dir, data, ignore=shutil.ignore_patterns("site_data", "derived", "polls"))
+    seasons = sorted(int(p.stem.split(".")[0]) for p in (data / "games").glob("*.csv.gz"))
+    monkeypatch.setattr(config, "SEASONS", seasons)
+    monkeypatch.setattr(config, "MIN_MATCHES_D1", 1)
+    monkeypatch.setattr(config, "PRED_SIMULATIONS", 50)
+    monkeypatch.setattr(config, "SHOW_TOP", 2)
+    newest = max(seasons)
+    games = store.read(data, "games", newest)
+    pick = [games["home"].iat[0], games["away"].iat[0]]
+    store.write_json(data / "polls" / f"{newest}.json", {
+        f"{newest}-09-01": [{"rank": 1, "team": pick[1], "prev": None}, {"rank": 2, "team": pick[0], "prev": 1}],
+        f"{newest}-10-01": [{"rank": 1, "team": pick[0], "prev": 2}, {"rank": 2, "team": pick[1], "prev": 1},
+                            {"rank": 3, "team": "someone-else", "prev": 3}]})
+    out = data / "site_data"
+    ratings.build(data, out, lambda m: None)
+    aggregate.build_all(data, lambda m: None)
+
+    teams = store.read_json(out / f"teams_{newest}.json")
+    assert {t["id"]: t["poll"] for t in teams} == {pick[0]: 1, pick[1]: 2}        # the newest poll wins
+    odds = store.read_json(out / "odds.json")
+    assert {t["id"] for t in odds["teams"]} == set(pick)
+    war = store.read_json(out / f"war_{newest}.json")
+    assert war["rows"] and {r[war["cols"].index("team_id")] for r in war["rows"]} <= set(pick)
+    players = store.read_json(out / f"players_{newest}.json")
+    assert {r[players["cols"].index("team_id")] for r in players["rows"]} <= set(pick)
+    names = {t["team"] for t in teams}
+    for g in store.read_json(out / f"games_{newest}.json"):
+        assert g["home"] in names or g["away"] in names
+    index = store.read_json(out / "player_index.json")
+    shown_now = {r[0] for r in index["rows"] if r[index["cols"].index("season")] == newest}
+    assert all(pid.split("~")[0] in pick for pid in shown_now)
+    for f in (out / "cards").glob("*.json"):
+        for team, doc in store.read_json(f)["teams"].items():
+            assert team in pick or all(str(newest) not in pl["y"] for pl in doc["players"].values())
+    meta = store.read_json(out / "meta.json")
+    assert meta["show_top"] == 2 and meta["seasons"][0]["poll"] == {"source": "poll", "through": f"{newest}-10-01"}
+    assert meta["seasons"][0]["shown"] == 2 and meta["seasons"][0]["teams"] > 2
+
+
+def test_every_team_is_shown_when_switched_off(data_dir, monkeypatch):
+    seasons = sorted(int(p.stem.split(".")[0]) for p in (Path(data_dir) / "games").glob("*.csv.gz"))
+    monkeypatch.setattr(config, "SEASONS", seasons)
+    monkeypatch.setattr(config, "MIN_MATCHES_D1", 1)
+    monkeypatch.setattr(config, "PRED_SIMULATIONS", 50)
+    monkeypatch.setattr(config, "SHOW_TOP", 0)
+    out = Path(data_dir) / "site_data"
+    ratings.build(data_dir, out, lambda m: None)
+    aggregate.build_all(data_dir, lambda m: None)
+    meta = store.read_json(out / "meta.json")
+    teams = store.read_json(out / f"teams_{meta['seasons'][0]['id']}.json")
+    assert len(teams) == meta["seasons"][0]["teams"] and "poll" not in teams[0]
