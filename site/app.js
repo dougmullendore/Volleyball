@@ -210,7 +210,7 @@
     }
     listInto(holder, games);
     var both = games.filter(function (g) { return g.away.rank && g.home.rank; }).length;
-    holder.appendChild(el("p", { "class": "note", text: games.length + " matches this week" + (both ? ", " + both + " of them between two ranked teams (marked with a yellow edge)" : "") +
+    holder.appendChild(el("p", { "class": "note", text: games.length + " matches this week" + (both ? ", " + both + " of them between two ranked teams (marked with a green edge)" : "") +
       ". The visiting team is on the left, and the channel or streaming service is on the right for matches in the next two weeks. Numbers are this week's rankings, also for earlier weeks. Choose a team to see its whole season." }));
   }
 

@@ -14,7 +14,7 @@ You do not need to run anything. GitHub does it all on a schedule.
   day. Upcoming matches show the start time in the reader's own time zone and
   where to watch; finished ones show the score in sets and link to the NCAA's
   box score. A
-  match between two ranked teams has a yellow edge. Buttons step to earlier
+  match between two ranked teams has a green edge. Buttons step to earlier
   and later weeks, and a menu narrows the list to one team's whole season.
 
 ## Players

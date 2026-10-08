@@ -1,5 +1,5 @@
-/* GOAT Volleyball. Colours from the gym: the teal of the free zone around a court,
-   the yellow panel of the ball, white boundary lines. One column, left aligned. */
+/* GOAT Volleyball. One colour, the green of the free zone around a court, used for the
+   logo mark, the rank tags and every accent. One column, left aligned. */
 :root {
   --floor: #edf3f1;
   --sheet: #ffffff;
@@ -8,21 +8,21 @@
   --line: #cddad7;
   --teal: #0b6a6e;
   --teal-soft: #d9ecea;
-  --ball: #f2c230;
-  --ball-ink: #1d2a12;
+  --ball: #0b6a6e;      /* the accent: the same green as the logo mark */
+  --ball-ink: #ffffff;
   --lost: #7a8b8e;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --floor: #0c1b1e; --sheet: #13272b; --ink: #e6f0ee; --ink-2: #9db3b4; --line: #27444a;
-    --teal: #5cc7c4; --teal-soft: #173a3d; --ball: #f2c230; --ball-ink: #1d2a12; --lost: #7f9697;
+    --teal: #5cc7c4; --teal-soft: #173a3d; --ball: #5cc7c4; --ball-ink: #0c1b1e; --lost: #7f9697;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --floor: #0c1b1e; --sheet: #13272b; --ink: #e6f0ee; --ink-2: #9db3b4; --line: #27444a;
-  --teal: #5cc7c4; --teal-soft: #173a3d; --ball: #f2c230; --ball-ink: #1d2a12; --lost: #7f9697;
+  --teal: #5cc7c4; --teal-soft: #173a3d; --ball: #5cc7c4; --ball-ink: #0c1b1e; --lost: #7f9697;
   color-scheme: dark;
 }
 
