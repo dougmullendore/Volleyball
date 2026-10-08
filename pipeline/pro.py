@@ -28,12 +28,11 @@ LEAGUES = {
 }
 FILES = ["schedule", "player_boxscore", "player_info", "pbp"]
 DATA_URL = "https://github.com/awosoga/volleydata/releases/download/{lg}-{tag}/{lg}_{kind}{season}.csv"
-# Each finished season's final places: champion, runner-up, and the semifinal loser
-# with the better regular-season record (neither league plays for third place).
-# Shown as gold, silver and bronze trophies until the next season starts.
+# Each finished season's champion and runner-up, shown as gold and silver trophies
+# until the next season starts (neither league plays for third, so no bronze).
 CHAMPIONS = {
-    ("lovb", 2026): ["austin", "salt-lake", "houston"],
-    ("mlv", 2026): ["dallas-pulse", "omaha-supernovas", "indy-ignite"],
+    ("lovb", 2026): ["austin", "salt-lake"],
+    ("mlv", 2026): ["dallas-pulse", "omaha-supernovas"],
 }
 # badge colours, one per team
 COLORS = ["#1d4ed8", "#b91c1c", "#047857", "#7c3aed", "#c2410c", "#0e7490", "#a21caf", "#4d7c0f", "#be123c", "#334155"]
