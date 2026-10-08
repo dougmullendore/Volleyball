@@ -17,6 +17,14 @@ You do not need to run anything. GitHub does it all on a schedule.
   match between two ranked teams has a green edge. Buttons step to earlier
   and later weeks, and a menu narrows the list to one team's whole season.
 
+## Beat and Lost to
+
+On the Rankings page each team's Beat and Lost to boxes list its results
+against the other ranked teams. In the AVCA poll view they count only matches
+played through the poll's date, so they change with the poll each Monday,
+and so do the boxes on team pages. The GOAT view's boxes are redone every
+night.
+
 ## Team pages
 
 Every team name on the site links to that team's page (`#/team/<id>`): its

@@ -538,3 +538,10 @@ def test_a_broken_word_list_stops_the_update(tmp_path=None):
         assert "nav.teams" in str(e)
     else:
         raise AssertionError("a broken line should stop the update")
+
+
+def test_poll_beat_and_lost_wait_for_the_next_poll():
+    import inspect
+    from pipeline import run
+    src = inspect.getsource(run.build_site)
+    assert 'g["date"] <= through' in src

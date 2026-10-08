@@ -350,7 +350,9 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
         t["goat"] = place.get(t["id"])
     in_poll = {t["id"]: t["rank"] for t in ranked if t["id"]}
     # Each ranked team's results against the other ranked teams, best opponent first.
-    results = goat.head_to_head(sel["all_games"])
+    # Only matches the poll has seen (played through its date), so this view changes
+    # when the poll does, on Mondays; the GOAT view below is redone every night.
+    results = goat.head_to_head([g for g in sel["all_games"] if g["date"] <= through])
     for t in ranked:
         t["beat"], t["lost"] = [], []
         for other in sorted(in_poll, key=in_poll.get):
