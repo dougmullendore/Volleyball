@@ -1,4 +1,4 @@
-/* GOAT Volleyball. One main colour, blue, used for the logo mark, the rank tags and
+/* GOAT Volleyball. One main colour per league (purple, blue, yellow), used for the logo mark, the rank tags and
    every accent; green for a win and red for a loss. One column, left aligned. */
 :root {
   --floor: #eef2f8;
@@ -6,11 +6,11 @@
   --ink: #0f1d33;
   --ink-2: #4f5d73;
   --line: #cfd8e6;
-  --teal: #1d4ed8;      /* the main colour (the name is older than the colour) */
-  --teal-soft: #dbe5fb;
-  --ball: #1d4ed8;      /* the accent: the same blue as the logo mark */
+  --teal: #6d28d9;      /* the main colour: purple for college, blue for LOVB, yellow for MLV (below) */
+  --teal-soft: #ece4fc;
+  --ball: #6d28d9;      /* the accent: the same colour as the logo mark */
   --ball-ink: #ffffff;
-  --ball-home: #12318f; /* a darker blue: the home team's rank before a match */
+  --ball-home: #4c1d95; /* a darker shade: the home team's rank before a match */
   --win: #15803d;       /* green, for a match's winner and for "Beat" */
   --win-ink: #ffffff;
   --loss: #b3261e;      /* red, for "Lost to" and for the rank of a match's loser */
@@ -21,15 +21,25 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --floor: #0b1220; --sheet: #121b2e; --ink: #e6ecf7; --ink-2: #9aa8bf; --line: #24324d;
-    --teal: #7aa7ff; --teal-soft: #1a2a4a; --ball: #7aa7ff; --ball-ink: #0b1220; --ball-home: #4c78d6; --win: #4ade80; --win-ink: #052e16; --loss: #ff8a80; --loss-ink: #3b0d0a; --lost: #7f8ba0;
+    --teal: #b794f6; --teal-soft: #2a1f47; --ball: #b794f6; --ball-ink: #140b26; --ball-home: #8b5cf6; --win: #4ade80; --win-ink: #052e16; --loss: #ff8a80; --loss-ink: #3b0d0a; --lost: #7f8ba0;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --floor: #0b1220; --sheet: #121b2e; --ink: #e6ecf7; --ink-2: #9aa8bf; --line: #24324d;
-  --teal: #7aa7ff; --teal-soft: #1a2a4a; --ball: #7aa7ff; --ball-ink: #0b1220; --ball-home: #4c78d6; --win: #4ade80; --win-ink: #052e16; --loss: #ff8a80; --loss-ink: #3b0d0a; --lost: #7f8ba0;
+  --teal: #b794f6; --teal-soft: #2a1f47; --ball: #b794f6; --ball-ink: #140b26; --ball-home: #8b5cf6; --win: #4ade80; --win-ink: #052e16; --loss: #ff8a80; --loss-ink: #3b0d0a; --lost: #7f8ba0;
   color-scheme: dark;
 }
+
+/* each league's own colour */
+body.lg-lovb { --teal: #1d4ed8; --teal-soft: #dbe5fb; --ball: #1d4ed8; --ball-ink: #ffffff; --ball-home: #12318f; }
+body.lg-mlv { --teal: #a16207; --teal-soft: #fdf3c4; --ball: #eab308; --ball-ink: #1f1600; --ball-home: #a16207; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) body.lg-lovb { --teal: #7aa7ff; --teal-soft: #1a2a4a; --ball: #7aa7ff; --ball-ink: #0b1220; --ball-home: #4c78d6; }
+  :root:not([data-theme="light"]) body.lg-mlv { --teal: #facc15; --teal-soft: #3a3110; --ball: #facc15; --ball-ink: #1f1600; --ball-home: #ca8a04; }
+}
+:root[data-theme="dark"] body.lg-lovb { --teal: #7aa7ff; --teal-soft: #1a2a4a; --ball: #7aa7ff; --ball-ink: #0b1220; --ball-home: #4c78d6; }
+:root[data-theme="dark"] body.lg-mlv { --teal: #facc15; --teal-soft: #3a3110; --ball: #facc15; --ball-ink: #1f1600; --ball-home: #ca8a04; }
 
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
@@ -50,7 +60,7 @@ a { color: var(--teal); }
 .brand svg { width: 24px; height: 24px; flex: none; fill: none; stroke: var(--teal); stroke-width: 2.2; }
 .leagues { display: flex; gap: 2px; padding-top: 26px; padding-bottom: 0; font-size: .8125rem; }
 .leagues a { color: var(--ink-2); text-decoration: none; font-weight: 600; padding: 4px 10px; border-radius: 4px 4px 0 0; }
-.leagues a[aria-current="page"] { color: #fff; background: var(--ball); }
+.leagues a[aria-current="page"] { color: var(--ball-ink); background: var(--ball); }
 .logo.badge { display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--team, var(--ball)); color: #fff;
   font: 700 .5625rem/1 "Barlow Condensed", sans-serif; letter-spacing: .02em; overflow: hidden; }
 .logo.badge span { padding: 0 1px; }
@@ -197,7 +207,7 @@ h2 { font: 700 1.375rem/1.2 "Barlow Condensed", sans-serif; margin: 0; }
 .back { margin: 24px 0 12px; font-size: .875rem; }
 .pc-bio { margin: 2px 0; font-weight: 600; }
 .pc-social { display: flex; gap: 10px; margin: 6px 0 0; }
-.pc-social a { display: inline-flex; width: 30px; height: 30px; align-items: center; justify-content: center; border-radius: 50%; background: var(--ball); color: #fff; }
+.pc-social a { display: inline-flex; width: 30px; height: 30px; align-items: center; justify-content: center; border-radius: 50%; background: var(--ball); color: var(--ball-ink); }
 .pc-social a:hover { filter: brightness(1.15); }
 .pcard { max-width: 44rem; background: var(--sheet); border: 1px solid var(--line); border-top: 4px solid var(--ball); border-radius: 4px; padding: 20px; }
 .pc-head { display: grid; grid-template-columns: auto 1fr auto; gap: 16px; align-items: center; }
