@@ -347,6 +347,18 @@ def _plain(src: str | None) -> str | None:
     return src
 
 
+def _small(img: dict | None) -> str | None:
+    """The smallest size the image service offers (its addresses are signed, so
+    only the sizes it lists will load), else the original picture."""
+    best = None
+    for part in ((img or {}).get("srcset") or "").split(","):
+        bits = part.strip().split(" ")
+        if len(bits) == 2 and bits[1].endswith("w") and bits[1][:-1].isdigit():
+            if best is None or int(bits[1][:-1]) < best[0]:
+                best = (int(bits[1][:-1]), bits[0])
+    return best[1] if best else _plain((img or {}).get("src"))
+
+
 def _height(v) -> str | None:
     m = re.match(r"\s*(\d)\s*[-' ]\s*(\d{1,2})", str(v or ""))
     return f"{m.group(1)}-{m.group(2)}" if m else None
@@ -418,7 +430,7 @@ def mlv_media(fetch, names: list[str], log) -> dict:
         logo = None
         try:
             team = _inertia(fetch(MLV_SITE + t["permalink"] + "/roster")).get("team") or {}
-            logo = _plain((team.get("logo") or {}).get("src"))
+            logo = _small(team.get("logo"))
         except Exception:
             pass
         teams[slug(t["name"])] = {"logo": logo, "color": t.get("color"), "abbr": t.get("abbreviation")}
@@ -449,7 +461,7 @@ def mlv_media(fetch, names: list[str], log) -> dict:
                 links[net] = s.get("account")
         if _social(links):
             bio["social"] = _social(links)
-        photo = _plain((p.get("headshot_image") or {}).get("src"))
+        photo = _small(p.get("headshot_image"))
         people[name_key(full)] = {"photo": photo, "bio": bio}
     return {"teams": teams, "players": people}
 
@@ -461,7 +473,7 @@ def update_media(state: Path, today: dt.date, log) -> dict:
     for site in LEAGUES:
         path = state / "pro" / f"{site}_media.json"
         have = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
-        if "imgproxy/" in json.dumps(have) and "rs:fit:2" in json.dumps(have):   # stored before _plain(): read again
+        if site == "mlv" and "storage.googleapis.com" in json.dumps(have):   # stored before _small(): read again
             have = {}
         no_logos = not any(v.get("logo") for v in (have.get("teams") or {}).values())
         if have.get("checked") and (today - dt.date.fromisoformat(have["checked"])).days < MEDIA_DAYS and not no_logos:
