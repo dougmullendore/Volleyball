@@ -215,15 +215,16 @@ def compute(ranked: list[dict], games: list[dict], boxes: dict) -> dict:
                 pct = 100 * below / len(vals)
                 q.setdefault("_pct", {})[key] = int(min(99, max(1, round(pct if higher else 100 - pct))))
 
-    # Ranks: by total impact among regulars, overall and at the position.
-    regulars = sorted((q for q in out if q["regular"]), key=lambda q: -q["impact"])
+    # Ranks: by impact per set among regulars, overall and at the position, so a player
+    # is not ranked higher just for having played more sets.
+    regulars = sorted((q for q in out if q["regular"]), key=lambda q: (-q["_v"]["impact_set"], -q["impact"]))
     seen = {}
     for i, q in enumerate(regulars):
         q["rank"] = i + 1
         seen[q["_pos"]] = seen.get(q["_pos"], 0) + 1
         q["pos_rank"] = seen[q["_pos"]]
     rows = []
-    for q in sorted(out, key=lambda q: (q.get("rank") or 10**6, -q["impact"])):
+    for q in sorted(out, key=lambda q: (q.get("rank") or 10**6, -q["_v"]["impact_set"])):
         rows.append({"id": q["id"], "name": q["name"], "team": q["team"], "team_id": q["team_id"], "team_rank": q["team_rank"],
                      "num": q["num"], "pos": q["pos"], "mp": q["mp"], "starts": q["starts"], "sp": q["sp"],
                      "regular": q["regular"], "rank": q.get("rank"), "pos_rank": q.get("pos_rank"),

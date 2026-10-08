@@ -22,7 +22,7 @@ You do not need to run anything. GitHub does it all on a schedule.
 The **Players** page ranks every regular on the 25 ranked teams against the
 rest, and each name opens a card with her percentiles.
 
-- **Impact** is the ranking number: the points a player has added over an
+- **Impact per set** is the ranking number. Impact is the points a player has added over an
   average top-25 player at her position, from official box scores. It is the
   sum of six parts: attack (kills minus errors against her position's average
   on the same swings), serve, serve receive, block, dig, and setting. A

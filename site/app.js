@@ -273,7 +273,7 @@
   }
 
   // ---- players ----
-  var roster = null, pstate = { pos: "", team: "", q: "", all: false, sort: "rank", dir: 1 };
+  var roster = null, pstate = { pos: "", team: "", q: "", all: false, sort: "impact_set", dir: -1 };
   var POS_ONE = { OH: "Outside or opposite hitter", MB: "Middle blocker", S: "Setter", L: "Libero", DS: "Defensive specialist" };
   var POS_MANY = { OH: "outside and opposite hitters", MB: "middle blockers", S: "setters", L: "liberos", DS: "defensive specialists" };
   var fmt = {
@@ -316,7 +316,7 @@
   }
 
   var PCOLS = [   // key, heading, meaning, getter, format, sorts high to low first
-    ["rank", "#", "Rank by Impact among regulars", function (p) { return p.rank; }, function (v) { return String(v); }, 0],
+    ["rank", "#", "Rank by Impact per set among regulars", function (p) { return p.rank; }, function (v) { return String(v); }, 0],
     ["name", "Player", "", function (p) { return p.name; }, null, 0],
     ["team", "Team", "", function (p) { return p.team_rank; }, null, 0],
     ["pos", "Pos", "OH outside or opposite hitter, MB middle blocker, S setter, L libero, DS defensive specialist", function (p) { return p.pos; }, function (v) { return v; }, 0],
@@ -370,7 +370,7 @@
             if (c[0] === "name") return el("td", { "class": "l nm" }, [el("a", { href: "#/player/" + encodeURIComponent(p.id) }, [face(p), el("span", { text: p.name })])]);
             if (c[0] === "team") return el("td", { "class": "l tm" }, [logo(p.team_id), el("span", { text: p.team })]);
             var v = c[3](p);
-            return el("td", { "class": (c[0] === "impact" ? "strong " : "") + (pstate.sort === c[0] ? "sorted" : ""), text: v == null ? (c[0] === "rank" ? "–" : "") : c[4](v) });
+            return el("td", { "class": (c[0] === "impact_set" ? "strong " : "") + (pstate.sort === c[0] ? "sorted" : ""), text: v == null ? (c[0] === "rank" ? "–" : "") : c[4](v) });
           }));
         }));
         holder.appendChild(el("div", { "class": "tablewrap", tabindex: "0", role: "region", "aria-label": "Players table, scrolls sideways" }, [
