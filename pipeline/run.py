@@ -22,6 +22,7 @@ import datetime as dt
 import hashlib
 import json
 import os
+import re
 import shutil
 import sys
 import traceback
@@ -294,6 +295,30 @@ def match_files(out: Path, listed: list[dict], boxes: dict, rated: dict) -> int:
     return n
 
 
+def read_words(src: Path = SITE_SRC) -> dict:
+    """The site's wording from site/words.txt ("name = words" lines). Fails,
+    before anything is published, if a line is broken or a name the pages use
+    is missing, so a slip in the file leaves yesterday's site up."""
+    words, bad = {}, []
+    for n, line in enumerate((src / "words.txt").read_text(encoding="utf-8").splitlines(), 1):
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        key, sep, text = line.partition("=")
+        key = key.strip()
+        if not sep or not re.fullmatch(r"[a-z0-9_]+\.[a-z0-9_]+", key):
+            bad.append(f"line {n}: {line.strip()[:60]!r}")
+            continue
+        words[key] = text.strip()
+    used = set(re.findall(r'W\("([a-z0-9_.]+)"', (src / "app.js").read_text()))
+    used |= set(re.findall(r'data-w="([a-z0-9_.]+)"', (src / "index.html").read_text()))
+    missing = sorted(used - set(words))
+    if bad or missing:
+        raise RuntimeError("site/words.txt needs fixing; the site was not updated. "
+                           + (f"Lines not in the form 'name = words': {bad}. " if bad else "")
+                           + (f"Missing names (put these lines back): {missing}." if missing else ""))
+    return words
+
+
 def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
     sel = ranked_matches(state)
     through, ranked, listed, unmatched = sel["through"], sel["teams"], sel["games"], sel["unmatched"]
@@ -365,9 +390,10 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
             g["watch"] = w.get("channels") or []      # an empty list means: looked, nothing announced
         if w and w.get("espn"):
             g["espn"] = [w["espn"], 1 if w.get("flip") else 0]   # live score, and the match page's set scores
+    words = read_words()                       # checked before anything is written
     if out.exists():
         shutil.rmtree(out)
-    shutil.copytree(SITE_SRC, out)
+    shutil.copytree(SITE_SRC, out, ignore=shutil.ignore_patterns("words.txt"))
     # Give the script and stylesheet an address that changes whenever they do.
     # Otherwise a browser can pair a new page with the copy of the old script
     # it kept, and the page breaks until that copy expires.
@@ -391,7 +417,7 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
         "site": config.SITE_NAME, "updated": now.isoformat(timespec="seconds"), "season": sel["season"],
         "poll": {"name": config.POLL_NAME, "through": through, "teams": ranked, "polls_seen": sel["polls_seen"]},
         "game_page": config.GAME_PAGE, "live_feed": config.ESPN_SCOREBOARD, "live_seconds": config.LIVE_SECONDS,
-        "logo": config.LOGO_URL, "odds_tested": config.ODDS_TESTED, "goat": goat_info, "games": listed})
+        "logo": config.LOGO_URL, "odds_tested": config.ODDS_TESTED, "goat": goat_info, "words": words, "games": listed})
     write_json(out / "players.json", rated)
     team_stats = teams.compute(ranked, listed, boxes, rating)
     write_json(out / "teams.json", team_stats)

@@ -1,0 +1,66 @@
+# THE WORDS ON THE SITE
+#
+# Each line is:   name = the words shown on the site
+# Change only the words after the = sign. Keep the name before it exactly as it is.
+# Lines starting with # are notes for you; the site ignores them.
+# A word in curly brackets, like {poll} or {date}, is filled in by the site
+# (the poll's name, a date, a number). You can move it or leave it out.
+# After you save, the site updates in about two minutes. If a line is broken,
+# the update stops, the old site stays up, and GitHub emails you.
+
+# ---- the tabs at the top ----
+nav.matches = Matches
+nav.rankings = Rankings
+nav.teams = Teams
+nav.players = Players
+
+# ---- Matches page ----
+matches.title = Top 25 matches
+matches.lede = Every match played by a team in the {poll}, week by week.
+matches.all_teams = All 25 teams
+matches.earlier = Earlier week
+matches.this_week = This week
+matches.later = Later week
+matches.no_broadcast = No broadcast listed
+matches.box_score = Box score
+matches.live_box_score = Live box score
+matches.live = Live
+
+# ---- Rankings page ----
+rankings.title = Top 25 rankings
+rankings.lede = The {poll}, through matches of {date}.
+rankings.lede_goat = This site's own ranking of every Division I team, where beating a team counts for more than it does in the poll.
+rankings.button_poll = AVCA poll
+rankings.button_goat = GOAT ranking
+rankings.beat = Beat
+rankings.lost_to = Lost to
+rankings.none_yet = None yet
+rankings.note = Record and change are from the poll, which is checked for a new one every Monday. Under each team are its results this season against the other 24, with their poll places. Choose a team to see its page.
+rankings.note_goat = Beside each team are its results this season against the rest of this top 25, with their GOAT places. The AVCA column is the team's place in the coaches poll; a dash means it is not ranked there. Redone every night.
+
+# ---- Teams page ----
+teams.title = Top 25 team stats
+teams.lede = How each ranked team attacks, serves, blocks and defends, per set, and what its opponents manage against it. From official box scores.
+teams.note = Per-set numbers count every set in matches with an official box score. Rating is where this site's rating of results places the team among all Division I teams; SOS ranks the 25 by how strong their opponents have been. Choose a column heading to sort; hold or hover over a heading for what it means.
+
+# ---- a team's own page ----
+team.matches = Matches
+team.coming_up = Coming up
+team.latest_results = Latest results
+team.stats = Team stats
+team.players = Players
+team.players_note = # is her rank by Impact per set among all regulars on the 25 ranked teams; part-time players are greyed and not ranked. Choose a name for her card.
+
+# ---- Players page ----
+players.title = Top 25 players
+players.lede = Every regular on a ranked team, ranked against the rest by Impact per set: the points she adds per set over an average top-25 player at her position.
+players.note = Impact compares each player only with players on this week's top 25 teams, from official box scores. It cannot see pass quality or who was on the court, and it does not adjust for the opponent. A transfer counts as a new player at her new school.
+players.back = All players
+
+# ---- a match's own page ----
+match.back = All matches
+match.note = Set scores come from ESPN and update every 20 seconds during a match. Player stats come from the NCAA's box score; during a match they are refreshed about every 15 minutes.
+match.ncaa_link = Official box score on NCAA.com
+
+# ---- bottom of every page ----
+footer.about = Match times are shown in your own time zone. Scores and schedules come from the NCAA's public scoreboard, and scores of matches in progress from ESPN's; rankings are the AVCA coaches poll as published on ncaa.com. Channels come from ESPN's and the Big Ten's schedules and can change, so check before you tune in; streaming services need their own subscription. Player ratings are worked out by this site from official box scores. Team logos and player photos belong to their schools; logos are shown from ncaa.com and photos from each school's own roster page. Not affiliated with or endorsed by the NCAA, the AVCA or any school.

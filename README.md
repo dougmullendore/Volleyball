@@ -222,6 +222,14 @@ tab and GitHub emails you. The message names the school; the fix is one line
 in `ALIASES` in `pipeline/poll.py`. A run also fails if the poll page, the
 scoreboard or the box scores cannot be read at all.
 
+## Changing the wording
+
+All the site's headings, intro lines, notes, button labels and the footer are
+in one file, `site/words.txt`, one `name = words` line each. Change the words
+after the `=` on GitHub (open the file, click the pencil, then Commit changes)
+and the site updates in about two minutes. A broken line stops the update and
+leaves the old site up; GitHub emails you, and the run log names the line.
+
 ## Where things are
 
 | Path | What it is |

@@ -32,16 +32,16 @@
   <div class="wrap mast-row">
     <a class="brand" href="#/"><svg viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="12"/><path d="M14 2c5 4 7 9 6 15M3.500 9.500c6-1 11 1 15 6M9 25c-1-6 1-11 6-15"/></svg><span id="brand">GOAT Volleyball</span></a>
     <nav class="pages" aria-label="Pages">
-      <a href="#/" data-page="matches">Matches</a>
-      <a href="#/rankings" data-page="rankings">Rankings</a>
-      <a href="#/teams" data-page="teams">Teams</a>
-      <a href="#/players" data-page="players">Players</a>
+      <a href="#/" data-page="matches" data-w="nav.matches">Matches</a>
+      <a href="#/rankings" data-page="rankings" data-w="nav.rankings">Rankings</a>
+      <a href="#/teams" data-page="teams" data-w="nav.teams">Teams</a>
+      <a href="#/players" data-page="players" data-w="nav.players">Players</a>
     </nav>
   </div>
 </header>
 <main class="wrap">
   <section id="page-matches">
-    <h1>Top 25 matches</h1>
+    <h1 data-w="matches.title">Top 25 matches</h1>
     <p class="lede" id="lede">Every match played by a ranked team in women's college volleyball.</p>
     <p class="livenote" id="live-note" role="status" hidden></p>
     <div id="matches" tabindex="-1">
@@ -54,7 +54,7 @@
   </section>
 
   <section id="page-rankings" hidden>
-    <h1>Top 25 rankings</h1>
+    <h1 data-w="rankings.title">Top 25 rankings</h1>
     <p class="lede" id="rank-lede"></p>
     <div class="nav filters" id="rank-sort"></div>
     <div class="ranks-head" id="ranks-head" aria-hidden="true"></div>
@@ -65,14 +65,14 @@
   </section>
 
   <section id="page-teams" hidden>
-    <h1>Top 25 team stats</h1>
-    <p class="lede">How each ranked team attacks, serves, blocks and defends, per set, and what its opponents manage against it. From official box scores.</p>
+    <h1 data-w="teams.title">Top 25 team stats</h1>
+    <p class="lede" data-w="teams.lede">How each ranked team attacks, serves, blocks and defends, per set, and what its opponents manage against it. From official box scores.</p>
     <div id="t-list"></div>
   </section>
 
   <section id="page-players" hidden>
-    <h1>Top 25 players</h1>
-    <p class="lede">Every regular on a ranked team, ranked against the rest by Impact per set: the points she adds per set over an average top-25 player at her position.</p>
+    <h1 data-w="players.title">Top 25 players</h1>
+    <p class="lede" data-w="players.lede">Every regular on a ranked team, ranked against the rest by Impact per set: the points she adds per set over an average top-25 player at her position.</p>
     <div class="nav filters" id="p-filters"></div>
     <div id="p-list"></div>
   </section>
@@ -82,18 +82,18 @@
   </section>
 
   <section id="page-match" hidden>
-    <p class="back"><a href="#/">All matches</a></p>
+    <p class="back"><a href="#/" data-w="match.back">All matches</a></p>
     <div id="match"></div>
   </section>
 
   <section id="page-card" hidden>
-    <p class="back"><a href="#/players">All players</a></p>
+    <p class="back"><a href="#/players" data-w="players.back">All players</a></p>
     <div id="card"></div>
   </section>
 </main>
 <footer class="wrap foot">
   <p id="foot-updated"></p>
-  <p>Match times are shown in your own time zone. Scores and schedules come from the NCAA's public scoreboard, and scores of matches in progress from ESPN's; rankings are the AVCA coaches poll as published on ncaa.com. Channels come from ESPN's and the Big Ten's schedules and can change, so check before you tune in; streaming services need their own subscription. Player ratings are worked out by this site from official box scores. Team logos and player photos belong to their schools; logos are shown from ncaa.com and photos from each school's own roster page. Not affiliated with or endorsed by the NCAA, the AVCA or any school.</p>
+  <p data-w="footer.about">Match times are shown in your own time zone. Scores and schedules come from the NCAA's public scoreboard, and scores of matches in progress from ESPN's; rankings are the AVCA coaches poll as published on ncaa.com. Channels come from ESPN's and the Big Ten's schedules and can change, so check before you tune in; streaming services need their own subscription. Player ratings are worked out by this site from official box scores. Team logos and player photos belong to their schools; logos are shown from ncaa.com and photos from each school's own roster page. Not affiliated with or endorsed by the NCAA, the AVCA or any school.</p>
 </footer>
 <script src="app.js"></script>
 </body>

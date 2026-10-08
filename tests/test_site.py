@@ -515,3 +515,26 @@ def test_team_stats_add_up_from_box_scores():
     got = teams.compute([{"id": "a", "name": "A", "rank": 1}], games, boxes, {"a": 1.0, "b": 0.0})["teams"][0]
     assert (got["w"], got["l"], got["sw"], got["sl"], got["sets"]) == (1, 0, 3, 1, 4)
     assert got["hit"] == 0.3 and got["opp_hit"] == 0.15 and got["k_set"] == 10.0 and got["power"] == 1 and got["sos_rank"] == 1
+
+
+def test_every_word_the_site_uses_is_in_the_word_list():
+    from pipeline import run
+    words = run.read_words()
+    assert words["nav.matches"] == "Matches" and "{poll}" in words["matches.lede"]
+
+
+def test_a_broken_word_list_stops_the_update(tmp_path=None):
+    import shutil, tempfile
+    from pathlib import Path
+    from pipeline import run
+    d = Path(tempfile.mkdtemp())
+    for f in ("app.js", "index.html", "words.txt"):
+        shutil.copy(run.SITE_SRC / f, d / f)
+    text = (d / "words.txt").read_text().replace("nav.teams = Teams\n", "nav.teams Teams\n")
+    (d / "words.txt").write_text(text)
+    try:
+        run.read_words(d)
+    except RuntimeError as e:
+        assert "nav.teams" in str(e)
+    else:
+        raise AssertionError("a broken line should stop the update")

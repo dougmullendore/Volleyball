@@ -53,6 +53,12 @@
     return id ? el("a", { "class": "tlink " + (cls || ""), href: "#/team/" + encodeURIComponent(id), text: name })
       : el("span", { "class": cls || "", text: name });
   }
+  // The site's wording, from words.txt (see the top of that file). {name} is filled from `vars`.
+  function W(key, vars) {
+    var s = ((data && data.words) || {})[key];
+    if (s == null) return "";
+    return s.replace(/\{(\w+)\}/g, function (m, k) { return vars && vars[k] != null ? String(vars[k]) : m; });
+  }
   function rankTag(rank) {
     // an unranked team gets "NR" in the same spot, coloured like a rank
     return el("span", { "class": "rk" + (rank ? "" : " nr"), text: rank ? String(rank) : "NR", "aria-label": rank ? "ranked " + rank : "unranked" });
@@ -69,20 +75,20 @@
         return el("a", { "class": "opp", href: "#/team/" + encodeURIComponent(r[3]), title: r[1] }, [el("span", { "class": "n", text: String(r[0]) }), logo(r[3], "sm", r[1]), r[2] > 1 ? el("span", { "class": "x", text: "×" + r[2] }) : null]);
       });
       return el("span", { "class": "vsbox " + cls }, [el("b", { text: label }),
-        el("span", { "class": "opps" }, opps.length ? opps : [el("span", { "class": "nil", text: "None yet" })])]);
+        el("span", { "class": "opps" }, opps.length ? opps : [el("span", { "class": "nil", text: W("rankings.none_yet") })])]);
     }
-    return el("span", { "class": "vs" }, [box("Beat", t.beat || [], "beat"), box("Lost to", t.lost || [], "lostto")]);
+    return el("span", { "class": "vs" }, [box(W("rankings.beat"), t.beat || [], "beat"), box(W("rankings.lost_to"), t.lost || [], "lostto")]);
   }
   function drawRanks() {
     var ol = $("ranks"), bar = $("rank-sort"), head = $("ranks-head"), G = data.goat || {}, goatView = rankView === "goat" && G.top;
     ol.innerHTML = ""; bar.innerHTML = ""; head.innerHTML = "";
-    [["avca", "AVCA poll"], ["goat", "GOAT ranking"]].forEach(function (o) {
+    [["avca", W("rankings.button_poll")], ["goat", W("rankings.button_goat")]].forEach(function (o) {
       bar.appendChild(el("button", { type: "button", "aria-pressed": String(rankView === o[0]), text: o[1], onclick: function () { rankView = o[0]; drawRanks(); } }));
     });
     (goatView ? ["GOAT", "Team", "Record", "AVCA"] : ["AVCA", "Team", "Record", "Change"]).forEach(function (h) { head.appendChild(el("span", { text: h })); });
     // on a wide screen the Beat and Lost to boxes sit in the row, under these two headings
-    head.appendChild(el("span", { "class": "wide beat", text: "Beat" }));
-    head.appendChild(el("span", { "class": "wide lostto", text: "Lost to" }));
+    head.appendChild(el("span", { "class": "wide beat", text: W("rankings.beat") }));
+    head.appendChild(el("span", { "class": "wide lostto", text: W("rankings.lost_to") }));
     function teamLink(id, name) { return teamA(id, name, "nm"); }
     var polled = {};
     data.poll.teams.forEach(function (t) { if (t.id) polled[t.id] = 1; });
@@ -103,11 +109,8 @@
       });
     }
     var through = day(data.poll.through).toLocaleDateString(undefined, { month: "long", day: "numeric" });
-    $("rank-lede").textContent = goatView ? "This site's own ranking of every Division I team, where beating a team counts for more than it does in the poll."
-      : "The " + data.poll.name + ", through matches of " + through + ".";
-    $("rank-note").textContent = goatView
-      ? "Under each team are its results this season against the rest of this top 25, with their GOAT places. The AVCA column is the team's place in the coaches poll; a dash means it is not ranked there. Redone every night."
-      : "Record and change are from the poll, which is checked for a new one every Monday. Under each team are its results this season against the other 24, with their poll places. Choose a team to see its matches.";
+    $("rank-lede").textContent = goatView ? W("rankings.lede_goat") : W("rankings.lede", { poll: data.poll.name, date: through });
+    $("rank-note").textContent = goatView ? W("rankings.note_goat") : W("rankings.note");
     $("goat-note").textContent = !goatView ? "" : "It starts from the team ratings behind the odds, then is rearranged to agree with as many head-to-head results as it can: a team climbs over one it has beaten when the two are close, but not when the ratings say the gap is wide. " +
       "Among the poll's 25 teams, the poll ranks a team below one it has beaten " + G.poll_wrong + " times; the GOAT ranking does " + G.goat_wrong + " times.";
     $("goat-out").textContent = "";
@@ -121,7 +124,7 @@
     return " Percentages are each team's chance of winning, from this site's own ratings of results, opponents and home court; they are not betting lines." +
       (t ? " Tested on " + t.matches.toLocaleString("en-US") + " past matches, the favorite won " + Math.round(t.favorite_won * 100) + "% of the time." : "");
   }
-  function liveTag() { return el("span", { "class": "livetag" }, [el("span", { "class": "dot", "aria-hidden": "true" }), "Live"]); }
+  function liveTag() { return el("span", { "class": "livetag" }, [el("span", { "class": "dot", "aria-hidden": "true" }), W("matches.live")]); }
   function row(g) {
     // g.live is the score read from ESPN while the match is on (see "live scores" below)
     var L = g.live, fin = L ? L.state === "post" : g.state === "final", live = L ? L.state === "in" : g.state === "live";
@@ -153,9 +156,9 @@
     if (g.round) more.push(g.round + " ");
     if (!fin && g.watch) {
       more.push(g.watch.length ? el("span", { "class": "watch" }, [el("span", { "class": "sr", text: "Watch on " }), g.watch.join(", ")])
-        : el("span", { "class": "watch none", text: "No broadcast listed" }));
+        : el("span", { "class": "watch none", text: W("matches.no_broadcast") }));
     }
-    if (fin || live) more.push(el("a", { href: "#/match/" + g.id, text: live ? "Live box score" : "Box score" }));
+    if (fin || live) more.push(el("a", { href: "#/match/" + g.id, text: live ? W("matches.live_box_score") : W("matches.box_score") }));
     var unplayed = !fin && !live && !note;
     return el("li", { "class": "game" + (g.away.rank && g.home.rank ? " both" : "") + (live ? " on" : "") + (unplayed ? " ahead" : ""), "data-id": g.id }, [
       live ? el("span", { "class": "when live" }, [liveTag(), " " + (when === "In progress" ? "" : when)]) : el("span", { "class": "when", text: when }),
@@ -242,7 +245,7 @@
     data.games.forEach(function (g) { weeks[monday(g.date)] = 1; });
     var first = Object.keys(weeks).sort()[0], last = Object.keys(weeks).sort().pop();
     var pick = el("select", { id: "f-team", "aria-label": "Show one team", onchange: function () { state.team = pick.value || null; draw(); } },
-      [el("option", { value: "", text: "All 25 teams" })].concat(data.poll.teams.filter(function (x) { return x.id; }).map(function (x) {
+      [el("option", { value: "", text: W("matches.all_teams") })].concat(data.poll.teams.filter(function (x) { return x.id; }).map(function (x) {
         return el("option", { value: x.id, text: x.rank + ". " + x.name, selected: x.id === state.team });
       })));
     nav.appendChild(pick);
@@ -265,9 +268,9 @@
     var w = state.week, end = addDays(w, 6), thisWeek = monday(today);
     var games = data.games.filter(function (g) { return g.date >= w && g.date <= end; });
     head.textContent = (w === thisWeek ? "This week, " : "Week of ") + short(w) + " to " + short(end);
-    nav.appendChild(el("button", { type: "button", text: "Earlier week", disabled: !first || w <= first, onclick: function () { state.week = addDays(w, -7); draw(); } }));
-    if (w !== thisWeek && first && thisWeek >= first && thisWeek <= last) nav.appendChild(el("button", { type: "button", text: "This week", onclick: function () { state.week = thisWeek; draw(); } }));
-    nav.appendChild(el("button", { type: "button", text: "Later week", disabled: !last || w >= last, onclick: function () { state.week = addDays(w, 7); draw(); } }));
+    nav.appendChild(el("button", { type: "button", text: W("matches.earlier"), disabled: !first || w <= first, onclick: function () { state.week = addDays(w, -7); draw(); } }));
+    if (w !== thisWeek && first && thisWeek >= first && thisWeek <= last) nav.appendChild(el("button", { type: "button", text: W("matches.this_week"), onclick: function () { state.week = thisWeek; draw(); } }));
+    nav.appendChild(el("button", { type: "button", text: W("matches.later"), disabled: !last || w >= last, onclick: function () { state.week = addDays(w, 7); draw(); } }));
     if (!games.length) {
       holder.appendChild(el("p", { "class": "empty", text: "No ranked team has a match this week. Try an earlier or later week." }));
       return;
@@ -348,7 +351,7 @@
         return s;
       }
       bar.appendChild(pick("Position", pstate.pos, [["", "All positions"]].concat(Object.keys(POS_ONE).map(function (k) { return [k, POS_ONE[k] + "s"]; })), function (v) { pstate.pos = v; }));
-      bar.appendChild(pick("Team", pstate.team, [["", "All 25 teams"]].concat(roster.teams.map(function (t) { return [t.id, t.rank + ". " + t.name]; })), function (v) { pstate.team = v; }));
+      bar.appendChild(pick("Team", pstate.team, [["", W("matches.all_teams")]].concat(roster.teams.map(function (t) { return [t.id, t.rank + ". " + t.name]; })), function (v) { pstate.team = v; }));
       var q = el("input", { type: "search", placeholder: "Find a player", "aria-label": "Find a player", value: pstate.q, oninput: function () { pstate.q = q.value; table(); } });
       bar.appendChild(q);
       var chk = el("input", { type: "checkbox", id: "p-all", checked: pstate.all, onchange: function () { pstate.all = chk.checked; table(); } });
@@ -384,7 +387,7 @@
           el("table", { "class": "ptable" }, [el("thead", {}, [head]), body])]));
         holder.appendChild(el("p", { "class": "note", text: rows.length + " players" + (roster.through ? ", through matches of " + short(roster.through) : "") +
           ". A regular has played at least " + Math.round(100 * roster.weights.regular_share) + "% of her team's sets; only regulars are ranked. Choose a name for her card, or a column heading to sort." }));
-        holder.appendChild(el("p", { "class": "note", text: "Impact compares each player only with players on this week's top 25 teams, from official box scores. It cannot see pass quality or who was on the court, and it does not adjust for the opponent. A transfer counts as a new player at her new school." }));
+        holder.appendChild(el("p", { "class": "note", text: W("players.note") }));
       }
       table();
     }).catch(function () {
@@ -505,7 +508,7 @@
         holder.appendChild(el("div", { "class": "tablewrap", tabindex: "0", role: "region", "aria-label": "Team stats table, scrolls sideways" }, [
           el("table", { "class": "ptable ttable" }, [el("thead", {}, [head]), body])]));
         holder.appendChild(el("p", { "class": "note", text: (d.through ? "Through matches of " + short(d.through) + ". " : "") +
-          "Per-set numbers count every set in matches with an official box score. Rating is where this site's rating of results places the team among all Division I teams; SOS ranks the 25 by how strong their opponents have been. Choose a column heading to sort; hold or hover over a heading for what it means." }));
+          W("teams.note") }));
       }
       table();
     }).catch(function () {
@@ -557,8 +560,8 @@
     var list = el("ol", { "class": "games" }, [row(g)]);
     var sets = el("div", { "class": "msets" }), boxes = el("div", { "class": "mboxes" });
     box.appendChild(title); box.appendChild(status); box.appendChild(list); box.appendChild(sets); box.appendChild(boxes);
-    box.appendChild(el("p", { "class": "note" }, ["Set scores come from ESPN and update every 20 seconds during a match. Player stats come from the NCAA's box score; during a match they are refreshed about every 15 minutes. ",
-      el("a", { href: data.game_page + g.id, rel: "noopener", text: "Official box score on NCAA.com" }), "."]));
+    box.appendChild(el("p", { "class": "note" }, [W("match.note") + " ",
+      el("a", { href: data.game_page + g.id, rel: "noopener", text: W("match.ncaa_link") }), "."]));
 
     function readSets() {
       if (!g.espn) { sets.innerHTML = ""; return Promise.resolve(); }
@@ -639,17 +642,17 @@
     // matches: the latest results and what is next
     var next = mine.filter(function (g) { return g.state !== "final" && g.date >= today; }).slice(0, 5);
     var done = mine.filter(function (g) { return g.state === "final"; }).slice(-5);
-    var m = el("section", { "class": "tsec" }, [el("h2", { text: "Matches" })]);
-    if (next.length) { m.appendChild(el("h3", { "class": "day", text: "Coming up" })); m.appendChild(el("ol", { "class": "games" }, next.map(row))); }
-    if (done.length) { m.appendChild(el("h3", { "class": "day", text: "Latest results" })); m.appendChild(el("ol", { "class": "games" }, done.slice().reverse().map(row))); }
+    var m = el("section", { "class": "tsec" }, [el("h2", { text: W("team.matches") })]);
+    if (next.length) { m.appendChild(el("h3", { "class": "day", text: W("team.coming_up") })); m.appendChild(el("ol", { "class": "games" }, next.map(row))); }
+    if (done.length) { m.appendChild(el("h3", { "class": "day", text: W("team.latest_results") })); m.appendChild(el("ol", { "class": "games" }, done.slice().reverse().map(row))); }
     if (!mine.length) m.appendChild(el("p", { "class": "empty", text: "No matches against ranked teams are listed for " + name + "." }));
     if (t && mine.length) m.appendChild(el("p", { "class": "note" }, [el("a", { href: "#/", onclick: function () { state.team = id; }, text: "All of " + name + "'s matches this season" })]));
     if (!t && mine.length) m.appendChild(el("p", { "class": "note", text: "Only matches against ranked teams are listed for teams outside the top 25." }));
     box.appendChild(m);
     if (!t) return;
 
-    var stats = el("section", { "class": "tsec" }, [el("h2", { text: "Team stats" }), el("p", { "class": "empty", text: "Loading…" })]);
-    var people = el("section", { "class": "tsec" }, [el("h2", { text: "Players" }), el("p", { "class": "empty", text: "Loading…" })]);
+    var stats = el("section", { "class": "tsec" }, [el("h2", { text: W("team.stats") }), el("p", { "class": "empty", text: "Loading…" })]);
+    var people = el("section", { "class": "tsec" }, [el("h2", { text: W("team.players") }), el("p", { "class": "empty", text: "Loading…" })]);
     box.appendChild(stats); box.appendChild(people);
     loadTeams().then(function (d) {
       var row1 = d.teams.filter(function (x) { return x.id === id; })[0];
@@ -685,7 +688,7 @@
       }));
       people.appendChild(el("div", { "class": "tablewrap", tabindex: "0", role: "region", "aria-label": name + " players, scrolls sideways" }, [
         el("table", { "class": "ptable tptable" }, [el("thead", {}, [head]), body])]));
-      people.appendChild(el("p", { "class": "note", text: "# is her rank by Impact per set among all regulars on the 25 ranked teams; part-time players are greyed and not ranked. Choose a name for her card." }));
+      people.appendChild(el("p", { "class": "note", text: W("team.players_note") }));
     }).catch(function () {});
   }
 
@@ -697,7 +700,7 @@
     Array.prototype.forEach.call(document.querySelectorAll(".pages a"), function (a) {
       if (a.dataset.page === (page === "card" ? "players" : page === "match" ? "matches" : page === "team" ? "teams" : page)) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
     });
-    document.title = ({ rankings: "Top 25 rankings", teams: "Top 25 team stats", players: "Top 25 players", match: "Box score", team: "Team", card: "Player card" }[page] || "Top 25 matches") + " | " + data.site;
+    document.title = ({ rankings: W("rankings.title"), teams: W("teams.title"), players: W("players.title"), match: W("matches.box_score"), team: "Team", card: "Player card" }[page] || W("matches.title")) + " | " + data.site;
     if (page === "team") drawTeam(decodeURIComponent(tm[1])); else if (page === "match") drawMatch(match[1]); else if (page === "rankings") drawRanks(); else if (page === "teams") drawTeams(); else if (page === "players") drawPlayers(); else if (page === "card") drawCard(decodeURIComponent(card[1])); else draw();
     window.scrollTo(0, 0);
   }
@@ -705,7 +708,8 @@
   fetch("data.json", { cache: "no-cache" }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (d) {
     data = d;
     $("brand").textContent = d.site;
-    $("lede").textContent = "Every match played by a team in the " + d.poll.name + ", week by week.";
+    Array.prototype.forEach.call(document.querySelectorAll("[data-w]"), function (n) { var s = W(n.getAttribute("data-w")); if (s) n.textContent = s; });
+    $("lede").textContent = W("matches.lede", { poll: d.poll.name });
     var u = new Date(d.updated);
     $("foot-updated").textContent = "Scores and schedule updated " + (isNaN(u) ? d.updated : u.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })) +
       ". Rankings: " + d.poll.name + " through " + day(d.poll.through).toLocaleDateString(undefined, { dateStyle: "long" }) + ".";
