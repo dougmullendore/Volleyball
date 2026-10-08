@@ -36,6 +36,11 @@ def pages() -> dict:
         return {r["team"].strip(): r["url"].strip() for r in csv.DictReader(f) if r.get("team") and r.get("url")}
 
 
+# Raised whenever find() learns something new, so teams with players still
+# missing a photo are read again straight away rather than the next day.
+FINDER = 2
+
+
 def _words(s: str) -> list[str]:
     s = unicodedata.normalize("NFKD", _html.unescape(s or "")).encode("ascii", "ignore").decode().lower()
     return re.sub(r"[^a-z ]+", " ", s.replace("'", "").replace("-", " ")).split()
@@ -162,7 +167,10 @@ def _stored_media(page: str) -> list[dict]:
 def find(page: str, base: str, names: dict) -> dict:
     """{player id: photo address} for the players in `names` ({id: name}) whose
     photo is on this roster page. A picture is hers when its description
-    contains her first and last names and no other listed player's."""
+    contains her first and last names and no other listed player's. A player
+    the roster lists under a nickname ("Kiki" for Keondreya, "KJ" for Kelli Jo)
+    is matched by surname, when hers is the only listed player's with that
+    surname and every picture naming it is the same one."""
     want = {pid: _words(n) for pid, n in names.items()}
     media = _stored_media(page)
     by_file = {m["name"]: m["url"] for m in media if m["name"]}
@@ -190,7 +198,28 @@ def find(page: str, base: str, names: dict) -> dict:
         url = _usable(m["url"], base)
         if pid and pid not in out and url:
             out[pid] = url
+    # last, players still without a photo: by surname alone, when that cannot be anyone else's
+    pics = [(m["text"] + " " + m["name"], _usable(m["url"], base)) for m in media]
+    pics += [(alt + " " + file_name, next((u for u in (_usable(u, base) for u in urls + [by_file.get(file_name)]) if u), None))
+             for alt, urls, file_name in _images(page)]
+    for pid, w in want.items():
+        if pid in out or not w or len(w[-1]) < 3 or sum(1 for v in want.values() if v and v[-1] == w[-1]) > 1:
+            continue
+        others = {v[-1] for q, v in want.items() if v and q != pid}
+        hits = {_image_key(url): url for text, url in pics
+                if url and w[-1] in _words(text) and not others & set(_words(text))}   # not a group photo
+        if len(hits) == 1 and next(iter(hits.values())) not in out.values():
+            out[pid] = next(iter(hits.values()))
     return out
+
+
+def _image_key(url: str) -> str:
+    """The picture behind an address, so two sizes of one photo count once:
+    its file name, from inside an image service's address if need be."""
+    u = urllib.parse.unquote(url)
+    inner = re.findall(r"https?://[^?&\s]+\.(?:jpe?g|png|webp)", u[8:], re.I)
+    path = inner[-1] if inner else urllib.parse.urlsplit(u).path
+    return path.rsplit("/", 1)[-1].lower()
 
 
 _WEBSITE = re.compile(r'''<a\b[^>]*href="(https?://[^"]+)"[^>]*>\s*<span[^>]*class="icon-web"''', re.I)
@@ -230,7 +259,8 @@ def update(stored: dict, teams: dict, today: dt.date, fetch, log) -> dict:
         age = (today - dt.date.fromisoformat(have["checked"])).days if have.get("checked") else 10 ** 6
         missing = any(pid not in (have.get("photos") or {}) for pid in names)
         nothing_yet = not have.get("photos")
-        if age < config.PHOTO_REFRESH_DAYS and not (missing and age >= 1) and not (nothing_yet and age >= 1):
+        improved = have.get("finder") != FINDER     # this file has learned a new way to find photos since
+        if age < config.PHOTO_REFRESH_DAYS and not (missing and (age >= 1 or improved)) and not (nothing_yet and age >= 1):
             continue
         page = listed.get(team) or have.get("page")
         try:
@@ -245,7 +275,7 @@ def update(stored: dict, teams: dict, today: dt.date, fetch, log) -> dict:
             continue
         read += 1
         # keep what was found before for anyone this reading missed
-        stored[team] = {"checked": today.isoformat(), "page": page, "photos": {**(have.get("photos") or {}), **found}}
+        stored[team] = {"checked": today.isoformat(), "finder": FINDER, "page": page, "photos": {**(have.get("photos") or {}), **found}}
     no_page = [t for t in teams if not (listed.get(t) or (stored.get(t) or {}).get("page"))]
     total = sum(len(n) for n in teams.values())
     with_photo = sum(1 for t, names in teams.items() for pid in names if pid in ((stored.get(t) or {}).get("photos") or {}))

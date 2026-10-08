@@ -490,3 +490,18 @@ def test_rankings_list_results_against_other_ranked_teams():
     assert by["stanford"]["beat"] == [[3, "Louisville", 1, "louisville"]] and by["stanford"]["lost"] == [[1, "Nebraska", 2, "nebraska"]]
     assert by["louisville"]["lost"] == [[14, "Stanford", 1, "stanford"]]
     assert by["penn-st"]["beat"] == [] and by["penn-st"]["lost"] == []      # beat Iowa that day, but Iowa is not ranked
+
+
+def test_photo_found_by_surname_when_the_roster_uses_a_nickname():
+    names = {"t~granberry~keo": "Keondreya Granberry", "t~reilly~ber": "Bergen Reilly", "t~jackson~and": "Andi Jackson"}
+    page = ('<a href="/roster/kiki-granberry" aria-label="Kiki Granberry jersey number 77 full bio"><img src="/images/77_Granberry.png"></a>'
+            '<img alt="Bergen Reilly" src="/images/reilly.jpg">'
+            '<img alt="Andi Jackson and Bergen Reilly celebrate" src="/images/both.jpg">')
+    got = photos.find(page, BASE, names)
+    assert got == {"t~granberry~keo": "https://school.example/images/77_Granberry.png",
+                   "t~reilly~ber": "https://school.example/images/reilly.jpg"}     # no group photo for Andi Jackson
+
+
+def test_one_player_under_two_first_names_is_one_player():
+    from pipeline import players
+    assert players.player_id("t", "Antonina", "Serafinowska") != players.player_id("t", "Tosia", "Serafinowska")

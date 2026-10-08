@@ -87,6 +87,7 @@ def compute(ranked: list[dict], games: list[dict], boxes: dict) -> dict:
     """Every player on a ranked team, with totals, rates, impact and percentiles."""
     rank = {t["id"]: t for t in ranked if t["id"]}
     players, team_sets, team_matches = {}, {t: 0 for t in rank}, {t: 0 for t in rank}
+    same_player = {}
     for g in games:
         box = boxes.get(str(g["id"]))
         if g["state"] != "final" or not box:
@@ -109,7 +110,11 @@ def compute(ranked: list[dict], games: list[dict], boxes: dict) -> dict:
                     r["first"], r["last"] = names.get(r["number"], ("", ""))
                 if not (r["first"] or r["last"]) or r["sets"] <= 0:
                     continue
+                if not r["first"] and " " in r["last"].strip():   # "", "Anna Bardaro": the whole name in one field
+                    r["first"], r["last"] = r["last"].strip().split(" ", 1)
                 pid = player_id(team, r["first"], r["last"])
+                # one player under two first names ("Antonina" and "Tosia"): same team, surname and number
+                pid = same_player.setdefault((team, _norm(r["last"]), r["number"]), pid) if r["number"] is not None else pid
                 p = players.setdefault(pid, {"id": pid, "team_id": team, "names": {}, "numbers": {}, "votes": {},
                                              "mp": 0, "starts": 0, "team_ta": 0, **{s: 0 for s in STATS}})
                 name = (r["first"] + " " + r["last"]).strip()
