@@ -1,7 +1,9 @@
 # GOAT Volleyball
 
-Every match played by the top 25 teams in Division I women's college
-volleyball, week by week, with the rankings on a second page.
+Every Division I women's college volleyball match, week by week, with the
+AVCA poll, a GOAT ranking of all D1 teams, team and player stats, and a page
+for every team and match. A Top 25 / All D1 switch narrows any page to the
+ranked teams.
 
 You do not need to run anything. GitHub does it all on a schedule.
 
@@ -30,21 +32,15 @@ night.
 Every team name on the site links to that team's page (`#/team/<id>`): its
 poll and GOAT ranks, Beat / Lost to boxes, the next five matches and latest
 five results, its team stats (each with its place among the 25), and its
-players with their per-set stats. Teams outside the top 25 get a page with
-their matches against ranked teams.
+players with their per-set stats. Teams outside the top 25 get the same
+full page.
 
 ## Match pages and live box scores
 
-At the top of each match page is a **game score card**: the score and each
+At the top of each match page is a **match card**: the score and each
 set's points, each team's chance of winning (before the match, for a finished
-one), a side-by-side team comparison (hitting, kills, aces, blocks, digs,
-assists, errors), and a **Game Score breakdown** after hockeystatcards.com: one
-team at a time (with its result), every player grouped as hitters, middles,
-setters and liberos/DS, each with a bar split into Attack, Serve, Block,
-Defense and Setting, or the same numbers as a table. **Game Score**:
-kills, aces and blocks count a point each (half for a block assist), attack
-errors, reception errors and ball-handling errors cost one, a service error
-costs half, a dig is worth a quarter and an assist a tenth.
+one) and a side-by-side team comparison (hitting, kills, aces, blocks, digs,
+assists, errors).
 
 Every match on the Matches page links to its own page (`#/match/<id>`) with
 the set-by-set score and both teams' full box scores: each player's kills,
@@ -55,10 +51,10 @@ set by set. Player names link to their cards.
 - Set scores are read by the page itself from ESPN, every 20 seconds while a
   match is on.
 - The NCAA's box score cannot be read by a web page directly, so the GitHub
-  job fetches it: on match nights (August to December, about 3pm to midnight
-  Central) it runs every 15 minutes, and when a ranked team is playing it
+  job fetches it: on match nights (August to December, about 11am to 1am
+  Central) it runs every 10 minutes, and when any D1 match is under way it
   refreshes the box scores of matches under way and rebuilds the site. When
-  no ranked team is playing it stops within seconds. GitHub's scheduled runs
+  nothing is being played it stops within seconds. GitHub's scheduled runs
   are often a few minutes late.
 - Matches in progress show a red LIVE tag on the Matches page.
 
@@ -215,7 +211,8 @@ The file `.github/workflows/update.yml` tells GitHub when to run:
 | When | What it does |
 | --- | --- |
 | Every Monday about 4pm Central, and again about 9pm | Looks for the new top 25, then refreshes scores, schedule and channels |
-| Every night about 5:47am Central | Refreshes scores, schedule, channels and player ratings |
+| Every night about 5:47am Central, and again about 11:47am | Refreshes scores, schedule, channels, ratings, GOAT ranking and player photos |
+| Every 10 minutes, 11am to 1am Central, August to December | Live scores and box scores of matches under way |
 | Whenever the code changes, or you press **Run workflow** on the **Actions** tab | Everything, straight away |
 
 The poll normally comes out on Monday afternoon. If both Monday looks miss it
@@ -223,7 +220,7 @@ The poll normally comes out on Monday afternoon. If both Monday looks miss it
 poll it has is more than eight days old and looks again every night until it
 finds the new one. In between, the page keeps showing the last poll it has.
 
-The stored scores are refreshed once a night. In between, matches in
+The stored scores are refreshed twice a day. In between, matches in
 progress are followed live as described above; a reader who opens the page
 after a match has ended still sees its final score that evening.
 
@@ -312,3 +309,9 @@ A minute or two later the page is live at
   through the off-season without anyone committing.
 
 Not affiliated with or endorsed by the NCAA, the AVCA or any school.
+
+## Schools without player photos
+
+Arkansas's roster page shows no photos, and Tennessee Tech's and Central
+Connecticut's sites refuse automated requests, so their players have no
+photos. Each school's roster address is in `rosters/pages.csv`.

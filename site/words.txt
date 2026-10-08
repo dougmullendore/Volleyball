@@ -77,7 +77,7 @@ players.back = All players
 
 # ---- a match's own page ----
 match.back = All Matches
-match.note = Set scores come from ESPN and update every 20 seconds during a match. Player stats come from the NCAA's box score; during a match they are refreshed about every 15 minutes.
+match.note = Set scores come from ESPN and update every 20 seconds during a match. Player stats come from the NCAA's box score; during a match they are refreshed about every 10 minutes.
 match.ncaa_link = Official box score on NCAA.com
 
 # ---- bottom of every page ----

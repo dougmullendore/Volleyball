@@ -39,7 +39,7 @@ def pages() -> dict:
 
 # Raised whenever find() learns something new, so teams with players still
 # missing a photo are read again straight away rather than the next day.
-FINDER = 2
+FINDER = 3
 
 
 def _words(s: str) -> list[str]:
@@ -181,6 +181,9 @@ def find(page: str, base: str, names: dict) -> dict:
         hits = [pid for pid, w in want.items() if w and w[0] in words and w[-1] in words]
         return hits[0] if len(hits) == 1 else None
 
+    # pages that describe each player for search engines ({"@type":"Person","image":{"url":...},"name":...})
+    for m in re.finditer(r'"image"\s*:\s*\{[^{}]*?"url"\s*:\s*"([^"]+)"[^{}]*\}\s*,\s*"name"\s*:\s*"([^"]+)"', page):
+        media.append({"name": "", "text": _html.unescape(m.group(2)), "url": m.group(1).replace("http://", "https://", 1), "sure": True})
     out = {}
     for m in media:                  # first, players the page's data ties directly to a photo
         pid = whose(m["text"]) if m.get("sure") else None
@@ -266,7 +269,8 @@ def update(stored: dict, teams: dict, today: dt.date, fetch, log, ranked: set | 
         missing = any(pid not in (have.get("photos") or {}) for pid in names)
         improved = have.get("finder") != FINDER     # this file has learned a new way to find photos since
         again = 1 if team in ranked else 3
-        if age >= config.PHOTO_REFRESH_DAYS or (missing and (age >= again or improved)):
+        moved = bool(listed.get(team)) and listed[team] != have.get("page")   # a page just added to rosters/pages.csv
+        if age >= config.PHOTO_REFRESH_DAYS or moved or (missing and (age >= again or improved)):
             due.append((team not in ranked, have.get("checked") is not None, -age, team))
     due.sort()
     left = len(due) - config.PHOTO_PAGES_PER_RUN

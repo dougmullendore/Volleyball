@@ -5,10 +5,11 @@ on:
     - cron: '47 10 * * *'   # every night, about 5:47am Central: scores and schedule
     - cron: '13 21 * * 1'   # Monday afternoon (about 4pm Central): look for the new top 25
     - cron: '13 2 * * 2'    # Monday evening (about 9pm Central): look again in case it came out late
-    # match nights, August to December: every 15 minutes from about 3pm to midnight Central,
-    # for live box scores. A run finds nothing to do and stops within seconds if no ranked team is playing.
-    - cron: '*/15 20-23 * 8-12 *'
-    - cron: '*/15 0-5 * 8-12 *'
+    - cron: '47 16 * * *'   # every day about 11:47am Central: a second full refresh (scores, channels, photos)
+    # match days, August to December: every 10 minutes from about 11am to 1am Central, for live
+    # box scores. A run finds nothing to do and stops within seconds when no match is on.
+    - cron: '*/10 16-23 * 8-12 *'
+    - cron: '*/10 0-6 * 8-12 *'
   workflow_dispatch:
   push:
     branches: [main]
@@ -50,7 +51,7 @@ jobs:
           # code change looks straight away, whatever the day.
           CHECK_POLL: ${{ github.event_name != 'schedule' && '1' || '0' }}
           # the match-night runs only refresh matches under way (see live_now in pipeline/run.py)
-          RUN_MODE: ${{ contains(github.event.schedule, '*/15') && 'live' || 'full' }}
+          RUN_MODE: ${{ contains(github.event.schedule, '*/10') && 'live' || 'full' }}
         run: |
           set -o pipefail
           python -m pipeline.run state dist 2>&1 | tee "$RUNNER_TEMP/run.log"

@@ -51,7 +51,7 @@ PHOTO_PAGES_PER_RUN = 90  # roster pages read in one run at most: all of Divisio
 SCHOOL_PAGE = "https://www.ncaa.com/schools/{team}"
 ROSTER_PATHS = ["/sports/womens-volleyball/roster", "/sports/volleyball/roster", "/sports/wvball/roster/",
                 "/sports/w-volley/roster", "/sports/wvb/roster", "/sports/womens-volleyball/roster/",
-                "/sports/volleyball/roster/"]
+                "/sports/volleyball/roster/", "/sports/wvolley/roster", "/sports/vb/roster"]
 
 # Odds: each team's chance of winning, from this site's own ratings (see
 # pipeline/odds.py). These settings were chosen by testing on 2022-2026 results.
