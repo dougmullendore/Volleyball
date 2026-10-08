@@ -126,10 +126,10 @@
     var t = g.start ? new Date(g.start * 1000) : null;
     var note = !L && g.state === "other" ? (g.note ? g.note.charAt(0).toUpperCase() + g.note.slice(1) : "Not played") : "";
     var when = fin ? "Final" : live ? (L && L.detail) || "In progress" : note ? note : t && !isNaN(t) ? t.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : "Time not set";
-    function team(side, s, lost) {
+    function team(side, s, lost, won) {
       var kids = [logo(s.id), el("span", { "class": "name", text: s.name }), rankTag(s.rank)];
       if (side === "home") kids.reverse();
-      return el("span", { "class": "team " + side + (lost ? " lost" : "") }, kids);
+      return el("span", { "class": "team " + side + (lost ? " lost" : "") + (won ? " won" : "") }, kids);
     }
     var pts = live && L && L.pts ? L.pts : null;      // points in the set being played: [away, home]
     function sets(cls, n, lost, p) {
@@ -152,8 +152,9 @@
         : el("span", { "class": "watch none", text: "No broadcast listed" }));
     }
     if (fin || live) more.push(el("a", { href: data.game_page + g.id, text: "Box score", rel: "noopener" }));
-    return el("li", { "class": "game" + (g.away.rank && g.home.rank ? " both" : "") + (live ? " on" : ""), "data-id": g.id }, [
-      el("span", { "class": "when" + (live ? " live" : ""), text: when }), team("away", g.away, homeWon), mid, team("home", g.home, awayWon),
+    var unplayed = !fin && !live && !note;
+    return el("li", { "class": "game" + (g.away.rank && g.home.rank ? " both" : "") + (live ? " on" : "") + (unplayed ? " ahead" : ""), "data-id": g.id }, [
+      el("span", { "class": "when" + (live ? " live" : ""), text: when }), team("away", g.away, homeWon, awayWon), mid, team("home", g.home, awayWon, homeWon),
       el("span", { "class": "more" }, more)]);
   }
 
