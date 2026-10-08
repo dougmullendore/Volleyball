@@ -57,7 +57,7 @@ a { color: var(--teal); }
 .mast { background: var(--sheet); border-bottom: 4px solid var(--ball); }
 .mast-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: nowrap; padding-top: 14px; padding-bottom: 14px; }
 .brand { white-space: nowrap; display: inline-flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; font: 700 1.375rem/1.1 "Barlow Condensed", sans-serif; letter-spacing: .01em; }
-.brand svg { width: 24px; height: 24px; flex: none; fill: none; stroke: var(--teal); stroke-width: 2.2; }
+.brand svg { width: 26px; height: 26px; flex: none; fill: none; stroke: var(--teal); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .leagues { display: flex; gap: 2px; padding-top: 26px; padding-bottom: 0; font-size: .8125rem; }
 .leagues a { color: var(--ink-2); text-decoration: none; font-weight: 600; padding: 4px 10px; border-radius: 4px 4px 0 0; }
 .leagues a[aria-current="page"] { color: var(--ball-ink); background: var(--ball); }
