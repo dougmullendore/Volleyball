@@ -253,7 +253,9 @@
     if (state.team) {
       var t = data.poll.teams.filter(function (x) { return x.id === state.team; })[0];
       var mine = data.games.filter(function (g) { return g.away.id === t.id || g.home.id === t.id; });
-      head.textContent = "No. " + t.rank + " " + t.name + ", whole season";
+      head.innerHTML = "";
+      head.appendChild(logo(t.id));
+      head.appendChild(document.createTextNode(" No. " + t.rank + " " + t.name + ", whole season"));
       var next = mine.filter(function (g) { return g.state !== "final" && g.date >= today; }), done = mine.filter(function (g) { return g.state === "final" || g.date < today; });
       if (next.length) { holder.appendChild(el("p", { "class": "note", text: next.length + " still to play, " + done.length + " played." + oddsNote() })); listInto(holder, next); }
       if (done.length) { holder.appendChild(el("h3", { "class": "day", text: "Already played, newest first" })); listInto(holder, done, true); }
@@ -378,7 +380,7 @@
         var body = el("tbody", {}, rows.map(function (p) {
           return el("tr", {}, PCOLS.map(function (c) {
             if (c[0] === "name") return el("td", { "class": "l nm" }, [el("a", { href: "#/player/" + encodeURIComponent(p.id) }, [face(p), el("span", { text: p.name })])]);
-            if (c[0] === "team") return el("td", { "class": "l tm" }, [logo(p.team_id), teamA(p.team_id, p.team)]);
+            if (c[0] === "team") return el("td", { "class": "l" }, [el("span", { "class": "tcell tm" }, [logo(p.team_id), teamA(p.team_id, p.team)])]);
             var v = c[3](p);
             return el("td", { "class": (c[0] === "impact_set" ? "strong " : "") + (pstate.sort === c[0] ? "sorted" : ""), text: v == null ? (c[0] === "rank" ? "–" : "") : c[4](v) });
           }));
@@ -554,7 +556,7 @@
     if (!g) { box.appendChild(el("p", { "class": "empty", text: "This match is not on the list of ranked teams' matches." })); return; }
     var L = g.live, live = L ? L.state === "in" : g.state === "live", fin = L ? L.state === "post" : g.state === "final";
     var t = g.start ? new Date(g.start * 1000) : null;
-    var title = el("h1", { "class": "mtitle" }, [teamA(g.away.id, g.away.name), el("span", { "class": "mv", text: " at " }), teamA(g.home.id, g.home.name)]);
+    var title = el("h1", { "class": "mtitle" }, [logo(g.away.id), teamA(g.away.id, g.away.name), el("span", { "class": "mv", text: " at " }), logo(g.home.id), teamA(g.home.id, g.home.name)]);
     var status = el("p", { "class": "mstatus" }, [live ? liveTag() : null,
       el("span", { text: (live ? " " : "") + long(g.date) + (t && !isNaN(t) ? ", " + t.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : "") + (fin ? " · Final" : "") })]);
     var list = el("ol", { "class": "games" }, [row(g)]);

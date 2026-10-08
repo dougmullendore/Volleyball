@@ -35,7 +35,7 @@ GAME_PAGE = "https://www.ncaa.com/game/"
 # ncaa.com's dark-page set ("bgd"), which is white for many schools but not
 # all, and the page turns each one white while keeping its inner detail (see
 # the filters at the top of site/index.html). Set to "" to show none.
-LOGO_URL = "https://www.ncaa.com/sites/default/files/images/logos/schools/bgd/{team}.svg"
+LOGO_URL = "https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/{team}.svg"
 
 # Player photos come from each school's own roster page (rosters/pages.csv)
 # and are shown from the school's site, not copied. A page is read again after
