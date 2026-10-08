@@ -27,7 +27,7 @@ LEAGUES = {
     "mlv": ("pvf", "MLV", "MLV standings"),
 }
 FILES = ["schedule", "player_boxscore", "player_info", "pbp"]
-DATA_URL = "https://github.com/awosoga/volleydata/releases/download/{lg}-{kind}/{lg}_{kind}{season}.csv"
+DATA_URL = "https://github.com/awosoga/volleydata/releases/download/{lg}-{tag}/{lg}_{kind}{season}.csv"
 # badge colours, one per team
 COLORS = ["#1d4ed8", "#b91c1c", "#047857", "#7c3aed", "#c2410c", "#0e7490", "#a21caf", "#4d7c0f", "#be123c", "#334155"]
 # volleystation's position numbers
@@ -65,7 +65,7 @@ def download(state: Path, log) -> dict:
                 if not sched.exists():
                     continue
                 season = "_" + max(r["season"] for r in csv.DictReader(sched.open(encoding="utf-8")))
-            url = DATA_URL.format(lg=lg, kind=kind.replace("_", "-"), season=season)
+            url = DATA_URL.format(lg=lg, tag=kind.replace("_", "-"), kind=kind, season=season)
             try:
                 raw = web.get_bytes(url, timeout=60, tries=2)
                 if not raw.startswith(b"match_id") and not raw.startswith(b"season") and b"," not in raw[:200]:
