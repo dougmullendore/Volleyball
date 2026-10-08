@@ -559,7 +559,8 @@
     if (!g) { box.appendChild(el("p", { "class": "empty", text: "This match is not on the list of ranked teams' matches." })); return; }
     var L = g.live, live = L ? L.state === "in" : g.state === "live", fin = L ? L.state === "post" : g.state === "final";
     var t = g.start ? new Date(g.start * 1000) : null;
-    var title = el("h1", { "class": "mtitle" }, [logo(g.away.id), teamA(g.away.id, g.away.name), el("span", { "class": "mv", text: " at " }), logo(g.home.id), teamA(g.home.id, g.home.name)]);
+    function side(t) { return el("span", { "class": "mside" }, [rankTag(t.rank), logo(t.id), teamA(t.id, t.name)]); }
+    var title = el("h1", { "class": "mtitle" }, [side(g.away), el("span", { "class": "mv", text: " at " }), side(g.home)]);
     var status = el("p", { "class": "mstatus" }, [live ? liveTag() : null,
       el("span", { text: (live ? " " : "") + long(g.date) + (t && !isNaN(t) ? ", " + t.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : "") + (fin ? " · Final" : "") })]);
     var list = el("ol", { "class": "games" }, [row(g)]);
