@@ -55,17 +55,17 @@
   var rankSort = "avca";
   // A team's results against the other ranked teams: "Beat 9 Texas, 12 Texas A&M. Lost to 2 Pittsburgh."
   function versus(t) {
-    function list(label, rows) {
+    function list(label, rows, cls) {
       var kids = [el("b", { text: label + " " })];
       rows.forEach(function (r, i) {
         kids.push(el("span", { "class": "opp" }, [el("span", { "class": "n", text: String(r[0]) }), "\u00a0" + r[1] + (r[2] > 1 ? " ×" + r[2] : "") + (i < rows.length - 1 ? "," : "")]));
         kids.push(" ");
       });
-      return el("span", { "class": "vsline" }, kids);
+      return el("span", { "class": "vsline " + (cls || "") }, kids);
     }
     var beat = t.beat || [], lost = t.lost || [];
     if (!beat.length && !lost.length) return el("span", { "class": "vs none", text: "Has not played a ranked team yet" });
-    return el("span", { "class": "vs" }, [beat.length ? list("Beat", beat) : null, lost.length ? list("Lost to", lost) : null]);
+    return el("span", { "class": "vs" }, [beat.length ? list("Beat", beat) : null, lost.length ? list("Lost to", lost, "lostto") : null]);
   }
   function drawRanks() {
     var ol = $("ranks"), bar = $("rank-sort"), G = data.goat || {};

@@ -10,19 +10,20 @@
   --teal-soft: #d9ecea;
   --ball: #0b6a6e;      /* the accent: the same green as the logo mark */
   --ball-ink: #ffffff;
+  --loss: #b3261e;      /* red, for the rank of a team that beat this one */
   --lost: #7a8b8e;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --floor: #0c1b1e; --sheet: #13272b; --ink: #e6f0ee; --ink-2: #9db3b4; --line: #27444a;
-    --teal: #5cc7c4; --teal-soft: #173a3d; --ball: #5cc7c4; --ball-ink: #0c1b1e; --lost: #7f9697;
+    --teal: #5cc7c4; --teal-soft: #173a3d; --ball: #5cc7c4; --ball-ink: #0c1b1e; --loss: #ff8a80; --lost: #7f9697;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --floor: #0c1b1e; --sheet: #13272b; --ink: #e6f0ee; --ink-2: #9db3b4; --line: #27444a;
-  --teal: #5cc7c4; --teal-soft: #173a3d; --ball: #5cc7c4; --ball-ink: #0c1b1e; --lost: #7f9697;
+  --teal: #5cc7c4; --teal-soft: #173a3d; --ball: #5cc7c4; --ball-ink: #0c1b1e; --loss: #ff8a80; --lost: #7f9697;
   color-scheme: dark;
 }
 
@@ -84,6 +85,7 @@ h2 { font: 700 1.375rem/1.2 "Barlow Condensed", sans-serif; margin: 0; }
 .ranks .vs b { font-weight: 600; color: var(--ink); }
 .ranks .vs .opp { white-space: nowrap; }
 .ranks .vs .n { font: 700 .8125rem/1 "Barlow Condensed", sans-serif; color: var(--teal); font-variant-numeric: tabular-nums; }
+.ranks .vs .lostto .n { color: var(--loss); }
 .ranks .vs.none { font-style: normal; opacity: .8; }
 .ranks .who { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .ranks .nm { font-weight: 600; color: var(--ink); text-decoration: none; }
