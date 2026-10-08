@@ -400,8 +400,10 @@ def mlv_media(fetch, names: list[str], log) -> dict:
             continue
         logo = None
         try:
-            team = _inertia(fetch(MLV_SITE + t["permalink"])).get("team") or {}
-            logo = ((team.get("logo") or {}).get("src"))
+            team = _inertia(fetch(MLV_SITE + t["permalink"] + "/roster")).get("team") or {}
+            logo = ((team.get("logo") or {}).get("src")) or None
+            if logo:
+                logo = logo.replace("rs:fit:2000:0:0", "rs:fit:200:0:0")
         except Exception:
             pass
         teams[slug(t["name"])] = {"logo": logo, "color": t.get("color"), "abbr": t.get("abbreviation")}
@@ -446,7 +448,8 @@ def update_media(state: Path, today: dt.date, log) -> dict:
     for site in LEAGUES:
         path = state / "pro" / f"{site}_media.json"
         have = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
-        if have.get("checked") and (today - dt.date.fromisoformat(have["checked"])).days < MEDIA_DAYS:
+        no_logos = not any(v.get("logo") for v in (have.get("teams") or {}).values())
+        if have.get("checked") and (today - dt.date.fromisoformat(have["checked"])).days < MEDIA_DAYS and not no_logos:
             res[site] = "up to date"
             continue
         try:
@@ -469,7 +472,7 @@ def update_media(state: Path, today: dt.date, log) -> dict:
             continue
         # keep what an earlier reading found for anyone this one missed
         got["players"] = {**(have.get("players") or {}), **{k: v for k, v in got["players"].items() if v.get("photo") or v.get("bio")}}
-        got["teams"] = {**(have.get("teams") or {}), **got["teams"]}
+        got["teams"] = {**(have.get("teams") or {}), **{k: v for k, v in got["teams"].items() if v.get("logo") or k not in (have.get("teams") or {})}}
         got["checked"] = today.isoformat()
         path.write_text(json.dumps(got), encoding="utf-8")
         res[site] = {"teams": len(got["teams"]), "players": len(got["players"]),
