@@ -79,14 +79,15 @@ h2 { font: 700 1.375rem/1.2 "Barlow Condensed", sans-serif; margin: 0; }
 .ranks-head span:nth-child(n+3) { text-align: right; }
 .nav button[aria-pressed="true"] { background: var(--teal-soft); border-color: var(--teal); }
 .ranks li:first-child { border-top: 0; }
-.ranks .vs { grid-column: 2 / -1; min-width: 0; margin-top: -2px; font-size: .8125rem; line-height: 1.5; color: var(--ink-2); }
-.ranks .vsline { display: block; }
-.ranks .vs b { font-weight: 700; color: var(--teal); }       /* "Beat" in green */
-.ranks .vs .lostto b { color: var(--loss); }                 /* "Lost to" in red */
-.ranks .vs .opp { white-space: nowrap; margin-right: 8px; }
+.ranks .vs { grid-column: 2 / -1; min-width: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 2px 0 2px; font-size: .8125rem; line-height: 1.4; color: var(--ink-2); }
+.ranks .vsbox { display: block; min-width: 0; border: 1px solid var(--line); border-radius: 4px; padding: 5px 8px 6px; }
+.ranks .vsbox b { display: block; margin-bottom: 3px; font-size: .6875rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--teal); }   /* "Beat" in green */
+.ranks .vsbox.lostto b { color: var(--loss); }               /* "Lost to" in red */
+.ranks .vs .opps { display: flex; flex-wrap: wrap; gap: 2px 10px; }
+.ranks .vs .opp { white-space: nowrap; display: inline-flex; align-items: center; }
 .ranks .vs .x { margin-left: 2px; font-size: .75rem; }
 .ranks .vs .n { font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }   /* rank numbers: bold, no colour */
-.ranks .vs.none { font-style: normal; opacity: .8; }
+.ranks .vs .nil { opacity: .8; }
 .ranks .who { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .ranks .nm { font-weight: 600; color: var(--ink); text-decoration: none; }
 .ranks a.nm:hover { color: var(--teal); text-decoration: underline; }

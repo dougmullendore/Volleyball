@@ -57,18 +57,16 @@
   // The coaches poll beside the site's own GOAT ranking, which gives head-to-head results more say.
   var rankView = "avca";      // the poll is shown; the GOAT ranking only when asked for
   // A team's results against the other ranked teams: "Beat 9 Texas, 12 Texas A&M. Lost to 2 Pittsburgh."
+  // Two boxes under the team, side by side: "Beat" on the left, "Lost to" on the right.
   function versus(t) {
-    function list(label, rows, cls) {
-      var kids = [el("b", { text: label + " " })];
-      rows.forEach(function (r, i) {
-        kids.push(el("span", { "class": "opp" }, [el("span", { "class": "n", text: String(r[0]) }), logo(r[3], "sm", r[1]), r[2] > 1 ? el("span", { "class": "x", text: "×" + r[2] }) : null]));
-        kids.push(" ");
+    function box(label, rows, cls) {
+      var opps = rows.map(function (r) {
+        return el("span", { "class": "opp" }, [el("span", { "class": "n", text: String(r[0]) }), logo(r[3], "sm", r[1]), r[2] > 1 ? el("span", { "class": "x", text: "×" + r[2] }) : null]);
       });
-      return el("span", { "class": "vsline " + (cls || "") }, kids);
+      return el("span", { "class": "vsbox " + cls }, [el("b", { text: label }),
+        el("span", { "class": "opps" }, opps.length ? opps : [el("span", { "class": "nil", text: "None yet" })])]);
     }
-    var beat = t.beat || [], lost = t.lost || [];
-    if (!beat.length && !lost.length) return el("span", { "class": "vs none", text: "Has not played a ranked team yet" });
-    return el("span", { "class": "vs" }, [beat.length ? list("Beat", beat) : null, lost.length ? list("Lost to", lost, "lostto") : null]);
+    return el("span", { "class": "vs" }, [box("Beat", t.beat || [], "beat"), box("Lost to", t.lost || [], "lostto")]);
   }
   function drawRanks() {
     var ol = $("ranks"), bar = $("rank-sort"), head = $("ranks-head"), G = data.goat || {}, goatView = rankView === "goat" && G.top;
