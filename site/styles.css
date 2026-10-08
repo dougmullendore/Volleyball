@@ -60,6 +60,7 @@ h2 { font: 700 1.375rem/1.2 "Barlow Condensed", sans-serif; margin: 0; }
 .logo { display: inline-block; flex: none; width: 20px; height: 20px; line-height: 0; }
 .logo img { width: 100%; height: 100%; object-fit: contain; }
 .logo.big { width: 64px; height: 64px; }
+.logo.sm { width: 18px; height: 18px; vertical-align: -4px; margin-left: 3px; }
 
 
 /* a player's photo in a circle; her initials show until it loads, or if there is none */
@@ -80,7 +81,8 @@ h2 { font: 700 1.375rem/1.2 "Barlow Condensed", sans-serif; margin: 0; }
 .ranks .vsline { display: block; }
 .ranks .vs b { font-weight: 700; color: var(--teal); }       /* "Beat" in green */
 .ranks .vs .lostto b { color: var(--loss); }                 /* "Lost to" in red */
-.ranks .vs .opp { white-space: nowrap; }
+.ranks .vs .opp { white-space: nowrap; margin-right: 8px; }
+.ranks .vs .x { margin-left: 2px; font-size: .75rem; }
 .ranks .vs .n { font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }   /* rank numbers: bold, no colour */
 .ranks .vs.none { font-style: normal; opacity: .8; }
 .ranks .who { display: flex; align-items: center; gap: 8px; min-width: 0; }
@@ -207,3 +209,10 @@ h2 { font: 700 1.375rem/1.2 "Barlow Condensed", sans-serif; margin: 0; }
   .mid .pt { display: inline-block; min-width: 1.6em; margin-left: 10px; font: 500 .8125rem/1 Barlow, sans-serif; color: var(--ink-2); text-align: right; }
   .mid .sa { grid-area: as; } .mid .sh { grid-area: hs; }
 }
+
+/* Logos keep their normal colours on dark pages too. A thin light edge keeps the
+   navy and black ones from vanishing into the background. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .logo img { filter: drop-shadow(0 0 .6px rgba(255, 255, 255, .85)) drop-shadow(0 0 .6px rgba(255, 255, 255, .6)); }
+}
+:root[data-theme="dark"] .logo img { filter: drop-shadow(0 0 .6px rgba(255, 255, 255, .85)) drop-shadow(0 0 .6px rgba(255, 255, 255, .6)); }

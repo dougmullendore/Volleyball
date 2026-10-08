@@ -486,7 +486,7 @@ def test_rankings_list_results_against_other_ranked_teams():
     run.write_json(state / "scoreboard.json", {"season": 2026, "days": {"2026-10-03": games, "2026-09-01": extra}})
     run.build_site(state, out, dt.datetime(2026, 10, 7, tzinfo=UTC))
     by = {t["id"]: t for t in json.loads((out / "data.json").read_text())["poll"]["teams"] if t["id"]}
-    assert by["nebraska"]["beat"] == [[14, "Stanford", 2]] and by["nebraska"]["lost"] == []
-    assert by["stanford"]["beat"] == [[3, "Louisville", 1]] and by["stanford"]["lost"] == [[1, "Nebraska", 2]]
-    assert by["louisville"]["lost"] == [[14, "Stanford", 1]]
+    assert by["nebraska"]["beat"] == [[14, "Stanford", 2, "stanford"]] and by["nebraska"]["lost"] == []
+    assert by["stanford"]["beat"] == [[3, "Louisville", 1, "louisville"]] and by["stanford"]["lost"] == [[1, "Nebraska", 2, "nebraska"]]
+    assert by["louisville"]["lost"] == [[14, "Stanford", 1, "stanford"]]
     assert by["penn-st"]["beat"] == [] and by["penn-st"]["lost"] == []      # beat Iowa that day, but Iowa is not ranked

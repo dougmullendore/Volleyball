@@ -248,9 +248,9 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
         for other in sorted(in_poll, key=in_poll.get):
             wins, losses, _ = results.get((t["id"], other), (0, 0, []))
             if wins:
-                t["beat"].append([in_poll[other], sel["names"][other], wins])
+                t["beat"].append([in_poll[other], sel["names"][other], wins, other])
             if losses:
-                t["lost"].append([in_poll[other], sel["names"][other], losses])
+                t["lost"].append([in_poll[other], sel["names"][other], losses, other])
     goat_top = [{"rank": i + 1, "id": t, "name": sel["names"].get(t, t), "avca": in_poll.get(t),
                  "rating_rank": ranking["base"][t]} for i, t in enumerate(ranking["order"][:config.POLL_SIZE])]
     # For the GOAT view: each team's record, and its results against the rest of the GOAT top 25.
@@ -262,9 +262,9 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
         for other in sorted(in_goat, key=in_goat.get):
             wins, losses, _ = results.get((x["id"], other), (0, 0, []))
             if wins:
-                x["beat"].append([in_goat[other], sel["names"][other], wins])
+                x["beat"].append([in_goat[other], sel["names"][other], wins, other])
             if losses:
-                x["lost"].append([in_goat[other], sel["names"][other], losses])
+                x["lost"].append([in_goat[other], sel["names"][other], losses, other])
     goat_info = {"top": goat_top, "weight": config.GOAT_HEAD_TO_HEAD,
                  # among the poll's own 25 teams: results each order has the wrong way round
                  "poll_wrong": goat.contradictions(polled, sel["all_games"], set(polled)),

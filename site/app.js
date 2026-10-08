@@ -25,13 +25,15 @@
   function long(s) { return day(s).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }); }
   var today = iso(new Date());
 
-  // A team's logo, served by ncaa.com: one drawing for light pages, one for dark.
-  function logo(teamId, cls) {
-    if (!data.logo || !teamId) return null;
-    var url = function (theme) { return data.logo.replace("{theme}", theme).replace("{team}", encodeURIComponent(teamId)); };
-    var img = el("img", { src: url("bgl"), alt: "", loading: "lazy", decoding: "async" });
-    var pic = el("picture", { "class": "logo " + (cls || "") }, [el("source", { srcset: url("bgd"), media: "(prefers-color-scheme: dark)" }), img]);
-    img.addEventListener("error", function () { pic.style.visibility = "hidden"; });   // no logo for this school: leave the space
+  // A team's logo in its normal colours, served by ncaa.com. With `name`, the logo
+  // stands in for the team's name, so it carries the name for screen readers and on hover.
+  function logo(teamId, cls, name) {
+    if (!data.logo || !teamId) return name ? el("span", { text: name }) : null;
+    var img = el("img", { src: data.logo.replace("{theme}", "bgl").replace("{team}", encodeURIComponent(teamId)), alt: name || "", title: name || null, loading: "lazy", decoding: "async" });
+    var pic = el("span", { "class": "logo " + (cls || "") }, [img]);
+    img.addEventListener("error", function () {       // no logo for this school: show the name instead, or leave the space
+      if (name) { pic.className = ""; pic.textContent = name; } else pic.style.visibility = "hidden";
+    });
     return pic;
   }
   // A player's photo, shown from her school's roster page; her initials if there is none.
@@ -58,7 +60,7 @@
     function list(label, rows, cls) {
       var kids = [el("b", { text: label + " " })];
       rows.forEach(function (r, i) {
-        kids.push(el("span", { "class": "opp" }, [el("span", { "class": "n", text: String(r[0]) }), "\u00a0" + r[1] + (r[2] > 1 ? " ×" + r[2] : "") + (i < rows.length - 1 ? "," : "")]));
+        kids.push(el("span", { "class": "opp" }, [el("span", { "class": "n", text: String(r[0]) }), logo(r[3], "sm", r[1]), r[2] > 1 ? el("span", { "class": "x", text: "×" + r[2] }) : null]));
         kids.push(" ");
       });
       return el("span", { "class": "vsline " + (cls || "") }, kids);
