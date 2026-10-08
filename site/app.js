@@ -602,6 +602,69 @@
     return el("div", { "class": "tablewrap", tabindex: "0", role: "region", "aria-label": name + " box score, scrolls sideways" }, [
       el("table", { "class": "ptable btable" }, [el("thead", {}, [head]), body, foot])]);
   }
+  // ---- the game score card ----
+  // Game Score: one number for a player's match. Kills, aces and blocks score a point each
+  // (half for a block assist), errors cost one (half for a service error, which is the
+  // price of serving hard), a dig is worth a quarter and an assist a tenth.
+  function gameScore(r) { return r[5] - r[6] + r[9] - 0.5 * r[10] + r[14] + 0.5 * r[15] + 0.25 * r[11] + 0.1 * r[8] - r[13] - r[16]; }
+  function scoreLine(g) {
+    var L = g.live, fin = L ? L.state === "post" : g.state === "final", live = L ? L.state === "in" : g.state === "live";
+    var as = L ? L.away : g.away.sets, hs = L ? L.home : g.home.sets, t = g.start ? new Date(g.start * 1000) : null;
+    function team(s, n, other) {
+      var won = fin && n != null && n > other, lost = fin && n != null && n < other;
+      return el("div", { "class": "gc-team" + (won ? " won" : "") + (lost ? " lost" : "") }, [logo(s.id, "gc"),
+        el("div", { "class": "gc-name" }, [rankTag(s.rank, s.id), teamA(s.id, s.name)]),
+        el("b", { "class": "gc-sets", text: n == null ? "–" : String(n) })]);
+    }
+    var mid = fin ? "Final" : live ? "" : (t && !isNaN(t) ? t.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : "");
+    return el("div", { "class": "gc-score" }, [team(g.away, as, hs), el("div", { "class": "gc-mid" }, [live ? liveTag() : el("span", { text: mid })]), team(g.home, hs, as)]);
+  }
+  function oddsLine(g) {
+    var p = g.p != null ? g.p : g.p0;
+    if (p == null) return null;
+    var two = pct(p);
+    return el("div", { "class": "gc-odds" }, [
+      el("span", { "class": "gc-lab", text: g.p != null ? "Chance of winning" : "Chance of winning before the match" }),
+      el("div", { "class": "gc-bar" }, [el("span", { "class": "a", style: "width:" + two[0], text: g.away.name + " " + two[0] }),
+        el("span", { "class": "h", style: "width:" + two[1], text: two[1] + " " + g.home.name })])]);
+  }
+  function fillCard(cmp, stars, g, d) {
+    function tot(rows) {
+      var t = { k: 0, e: 0, ta: 0, a: 0, sa: 0, se: 0, d: 0, re: 0, b: 0, bhe: 0 };
+      rows.forEach(function (r) { t.k += r[5]; t.e += r[6]; t.ta += r[7]; t.a += r[8]; t.sa += r[9]; t.se += r[10]; t.d += r[11]; t.re += r[13]; t.b += r[14] + r[15] / 2; t.bhe += r[16]; });
+      t.hit = t.ta ? (t.k - t.e) / t.ta : null; t.err = t.e + t.se + t.re + t.bhe;
+      return t;
+    }
+    var A = tot(d.away || []), H = tot(d.home || []);
+    var rows = [["Hitting", "hit", hitFmt, 1], ["Kills", "k", String, 1], ["Aces", "sa", String, 1], ["Blocks", "b", function (v) { return v % 1 ? v.toFixed(1) : String(v); }, 1],
+      ["Digs", "d", String, 1], ["Assists", "a", String, 1], ["Errors", "err", String, 0]];
+    cmp.innerHTML = "";
+    cmp.appendChild(el("h3", { "class": "gc-h", text: "Team comparison" }));
+    rows.forEach(function (c) {
+      var a = A[c[1]], h = H[c[1]];
+      if (a == null || h == null) return;
+      var lo = Math.min(a, h, 0), sum = (a - lo) + (h - lo) || 1, aw = 100 * (a - lo) / sum;
+      var aBetter = c[3] ? a > h : a < h, hBetter = c[3] ? h > a : h < a;
+      cmp.appendChild(el("div", { "class": "gc-row" }, [
+        el("span", { "class": "v" + (aBetter ? " best" : ""), text: c[2](a) }),
+        el("div", { "class": "gc-track", "aria-hidden": "true" }, [el("span", { "class": "a" + (aBetter ? " best" : ""), style: "width:" + aw + "%" }), el("span", { "class": "h" + (hBetter ? " best" : ""), style: "width:" + (100 - aw) + "%" })]),
+        el("span", { "class": "v h" + (hBetter ? " best" : ""), text: c[2](h) }),
+        el("span", { "class": "l", text: c[0] })]));
+    });
+    stars.innerHTML = "";
+    stars.appendChild(el("h3", { "class": "gc-h", text: "Top performers", title: "By Game Score: kills, aces and blocks count a point each (half for a block assist), errors cost one (half for a service error), a dig is worth a quarter and an assist a tenth." }));
+    var cols = el("div", { "class": "gc-cols" });
+    [["away", g.away], ["home", g.home]].forEach(function (p) {
+      var list = (d[p[0]] || []).slice().sort(function (x, y) { return gameScore(y) - gameScore(x); }).slice(0, 3);
+      cols.appendChild(el("div", { "class": "gc-col" }, [el("p", { "class": "gc-for" }, [logo(p[1].id, "sm"), " " + p[1].name])].concat(list.map(function (r) {
+        var line = [r[5] + " K", r[9] ? r[9] + " SA" : null, (r[14] + r[15]) ? (r[14] + r[15] / 2) + " B" : null, r[11] ? r[11] + " D" : null, r[8] >= 10 ? r[8] + " A" : null].filter(Boolean).join(" · ");
+        var who = r[17] ? el("a", { href: "#/player/" + encodeURIComponent(r[17]) }, [r[1]]) : el("span", { text: r[1] });
+        return el("div", { "class": "gc-star" }, [face({ name: r[1], photo: r[18] }), el("div", {}, [el("b", {}, [who]), el("small", { text: line })]),
+          el("span", { "class": "gs", title: "Game Score", text: gameScore(r).toFixed(1) })]);
+      }))));
+    });
+    stars.appendChild(cols);
+  }
   function drawMatch(id) {
     stopMatch();
     var box = $("match"), g = data.games.filter(function (x) { return String(x.id) === String(id); })[0];
@@ -613,9 +676,12 @@
     var title = el("h1", { "class": "mtitle" }, [side(g.away), el("span", { "class": "mv", text: " at " }), side(g.home)]);
     var status = el("p", { "class": "mstatus" }, [live ? liveTag() : null,
       el("span", { text: (live ? " " : "") + long(g.date) + (t && !isNaN(t) ? ", " + t.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : "") + (fin ? " · Final" : "") })]);
-    var list = el("ol", { "class": "games" }, [row(g)]);
+    // the game score card: the score, set by set, the chances before the match, how the
+    // teams compare, and each side's best players by Game Score
     var sets = el("div", { "class": "msets" }), boxes = el("div", { "class": "mboxes" });
-    box.appendChild(title); box.appendChild(status); box.appendChild(list); box.appendChild(sets); box.appendChild(boxes);
+    var cmp = el("div", { "class": "gc-cmp" }), stars = el("div", { "class": "gc-stars" });
+    var card = el("section", { "class": "gcard", "aria-label": "Game score card" }, [scoreLine(g), sets, oddsLine(g), cmp, stars]);
+    box.appendChild(title); box.appendChild(status); box.appendChild(card); box.appendChild(boxes);
     box.appendChild(el("p", { "class": "note" }, [W("match.note") + " ",
       el("a", { href: data.game_page + g.id, rel: "noopener", text: W("match.ncaa_link") }), "."]));
 
@@ -652,6 +718,7 @@
     }
     function readBox() {
       return fetch("match/" + g.id + ".json", { cache: "no-cache" }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (d) {
+        fillCard(cmp, stars, g, d);
         boxes.innerHTML = "";
         [["away", g.away], ["home", g.home]].forEach(function (p) {
           var side = p[0], s = p[1];

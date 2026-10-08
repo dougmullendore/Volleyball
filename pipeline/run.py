@@ -343,7 +343,7 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
     if start is None:
         first = odds.seed()
         start = first.get("ratings", {}) if first.get("season", season) < season else {}
-    rating, _ = odds.rate(sel["all_games"], start)
+    rating, pregame = odds.rate(sel["all_games"], start)
     kept = {k: v for k, v in kept.items() if int(k) >= season - 1}
     kept[str(season)] = {t: round(v, 3) for t, v in rating.items()}
     write_json(state / "ratings.json", kept)
@@ -403,6 +403,8 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
         if g["state"] in ("upcoming", "live") and g["home"]["id"] in rating and g["away"]["id"] in rating:
             neutral = isinstance(w, dict) and bool(w.get("neutral"))
             g["p"] = round(odds.match_chance(rating[g["home"]["id"]], rating[g["away"]["id"]], neutral), 3)   # the home team's chance
+        elif g["id"] in pregame:
+            g["p0"] = round(pregame[g["id"]], 3)     # what the home team's chance was before a finished match
         if isinstance(w, list):
             w = {"channels": w}
         if g["state"] != "final" and w is not None:
