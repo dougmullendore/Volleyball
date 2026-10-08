@@ -38,7 +38,10 @@ their matches against ranked teams.
 At the top of each match page is a **game score card**: the score and each
 set's points, each team's chance of winning (before the match, for a finished
 one), a side-by-side team comparison (hitting, kills, aces, blocks, digs,
-assists, errors), and each team's three best players by **Game Score**:
+assists, errors), and a **Game Score breakdown** after hockeystatcards.com: one
+team at a time (with its result), every player grouped as hitters, middles,
+setters and liberos/DS, each with a bar split into Attack, Serve, Block,
+Defense and Setting, or the same numbers as a table. **Game Score**:
 kills, aces and blocks count a point each (half for a block assist), attack
 errors, reception errors and ball-handling errors cost one, a service error
 costs half, a dig is worth a quarter and an assist a tenth.

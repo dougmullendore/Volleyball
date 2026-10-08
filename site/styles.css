@@ -376,16 +376,6 @@ a.opp:hover .n { color: var(--teal); }
 .gc-track { grid-area: track; display: flex; height: 8px; gap: 2px; }
 .gc-track span { display: block; border-radius: 4px; background: var(--line); }
 .gc-track span.best { background: var(--ball); }
-.gc-stars { margin-top: 20px; }
-.gc-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 24px; }
-.gc-for { margin: 0 0 6px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
-.gc-star { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 6px 0; border-top: 1px solid var(--line); }
-.gc-star b { display: block; font-weight: 600; }
-.gc-star b a { color: var(--ink); text-decoration: none; }
-.gc-star b a:hover { color: var(--teal); text-decoration: underline; }
-.gc-star small { color: var(--ink-2); font-size: .8125rem; }
-.gc-star .face { width: 40px; height: 40px; }
-.gc-star .gs { font: 700 1.25rem/1 "Barlow Condensed", sans-serif; color: var(--teal); font-variant-numeric: tabular-nums; }
 @media (max-width: 640px) {
   .gcard { padding: 14px 12px 16px; }
   .gc-team { grid-template-columns: auto 1fr; grid-template-areas: "logo sets" "name name"; justify-items: start; gap: 6px 10px; }
@@ -393,5 +383,47 @@ a.opp:hover .n { color: var(--teal); }
   .gc-team .logo.gc { grid-area: logo; width: 44px; height: 44px; }
   .gc-team .gc-sets { grid-area: sets; font-size: 2.5rem; }
   .gc-team .gc-name { grid-area: name; font-size: 1.0625rem; }
-  .gc-cols { grid-template-columns: 1fr; }
+}
+
+/* ---- Game Score breakdown (after hockeystatcards.com) ---- */
+.gs-bar { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; margin-bottom: 12px; }
+.gs-bar .scope button { display: inline-flex; align-items: center; gap: 4px; min-height: 34px; padding: 0 12px; font: 600 .875rem/1 Barlow, sans-serif; color: var(--ink); background: var(--sheet); border: 1px solid var(--line); cursor: pointer; }
+.gs-bar .scope button[aria-pressed="true"] { background: var(--teal-soft); border-color: var(--teal); }
+.gs-team { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 4px; margin-bottom: 10px; }
+.gs-team .logo.gc { width: 52px; height: 52px; box-shadow: inset 0 0 0 3px var(--ball); }
+.gs-name { display: flex; align-items: center; gap: 6px; font: 700 1.375rem/1.1 "Barlow Condensed", sans-serif; }
+.gs-vs { color: var(--ink-2); font-size: .875rem; }
+.gs-result { font: 700 1rem/1 "Barlow Condensed", sans-serif; text-transform: uppercase; letter-spacing: .06em; padding: 6px 10px; border-radius: 3px; }
+.gs-result.win { background: var(--win); color: var(--win-ink); }
+.gs-result.loss { background: var(--loss); color: var(--loss-ink); }
+.gs-result.live { background: var(--loss); color: var(--loss-ink); }
+.gs-group { margin: 14px 0 4px; font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-2); }
+.gs-row { display: grid; grid-template-columns: minmax(9rem, 14rem) 1fr 3.5rem; align-items: center; gap: 10px; padding: 4px 0; border-top: 1px solid var(--line); }
+.gs-who { display: flex; flex-direction: column; min-width: 0; }
+.gs-who a, .gs-who .plain { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--ink); text-decoration: none; min-width: 0; }
+.gs-who a span, .gs-who .plain span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gs-who a:hover span { color: var(--teal); text-decoration: underline; }
+.gs-who .face { width: 30px; height: 30px; }
+.gs-who small { color: var(--ink-2); font-size: .75rem; padding-left: 38px; }
+.gs-track { display: grid; grid-template-columns: 1fr 1fr; height: 16px; }
+.gs-track .neg { display: flex; justify-content: flex-end; border-right: 2px solid var(--ink-2); }
+.gs-track .pos { display: flex; }
+.gs-track .seg { display: block; height: 100%; }
+.gs-track .neg .seg { opacity: .55; }
+.gs-val { text-align: right; font: 700 1.125rem/1 "Barlow Condensed", sans-serif; font-variant-numeric: tabular-nums; color: var(--teal); }
+.gs-val.below { color: var(--loss); }
+.seg.att { background: #2563eb; } .seg.srv { background: #9333ea; } .seg.blk { background: #ea8a0c; } .seg.def { background: #0d9488; } .seg.set { background: #db2777; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .seg.att { background: #7aa7ff; } :root:not([data-theme="light"]) .seg.srv { background: #c084fc; }
+  :root:not([data-theme="light"]) .seg.blk { background: #fbbf24; } :root:not([data-theme="light"]) .seg.def { background: #2dd4bf; } :root:not([data-theme="light"]) .seg.set { background: #f472b6; } }
+:root[data-theme="dark"] .seg.att { background: #7aa7ff; } :root[data-theme="dark"] .seg.srv { background: #c084fc; } :root[data-theme="dark"] .seg.blk { background: #fbbf24; }
+:root[data-theme="dark"] .seg.def { background: #2dd4bf; } :root[data-theme="dark"] .seg.set { background: #f472b6; }
+.gs-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 12px; font-size: .8125rem; color: var(--ink-2); }
+.gs-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.gs-legend i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; }
+.gs-table td, .gs-table th { padding-left: 8px; padding-right: 8px; }
+.gs-table .th { display: block; padding: 8px; font: 600 .8125rem/1 Barlow, sans-serif; color: var(--ink-2); }
+@media (max-width: 640px) {
+  .gs-row { grid-template-columns: 1fr 3rem; grid-template-areas: "who val" "track track"; gap: 4px 10px; padding: 6px 0; }
+  .gs-who { grid-area: who; } .gs-val { grid-area: val; } .gs-track { grid-area: track; }
+  .gs-bar .scope button { padding: 0 8px; }
 }
