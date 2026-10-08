@@ -319,6 +319,7 @@ do.
 
 ## Schools without player photos
 
-Arkansas's roster page shows no photos, and Tennessee Tech's and Central
-Connecticut's sites refuse automated requests, so their players have no
-photos. Each school's roster address is in `rosters/pages.csv`.
+Arkansas's roster page shows no photos, so its photos come from each
+player's own page. Tennessee Tech's and Central Connecticut's sites put a
+"prove you are human" check in front of every page, so their players have no
+photos or details. Each school's roster address is in `rosters/pages.csv`.

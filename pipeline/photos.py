@@ -39,7 +39,7 @@ def pages() -> dict:
 
 # Raised whenever find() learns something new, so teams with players still
 # missing a photo are read again straight away rather than the next day.
-FINDER = 4
+FINDER = 5
 
 
 def _words(s: str) -> list[str]:
@@ -306,6 +306,72 @@ def bios(page: str, names: dict) -> dict:
     return out
 
 
+_ROW = re.compile(r"<tr\b.*?</tr>", re.I | re.S)
+_CELL = re.compile(r"<t[dh]\b[^>]*>(.*?)</t[dh]>", re.I | re.S)
+
+
+def _text(h: str) -> str:
+    return re.sub(r"\s+", " ", _html.unescape(re.sub(r"<[^>]+>", " ", h))).strip()
+
+
+def table_bios(page: str, names: dict) -> dict:
+    """Bios from a roster drawn as a plain table (Num, Name, Pos, Yr, Ht,
+    Hometown...), with any Instagram/X/TikTok links in the player's row."""
+    want = {pid: _words(n) for pid, n in names.items()}
+    cols, out = None, {}
+    for row in _ROW.findall(page):
+        cells = _CELL.findall(row)
+        if "<th" in row.lower() and "<td" not in row.lower():
+            cols = [_text(c).lower() for c in cells]
+            continue
+        if not cols or len(cells) < 3:
+            continue
+        cell = dict(zip(cols, (_text(c) for c in cells)))
+        words = set(_words(" ".join(cell.values())))
+        hits = [pid for pid, w in want.items() if w and w[0] in words and w[-1] in words]
+        if len(hits) != 1:
+            continue
+        d = {}
+        ht = re.match(r"(\d)\s*[-'′]\s*(\d{1,2})", cell.get("ht") or cell.get("height") or "")
+        if ht:
+            d["heightFeet"], d["heightInches"] = int(ht.group(1)), int(ht.group(2))
+        yr = cell.get("yr") or cell.get("cl.") or cell.get("class") or cell.get("year") or ""
+        d["academicYearLong"] = {"fr.": "Freshman", "so.": "Sophomore", "jr.": "Junior", "sr.": "Senior", "gr.": "Graduate"}.get(yr.lower(), yr)
+        d["hometown"] = cell.get("hometown") or ""
+        for net, host in (("instagram", "instagram.com/"), ("twitter", "twitter.com/"), ("twitter", "x.com/"), ("tiktok", "tiktok.com/@")):
+            m = re.search(r'href="https?://(?:www\.)?' + re.escape(host) + r'([\w.]+)', row)
+            if m:
+                d[net + "Username"] = m.group(1)
+        b = _bio(d)
+        if b:
+            out[hits[0]] = b
+    return out
+
+
+_BIO_LINK = re.compile(r'<a\b[^>]*href="([^"#?]*/roster/[^"#?]+)"[^>]*>(.*?)</a>', re.I | re.S)
+
+
+def from_bio_pages(page: str, base: str, names: dict, fetch, limit: int = 30) -> dict:
+    """For a roster page that shows no photos, open each missing player's own
+    page (linked from her name) and take her photo from there."""
+    want = {pid: _words(n) for pid, n in names.items()}
+    out = {}
+    for href, label in _BIO_LINK.findall(page):
+        if len(out) >= limit:
+            break
+        words = set(_words(_text(label)))
+        hits = [pid for pid, w in want.items() if w and w[0] in words and w[-1] in words and pid not in out]
+        if len(hits) != 1:
+            continue
+        url = urllib.parse.urljoin(base, href)
+        try:
+            got = find(fetch(url), url, {hits[0]: names[hits[0]]})
+        except Exception:
+            continue
+        out.update(got)
+    return out
+
+
 def _image_key(url: str) -> str:
     """The picture behind an address, so two sizes of one photo count once:
     its file name, from inside an image service's address if need be."""
@@ -374,6 +440,8 @@ def update(stored: dict, teams: dict, today: dt.date, fetch, log, ranked: set | 
             if page:
                 text = fetch(page)
                 found = find(text, page, names)
+                if len(found) < len(names) // 3:          # a roster with no pictures: try each player's own page
+                    found.update(from_bio_pages(text, page, {p: n for p, n in names.items() if p not in found}, fetch))
             else:                                    # a school not read before: find its roster page
                 page, found = discover(team, names, fetch)
                 text = fetch(page) if page else ""
@@ -385,7 +453,7 @@ def update(stored: dict, teams: dict, today: dt.date, fetch, log, ranked: set | 
         read += 1
         # keep what was found before for anyone this reading missed
         stored[team] = {"checked": today.isoformat(), "finder": FINDER, "page": page, "photos": {**(have.get("photos") or {}), **found},
-                       "bios": {**(have.get("bios") or {}), **bios(text, names)}}
+                       "bios": {**(have.get("bios") or {}), **table_bios(text, names), **bios(text, names)}}
     for team in [t for t, v in stored.items() if t not in teams]:   # a school no longer listed, for a month
         if not v.get("checked") or (today - dt.date.fromisoformat(v["checked"])).days > 30:
             del stored[team]
