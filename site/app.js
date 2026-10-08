@@ -254,8 +254,41 @@
     });
     return out;
   }
+  // MLV: the league's own match centre, read straight from the page every 20 seconds
+  var MLV_EVENT = "https://provolleyball.com/api/schedule-events/";
+  function pollMlv() {
+    var now = Date.now() / 1000, every = (data.live_seconds || 20) * 1000;
+    var due = data.games.filter(function (g) {
+      return g.event && g.start && g.state !== "final" && !(g.live && g.live.state === "post") && now >= g.start - 900 && now <= g.start + 4 * 3600;
+    });
+    if (document.hidden) return;
+    if (!due.length) {
+      var next = data.games.filter(function (g) { return g.event && g.start && g.state !== "final" && g.start - 900 > now; })
+        .map(function (g) { return g.start - 900; }).sort(function (a, b) { return a - b; })[0];
+      if (next) liveTimer = setTimeout(pollLive, Math.min(Math.max((next - now) * 1000, every), 6 * 3600 * 1000));
+      showLiveNote(false);
+      return;
+    }
+    var anyLive = false;
+    Promise.all(due.map(function (g) {
+      return fetch(MLV_EVENT + g.event, { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+        var e = d && d.data;
+        if (!e) return;
+        var st = (e.status || "").toLowerCase(), first = e.first_team_score, second = e.second_team_score;
+        var on = /live|progress|started|playing/.test(st), done = st === "completed";
+        if (!on && !done) return;
+        var firstIsAway = e.venue_type === "away";
+        var live = { state: done ? "post" : "in", detail: done ? "" : (e.status_text || ""), away: firstIsAway ? first : second, home: firstIsAway ? second : first, pts: null };
+        if (live.state === "in") anyLive = true;
+        if (JSON.stringify(live) === JSON.stringify(g.live)) return;
+        g.live = live;
+        Array.prototype.forEach.call(document.querySelectorAll('.game[data-id="' + g.id + '"]'), function (li) { li.parentNode.replaceChild(row(g), li); });
+      }).catch(function () {});
+    })).then(function () { showLiveNote(anyLive); liveTimer = setTimeout(pollLive, every); });
+  }
   function pollLive() {
     clearTimeout(liveTimer);
+    if (data.league === "mlv") return pollMlv();
     if (!data.live_feed) return;
     var now = Date.now() / 1000, due = dueGames(now), every = (data.live_seconds || 20) * 1000;
     if (document.hidden) return;                       // picks up again when the tab is shown
@@ -292,7 +325,8 @@
   function showLiveNote(on) {
     var n = $("live-note");
     n.hidden = !on;
-    if (on) n.textContent = "Live scores from ESPN, refreshed every " + (data.live_seconds || 20) + " seconds. Big numbers are sets won; small numbers are points in the current set.";
+    if (on) n.textContent = data.league === "mlv" ? "Live scores from the MLV match centre, refreshed every " + (data.live_seconds || 20) + " seconds. Numbers are sets won." :
+      "Live scores from ESPN, refreshed every " + (data.live_seconds || 20) + " seconds. Big numbers are sets won; small numbers are points in the current set.";
   }
   document.addEventListener("visibilitychange", function () { if (data && !document.hidden) pollLive(); });
 

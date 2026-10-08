@@ -571,3 +571,28 @@ def test_player_bios_are_read_from_roster_data():
     b = bios(page, {"x": "Solia Angilau", "y": "Someone Else"})
     assert b == {"x": {"ht": "6-1", "yr": "Junior", "home": "South Jordan, Utah", "born": "2005-03-04",
                        "social": {"instagram": "https://www.instagram.com/solia.angilau", "twitter": "https://x.com/solia"}}}
+
+
+def test_pro_schedule_adds_coming_and_live_matches(tmp_path):
+    import json, time
+    from pipeline import pro
+    (tmp_path / "pro").mkdir()
+    now = int(time.time())
+    sched = {"season": 2027, "games": [
+        {"key": "a", "start": now - 3600, "home": {"id": "austin", "name": "Austin", "sets": 2}, "away": {"id": "houston", "name": "Houston", "sets": 1},
+         "state": "live", "setpts": [[25, 20, 25], [22, 25, 27]], "watch": ["YouTube"]},
+        {"key": "b", "start": now + 86400, "home": {"id": "miami", "name": "Miami"}, "away": {"id": "atlanta", "name": "Atlanta"}, "state": "upcoming", "watch": []}]}
+    (tmp_path / "pro" / "lovb_schedule.json").write_text(json.dumps(sched))
+    old = [{"id": 1, "date": "2026-04-18", "start": now - 200 * 86400, "state": "final", "note": "", "round": "",
+            "home": {"id": "austin", "name": "Austin", "sets": 3}, "away": {"id": "houston", "name": "Houston", "sets": 0}}]
+    games, season = pro.merge_schedule(tmp_path, "lovb", old, 2026)
+    assert season == 2027 and len(games) == 2                      # the new season replaces the old
+    live = [g for g in games if g["state"] == "live"][0]
+    assert live["home"]["sets"] == 2 and live["setpts"][1] == [22, 25, 27] and live["watch"] == ["YouTube"]
+    coming = [g for g in games if g["state"] == "upcoming"][0]
+    assert coming["home"]["sets"] is None and coming["id"] >= 900000000
+    # a new season that starts in a month: the last season stays up
+    sched["games"] = [dict(sched["games"][1], start=now + 30 * 86400)]
+    (tmp_path / "pro" / "lovb_schedule.json").write_text(json.dumps(sched))
+    games, season = pro.merge_schedule(tmp_path, "lovb", list(old), 2026)
+    assert season == 2026 and len(games) == 1

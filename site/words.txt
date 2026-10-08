@@ -100,5 +100,5 @@ pro.team_players_note = # is her rank by Impact per set among all {league} regul
 pro.players_title = {league} Players
 pro.players_lede = Every regular in the {league}, ranked by Impact per set: the points she adds per set over an average {league} player at her position.
 pro.players_note = Impact compares each player with the league's other regulars, from the official match statistics. A block counts whole (the league's statistics do not split solo and shared blocks).
-pro.match_note = Scores and statistics from the league's official match centre, collected by the volleydata project.
+pro.match_note = Coming matches and live scores come from the league's own website; during a match the score is refreshed about every 10 minutes (every 20 seconds for MLV on the matches page). Player statistics come from the league's official match centre, collected by the volleydata project, and appear after the match.
 pro.footer_about = Match times are shown in your own time zone. Results and statistics are the leagues' own, collected by the volleydata project (github.com/awosoga/volleydata). Player ratings and standings changes are worked out by this site. Not affiliated with or endorsed by LOVB, MLV or any team.

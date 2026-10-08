@@ -8,8 +8,8 @@ on:
     - cron: '47 16 * * *'   # every day about 11:47am Central: a second full refresh (scores, channels, photos)
     # match days, August to December: every 10 minutes from about 11am to 1am Central, for live
     # box scores. A run finds nothing to do and stops within seconds when no match is on.
-    - cron: '*/10 16-23 * 8-12 *'
-    - cron: '*/10 0-6 * 8-12 *'
+    - cron: '*/10 16-23 * 1-5,8-12 *'
+    - cron: '*/10 0-6 * 1-5,8-12 *'
   workflow_dispatch:
   push:
     branches: [main]

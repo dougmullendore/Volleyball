@@ -157,6 +157,11 @@ def load(state: Path, site: str) -> dict | None:
             g[side] = {"id": tid, "name": nm, "sets": (h if side == "home" else a) if played else None}
         games.append(g)
     games.sort(key=lambda g: (g["date"], g["start"] or 0, g["id"]))
+    games, season_n = merge_schedule(state, site, games, int(season))
+    for g in games:
+        for side in ("home", "away"):
+            names.setdefault(g[side]["id"], g[side]["name"])
+    names = {t: n for t, n in names.items() if any(g["home"]["id"] == t or g["away"]["id"] == t for g in games)}
 
     # box scores, one row per player per match in pipeline/box.py's columns
     per = {}
@@ -190,7 +195,7 @@ def load(state: Path, site: str) -> dict | None:
         tid = slug(i.get("team_name") or "")
         if tid in names and i.get("team_code"):
             abbr[tid] = i["team_code"][:3].upper()
-    return {"season": int(season), "games": games, "boxes": boxes, "names": names, "abbr": abbr}
+    return {"season": season_n, "games": games, "boxes": boxes, "names": names, "abbr": abbr}
 
 
 def standings(games: list[dict], names: dict, through: str | None = None, points: bool = False) -> list[dict]:
@@ -585,3 +590,171 @@ def update_media(state: Path, today: dt.date, log) -> dict:
                      "with_photo": sum(1 for v in got["players"].values() if v.get("photo"))}
         log(f"{site}: logos for {len(got['teams'])} teams, details for {len(got['players'])} players")
     return res
+
+
+# ---- schedules and live scores, from the leagues' own websites ----
+# volleydata adds a match only after it is played; the leagues' sites list the
+# whole season ahead and carry the score while a match is on. Read on every
+# run, including the match-night runs, into <state>/pro/<site>_schedule.json.
+LIVE_WORDS = ("live", "progress", "started", "playing")
+
+
+def _game_id(text: str) -> int:
+    import hashlib
+    return 900000000 + int(hashlib.sha1(text.encode()).hexdigest()[:7], 16)      # never a volleystation number
+
+
+def lovb_schedule(fetch) -> dict:
+    """{"season": year, "games": [...]} from lovb.com's schedule page."""
+    t = _next_data(fetch(LOVB_SITE + "/schedule"))
+    i = t.find('"games":[')
+    if i < 0:
+        raise ValueError("no games on the schedule page")
+    games, _ = json.JSONDecoder().raw_decode(t, i + len('"games":'))
+    m = re.search(r'"games":\[.*?\],"season":(\d{4})', t[i:i + 3_000_000], re.S)
+    season = int(m.group(1)) if m else None
+    out = []
+    for x in games:
+        try:
+            start = int(dt.datetime.fromisoformat(x["startDate"].replace("Z", "+00:00")).timestamp())
+        except (KeyError, ValueError, TypeError):
+            continue
+        st = (x.get("stats") or [None])
+        st = st[0] if isinstance(st, list) and st and isinstance(st[0], dict) else None
+        home, away = x.get("host") or {}, x.get("guest") or {}
+        g = {"key": x.get("directusGameId") or x.get("gameSlug") or str(start), "start": start,
+             "home": {"id": slug(home.get("name", "")), "name": short_name(home.get("name", ""))},
+             "away": {"id": slug(away.get("name", "")), "name": short_name(away.get("name", ""))},
+             "watch": [w.get("label") for w in x.get("watch_platforms") or [] if w.get("label")]}
+        if st:
+            hs, as_ = st.get("won_set_host"), st.get("won_set_guest")
+            sets_h = [st.get(f"set{n}_host") for n in range(1, 6)]
+            sets_a = [st.get(f"set{n}_guest") for n in range(1, 6)]
+            pts = [(a, h) for a, h in zip(sets_a, sets_h) if isinstance(a, int) and isinstance(h, int)]
+            g["home"]["sets"], g["away"]["sets"] = hs, as_
+            if pts:
+                g["setpts"] = [[a for a, _ in pts], [h for _, h in pts]]
+            g["state"] = "final" if x.get("stream_ended") else "live"
+        else:
+            g["state"] = "upcoming"
+        out.append(g)
+    return {"season": season, "games": out}
+
+
+def mlv_schedule(fetch_json) -> dict:
+    """{"season": year, "games": [...]} from provolleyball.com's newest schedule."""
+    scheds = fetch_json(MLV_SITE + "/api/schedules").get("data") or []
+    if not scheds:
+        raise ValueError("no schedules")
+    newest = max(scheds, key=lambda x: int(x["title"]) if str(x.get("title", "")).isdigit() else 0)
+    out, page = [], 1
+    while page < 30:
+        d = fetch_json(f"{MLV_SITE}/api/schedule-events?schedule_id={newest['id']}&per_page=200&page={page}")
+        rows = d.get("data") or []
+        for e in rows:
+            if e.get("schedule_id") != newest["id"] or "all-star" in (e.get("title") or "").lower():
+                continue
+            try:
+                start = int(dt.datetime.fromisoformat(e["start_datetime"].replace("Z", "+00:00")).timestamp())
+            except (KeyError, ValueError, TypeError):
+                continue
+            first = {"id": slug(e.get("first_team_name") or ""), "name": e.get("first_team_name") or "", "sets": e.get("first_team_score")}
+            second = {"id": slug(e.get("second_team_name") or ""), "name": e.get("second_team_name") or "", "sets": e.get("second_team_score")}
+            # venue_type is the first team's: "away" means the first team is the visitor
+            away, home = (first, second) if e.get("venue_type") == "away" else (second, first)
+            status = (e.get("status") or "").lower()
+            state = "final" if status == "completed" else "live" if any(w in status for w in LIVE_WORDS) else "upcoming"
+            out.append({"key": str(e["id"]), "event": e["id"], "vs": e.get("volley_station_match_id"), "start": start,
+                        "home": home, "away": away, "state": state, "watch": []})
+        meta = d.get("meta") or {}
+        if not rows or meta.get("current_page", page) >= meta.get("last_page", page):
+            break
+        page += 1
+    return {"season": int(newest["title"]) if str(newest.get("title", "")).isdigit() else None, "games": out}
+
+
+def update_schedules(state: Path, log) -> dict:
+    fetch = lambda url: web.get_bytes(url, timeout=20, tries=2).decode("utf-8", "replace")
+    fetch_json = lambda url: json.loads(web.get_bytes(url, timeout=20, tries=2, headers={"Accept": "application/json"}))
+    res = {}
+    for site in LEAGUES:
+        try:
+            got = lovb_schedule(fetch) if site == "lovb" else mlv_schedule(fetch_json)
+        except Exception as e:
+            res[site] = f"kept the last copy: {e!r}"[:120]
+            continue
+        (state / "pro").mkdir(parents=True, exist_ok=True)
+        (state / "pro" / f"{site}_schedule.json").write_text(json.dumps(got), encoding="utf-8")
+        res[site] = {"season": got["season"], "games": len(got["games"]),
+                     "live": sum(1 for g in got["games"] if g["state"] == "live")}
+    log(f"pro schedules: {res}")
+    return res
+
+
+def live_now(state: Path, now: dt.datetime) -> bool:
+    """Whether a pro match could be under way: started in the last four hours,
+    or starting in the next twenty minutes, and not known to be over."""
+    t = now.timestamp()
+    for site in LEAGUES:
+        f = state / "pro" / f"{site}_schedule.json"
+        if not f.exists():
+            continue
+        for g in json.loads(f.read_text(encoding="utf-8")).get("games", []):
+            if g["state"] != "final" and t - 4 * 3600 <= g["start"] <= t + 20 * 60:
+                return True
+    return False
+
+
+def _local_date(ts: int) -> str:
+    """The match day in US Central time, as the college site counts days."""
+    return (dt.datetime.fromtimestamp(ts, dt.timezone.utc) - dt.timedelta(hours=6)).date().isoformat()
+
+
+def merge_schedule(state: Path, site: str, games: list[dict], season: int) -> tuple[list[dict], int]:
+    """Add the league site's coming matches, and the score of a match under way,
+    to the matches from volleydata. A newer season on the league's site replaces
+    the old one."""
+    f = state / "pro" / f"{site}_schedule.json"
+    if not f.exists():
+        return games, season
+    sch = json.loads(f.read_text(encoding="utf-8"))
+    if sch.get("season") and season and sch["season"] > season:
+        if not sch["games"] or min(g["start"] for g in sch["games"]) > time_now() + 7 * 86400:
+            return games, season                                # the new season has not started: keep showing the last one
+        games, season = [], sch["season"]                       # a new season: start its list afresh
+    for s in sch["games"]:
+        match = None
+        for g in games:
+            if g["home"]["id"] == s["home"]["id"] and g["away"]["id"] == s["away"]["id"] and \
+                    (abs((g.get("start") or 0) - s["start"]) < 12 * 3600 or g["date"] == _local_date(s["start"])):
+                match = g
+                break
+            if s.get("vs") and g["id"] == s["vs"]:
+                match = g
+                break
+        if match:
+            if s.get("event"):
+                match["event"] = s["event"]
+            if s.get("watch"):
+                match["watch"] = s["watch"]
+            if match["state"] != "final" and s["state"] in ("live", "final") and s["home"].get("sets") is not None:
+                match["state"] = s["state"]
+                match["home"]["sets"], match["away"]["sets"] = s["home"]["sets"], s["away"]["sets"]
+                if s.get("setpts"):
+                    match["setpts"] = s["setpts"]
+            continue
+        g = {"id": s.get("vs") or _game_id(site + s["key"]), "date": _local_date(s["start"]), "start": s["start"],
+             "state": s["state"], "note": "", "round": "", "home": dict(s["home"]), "away": dict(s["away"])}
+        if s["state"] == "upcoming":
+            g["home"]["sets"] = g["away"]["sets"] = None
+        for k in ("event", "watch", "setpts"):
+            if s.get(k):
+                g[k] = s[k]
+        games.append(g)
+    games.sort(key=lambda g: (g["date"], g["start"] or 0, g["id"]))
+    return games, season
+
+
+def time_now() -> float:
+    import time
+    return time.time()

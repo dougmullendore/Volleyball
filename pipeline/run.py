@@ -512,11 +512,15 @@ def main(state_dir: str, out_dir: str) -> int:
     if os.environ.get("RUN_MODE") == "live" and not offline:
         # a match-night run: only the matches under way or just finished
         todo = live_now(state, now)
-        if not todo:
+        pro_on = pro.live_now(state, now)
+        if pro_on:
+            stage("pro schedules", lambda: pro.update_schedules(state, log))
+        if not todo and not pro_on:
             log("match-night run: no ranked team is playing right now; nothing to do")
             return 0
-        stage("scores now", lambda: update_scoreboard(state, season_for(now.date()), todo))
-        stage("box scores now", lambda: update_live_boxes(state, now))
+        if todo:
+            stage("scores now", lambda: update_scoreboard(state, season_for(now.date()), todo))
+            stage("box scores now", lambda: update_live_boxes(state, now))
         stage("site", lambda: build_site(state, out, now))
         stage("pro leagues", lambda: build_pro(state, out, now))
         status["finished_utc"] = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
@@ -534,6 +538,7 @@ def main(state_dir: str, out_dir: str) -> int:
         if config.SHOW_PHOTOS:
             stage("photos", lambda: update_photos(state, now))
         stage("pro data", lambda: pro.download(state, log))
+        stage("pro schedules", lambda: pro.update_schedules(state, log))
         stage("pro photos", lambda: pro.update_media(state, now.date(), log))
     stage("site", lambda: build_site(state, out, now))
     stage("pro leagues", lambda: build_pro(state, out, now))
