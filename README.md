@@ -14,7 +14,7 @@ You do not need to run anything. GitHub does it all on a schedule.
   day. Upcoming matches show the start time in the reader's own time zone and
   where to watch; and each team's chance of winning; finished ones show the score in sets and link to the NCAA's
   box score. A
-  match between two ranked teams has a green edge. Buttons step to earlier
+  match between two ranked teams has a blue edge. Buttons step to earlier
   and later weeks, and a menu narrows the list to one team's whole season.
 
 ## Beat and Lost to
@@ -125,7 +125,7 @@ school's own public roster page.
 
 Logos appear beside team names everywhere on the site, and stand in for the
 names in the Beat and Lost to boxes. Each is the school's colour logo from
-ncaa.com, shown in a white circle with a green ring (`.logo` in
+ncaa.com, shown in a white circle with a blue ring (`.logo` in
 `site/styles.css`). They are not stored in this repository: the
 page shows them straight from ncaa.com, which has one for every school. They
 belong to the schools. To remove them, set `LOGO_URL = ""` in

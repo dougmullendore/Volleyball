@@ -1,33 +1,33 @@
-/* GOAT Volleyball. One colour, the green of the free zone around a court, used for the
-   logo mark, the rank tags and every accent. One column, left aligned. */
+/* GOAT Volleyball. One main colour, blue, used for the logo mark, the rank tags and
+   every accent; green for a win and red for a loss. One column, left aligned. */
 :root {
-  --floor: #edf3f1;
+  --floor: #eef2f8;
   --sheet: #ffffff;
-  --ink: #0f2a2e;
-  --ink-2: #51666a;
-  --line: #cddad7;
-  --teal: #0b6a6e;
-  --teal-soft: #d9ecea;
-  --ball: #0b6a6e;      /* the accent: the same green as the logo mark */
+  --ink: #0f1d33;
+  --ink-2: #4f5d73;
+  --line: #cfd8e6;
+  --teal: #1d4ed8;      /* the main colour (the name is older than the colour) */
+  --teal-soft: #dbe5fb;
+  --ball: #1d4ed8;      /* the accent: the same blue as the logo mark */
   --ball-ink: #ffffff;
-  --ball-home: #064346; /* a darker green: the home team's rank before a match */
-  --win: #1f5fd6;       /* blue, for a match's winner and for "Beat" */
+  --ball-home: #12318f; /* a darker blue: the home team's rank before a match */
+  --win: #15803d;       /* green, for a match's winner and for "Beat" */
   --win-ink: #ffffff;
   --loss: #b3261e;      /* red, for "Lost to" and for the rank of a match's loser */
   --loss-ink: #ffffff;
-  --lost: #7a8b8e;
+  --lost: #7a8699;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --floor: #0c1b1e; --sheet: #13272b; --ink: #e6f0ee; --ink-2: #9db3b4; --line: #27444a;
-    --teal: #5cc7c4; --teal-soft: #173a3d; --ball: #5cc7c4; --ball-ink: #0c1b1e; --ball-home: #3a9a97; --win: #7fb0ff; --win-ink: #0b1a33; --loss: #ff8a80; --loss-ink: #3b0d0a; --lost: #7f9697;
+    --floor: #0b1220; --sheet: #121b2e; --ink: #e6ecf7; --ink-2: #9aa8bf; --line: #24324d;
+    --teal: #7aa7ff; --teal-soft: #1a2a4a; --ball: #7aa7ff; --ball-ink: #0b1220; --ball-home: #4c78d6; --win: #4ade80; --win-ink: #052e16; --loss: #ff8a80; --loss-ink: #3b0d0a; --lost: #7f8ba0;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --floor: #0c1b1e; --sheet: #13272b; --ink: #e6f0ee; --ink-2: #9db3b4; --line: #27444a;
-  --teal: #5cc7c4; --teal-soft: #173a3d; --ball: #5cc7c4; --ball-ink: #0c1b1e; --ball-home: #3a9a97; --win: #7fb0ff; --win-ink: #0b1a33; --loss: #ff8a80; --loss-ink: #3b0d0a; --lost: #7f9697;
+  --floor: #0b1220; --sheet: #121b2e; --ink: #e6ecf7; --ink-2: #9aa8bf; --line: #24324d;
+  --teal: #7aa7ff; --teal-soft: #1a2a4a; --ball: #7aa7ff; --ball-ink: #0b1220; --ball-home: #4c78d6; --win: #4ade80; --win-ink: #052e16; --loss: #ff8a80; --loss-ink: #3b0d0a; --lost: #7f8ba0;
   color-scheme: dark;
 }
 
@@ -63,7 +63,7 @@ h2 { font: 700 1.375rem/1.2 "Barlow Condensed", sans-serif; margin: 0; }
   background: var(--ball); color: var(--ball-ink); font: 700 .9375rem/1 "Barlow Condensed", sans-serif; font-variant-numeric: tabular-nums; }
 
 /* team logos, shown from ncaa.com and turned one colour by the filters in index.html */
-/* each team's colour logo sits in a white circle with a green ring, like the player photos */
+/* each team's colour logo sits in a white circle with a blue ring, like the player photos */
 .logo { display: inline-grid; place-items: center; flex: none; width: 28px; height: 28px; line-height: 0; border-radius: 50%;
   background: #fff; box-shadow: inset 0 0 0 2px var(--ball); }
 .logo img { width: 64%; height: 64%; object-fit: contain; }
@@ -73,7 +73,7 @@ h2 { font: 700 1.375rem/1.2 "Barlow Condensed", sans-serif; margin: 0; }
 
 /* a player's photo in a circle; her initials show until it loads, or if there is none */
 .face { position: relative; display: inline-grid; place-items: center; flex: none; width: 28px; height: 28px; border-radius: 50%; overflow: hidden;
-  border: 2px solid var(--ball);              /* every player photo in a green ring */
+  border: 2px solid var(--ball);              /* every player photo in a blue ring */
   background: var(--teal-soft); color: var(--teal); font: 700 .6875rem/1 "Barlow Condensed", sans-serif; }
 .face img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 15%; }
 .face.big { width: 120px; height: 120px; font-size: 2.4rem; border-width: 3px; }
@@ -136,7 +136,7 @@ h2 { font: 700 1.375rem/1.2 "Barlow Condensed", sans-serif; margin: 0; }
 .team.lost { color: var(--lost); font-weight: 400; }
 .team.lost .rk { background: var(--loss); color: var(--loss-ink); }   /* the loser's rank (or NR) in red */
 .team.won .rk { background: var(--win); color: var(--win-ink); }      /* the winner's in blue */
-/* before a match, the home team's rank (or NR) is a slightly darker green */
+/* before a match, the home team's rank (or NR) is a slightly darker blue */
 .game.ahead .team.home .rk { background: var(--ball-home); }
 .mid { text-align: center; font: 700 1.125rem/1 "Barlow Condensed", sans-serif; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .mid.at { font: 400 .8125rem/1 Barlow, sans-serif; color: var(--ink-2); }
@@ -336,7 +336,7 @@ a.opp:hover .n { color: var(--teal); }
 
 /* the Top 25 / All D1 switch: two joined buttons */
 .scope { display: inline-flex; }
-.scope button { border-radius: 0; }
+.scope button { border-radius: 0; white-space: nowrap; flex: none; }
 .scope button:first-child { border-radius: 4px 0 0 4px; }
 .scope button:last-child { border-radius: 0 4px 4px 0; margin-left: -1px; }
 .scope button[aria-pressed="true"] { position: relative; z-index: 1; }
