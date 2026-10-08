@@ -30,11 +30,12 @@ DIVISION = 1
 GAME_PAGE = "https://www.ncaa.com/game/"
 
 # Team logos are not stored here: the page shows them straight from ncaa.com,
-# which has one for every school under the same id the scoreboard uses. Each
-# school's normal full-colour logo ("bgl") is used on light and dark pages
-# alike; ncaa.com's dark-page set ("bgd") is mostly plain white, so it is not
-# used. Set to "" to show none.
-LOGO_URL = "https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/{team}.svg"
+# which has one for every school under the same id the scoreboard uses. The
+# site shows every logo in white (dark ink on a light page): it takes
+# ncaa.com's dark-page set ("bgd"), which is white for many schools but not
+# all, and the page turns each one white while keeping its inner detail (see
+# the filters at the top of site/index.html). Set to "" to show none.
+LOGO_URL = "https://www.ncaa.com/sites/default/files/images/logos/schools/bgd/{team}.svg"
 
 # Player photos come from each school's own roster page (rosters/pages.csv)
 # and are shown from the school's site, not copied. A page is read again after

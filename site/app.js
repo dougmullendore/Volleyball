@@ -25,11 +25,11 @@
   function long(s) { return day(s).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }); }
   var today = iso(new Date());
 
-  // A team's logo in its normal colours, served by ncaa.com. With `name`, the logo
+  // A team's logo, served by ncaa.com and shown in one colour. With `name`, the logo
   // stands in for the team's name, so it carries the name for screen readers and on hover.
   function logo(teamId, cls, name) {
     if (!data.logo || !teamId) return name ? el("span", { text: name }) : null;
-    var img = el("img", { src: data.logo.replace("{theme}", "bgl").replace("{team}", encodeURIComponent(teamId)), alt: name || "", title: name || null, loading: "lazy", decoding: "async" });
+    var img = el("img", { src: data.logo.replace("{team}", encodeURIComponent(teamId)), alt: name || "", title: name || null, loading: "lazy", decoding: "async" });
     var pic = el("span", { "class": "logo " + (cls || "") }, [img]);
     img.addEventListener("error", function () {       // no logo for this school: show the name instead, or leave the space
       if (name) { pic.className = ""; pic.textContent = name; } else pic.style.visibility = "hidden";

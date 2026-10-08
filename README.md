@@ -65,9 +65,10 @@ school's own public roster page.
 ## Team logos
 
 Logos appear beside team names, and stand in for the names in the "Beat" and
-"Lost to" lines on the Rankings page. Each is the school's normal full-colour
-logo, on light and dark pages alike; on dark pages a thin light edge keeps
-navy and black logos visible. They are not stored in this repository: the
+"Lost to" lines on the Rankings page. Every logo is shown in white (dark ink
+on a light page). ncaa.com's white versions are white for some schools and
+coloured for others, so the page recolours each one itself, keeping the inner
+detail: the light parts of the drawing stay solid and the dark parts go faint. They are not stored in this repository: the
 page shows them straight from ncaa.com, which has one for every school. They
 belong to the schools. To remove them, set `LOGO_URL = ""` in
 `pipeline/config.py`.

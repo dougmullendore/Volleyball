@@ -56,7 +56,7 @@ h2 { font: 700 1.375rem/1.2 "Barlow Condensed", sans-serif; margin: 0; }
   background: var(--ball); color: var(--ball-ink); font: 700 .9375rem/1 "Barlow Condensed", sans-serif; font-variant-numeric: tabular-nums; }
 .rk.none { background: none; }
 
-/* team logos, shown from ncaa.com */
+/* team logos, shown from ncaa.com and turned one colour by the filters in index.html */
 .logo { display: inline-block; flex: none; width: 20px; height: 20px; line-height: 0; }
 .logo img { width: 100%; height: 100%; object-fit: contain; }
 .logo.big { width: 64px; height: 64px; }
@@ -209,10 +209,3 @@ h2 { font: 700 1.375rem/1.2 "Barlow Condensed", sans-serif; margin: 0; }
   .mid .pt { display: inline-block; min-width: 1.6em; margin-left: 10px; font: 500 .8125rem/1 Barlow, sans-serif; color: var(--ink-2); text-align: right; }
   .mid .sa { grid-area: as; } .mid .sh { grid-area: hs; }
 }
-
-/* Logos keep their normal colours on dark pages too. A thin light edge keeps the
-   navy and black ones from vanishing into the background. */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .logo img { filter: drop-shadow(0 0 .6px rgba(255, 255, 255, .85)) drop-shadow(0 0 .6px rgba(255, 255, 255, .6)); }
-}
-:root[data-theme="dark"] .logo img { filter: drop-shadow(0 0 .6px rgba(255, 255, 255, .85)) drop-shadow(0 0 .6px rgba(255, 255, 255, .6)); }
