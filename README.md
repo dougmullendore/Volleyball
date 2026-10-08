@@ -71,13 +71,14 @@ belong to the schools. To remove them, set `LOGO_URL = ""` in
 
 ## GOAT ranking
 
-The Rankings page shows the AVCA poll with a second column: the site's own
-GOAT ranking, which gives head-to-head results more say than the poll does.
+The Rankings page opens on the AVCA poll. A button switches it to the site's
+own GOAT ranking, which gives head-to-head results more say than the poll
+does; it is not shown until asked for.
 
-- Under each team the page lists who it has beaten and lost to among the
-  other 24 ranked teams this season, with their poll places.
-- It ranks every Division I team, so a poll team's GOAT number can be past 25,
-  and the page lists GOAT top-25 teams the poll leaves out.
+- In either view, under each team the page lists who it has beaten and lost
+  to among the other 24 teams on the list this season, with their places.
+- It ranks every Division I team, so the GOAT top 25 can include teams the
+  poll leaves out. Each row shows the team's place in the poll, or a dash.
 - It starts from the team ratings behind the odds. Then it looks for the
   order that agrees with the most head-to-head results while staying close to
   those ratings. A team climbs over one it has beaten when the two are close;
@@ -86,7 +87,7 @@ GOAT ranking, which gives head-to-head results more say than the poll does.
 - `GOAT_HEAD_TO_HEAD` in `pipeline/config.py` sets how much one head-to-head
   win can overturn (1.5 rating points now). Raise it and head-to-head counts
   for more; at 0 the GOAT ranking is just the rating order.
-- The page reports the score: among the poll's 25 teams, how many times each
+- The GOAT view reports the score: among the poll's 25 teams, how many times each
   ranking has a team below one it has beaten. On 7 October 2026 the poll did
   18 times and the GOAT ranking 7.
 - It is redone every night, not only on Mondays. The method is at the top of

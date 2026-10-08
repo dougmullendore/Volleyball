@@ -469,6 +469,9 @@ def test_the_page_carries_the_goat_ranking():
     top = data["goat"]["top"]
     assert [x["rank"] for x in top] == list(range(1, 26)) and top[0]["id"] == "nebraska" and top[0]["avca"] == 1
     assert data["goat"]["goat_wrong"] <= data["goat"]["poll_wrong"]
+    # the GOAT view has what it needs for every team, in or out of the poll
+    assert all(set(x) >= {"record", "beat", "lost", "avca"} and x["record"].count("-") == 1 for x in top)
+    assert top[0]["record"] == "1-0" and top[0]["beat"] == []        # Nebraska beat Maryland that day; Maryland is not in this top 25
 
 
 def test_rankings_list_results_against_other_ranked_teams():

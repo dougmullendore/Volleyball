@@ -253,6 +253,18 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
                 t["lost"].append([in_poll[other], sel["names"][other], losses])
     goat_top = [{"rank": i + 1, "id": t, "name": sel["names"].get(t, t), "avca": in_poll.get(t),
                  "rating_rank": ranking["base"][t]} for i, t in enumerate(ranking["order"][:config.POLL_SIZE])]
+    # For the GOAT view: each team's record, and its results against the rest of the GOAT top 25.
+    in_goat = {x["id"]: x["rank"] for x in goat_top}
+    for x in goat_top:
+        won = sum(v[0] for (a, _), v in results.items() if a == x["id"])
+        lost = sum(v[1] for (a, _), v in results.items() if a == x["id"])
+        x["record"], x["beat"], x["lost"] = f"{won}-{lost}", [], []
+        for other in sorted(in_goat, key=in_goat.get):
+            wins, losses, _ = results.get((x["id"], other), (0, 0, []))
+            if wins:
+                x["beat"].append([in_goat[other], sel["names"][other], wins])
+            if losses:
+                x["lost"].append([in_goat[other], sel["names"][other], losses])
     goat_info = {"top": goat_top, "weight": config.GOAT_HEAD_TO_HEAD,
                  # among the poll's own 25 teams: results each order has the wrong way round
                  "poll_wrong": goat.contradictions(polled, sel["all_games"], set(polled)),

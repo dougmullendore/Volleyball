@@ -52,7 +52,7 @@
 
   // ---- the rankings page ----
   // The coaches poll beside the site's own GOAT ranking, which gives head-to-head results more say.
-  var rankSort = "avca";
+  var rankView = "avca";      // the poll is shown; the GOAT ranking only when asked for
   // A team's results against the other ranked teams: "Beat 9 Texas, 12 Texas A&M. Lost to 2 Pittsburgh."
   function versus(t) {
     function list(label, rows, cls) {
@@ -68,32 +68,43 @@
     return el("span", { "class": "vs" }, [beat.length ? list("Beat", beat) : null, lost.length ? list("Lost to", lost, "lostto") : null]);
   }
   function drawRanks() {
-    var ol = $("ranks"), bar = $("rank-sort"), G = data.goat || {};
-    ol.innerHTML = ""; bar.innerHTML = "";
-    [["avca", "Order by AVCA poll"], ["goat", "Order by GOAT ranking"]].forEach(function (o) {
-      bar.appendChild(el("button", { type: "button", "aria-pressed": String(rankSort === o[0]), text: o[1], onclick: function () { rankSort = o[0]; drawRanks(); } }));
+    var ol = $("ranks"), bar = $("rank-sort"), head = $("ranks-head"), G = data.goat || {}, goatView = rankView === "goat" && G.top;
+    ol.innerHTML = ""; bar.innerHTML = ""; head.innerHTML = "";
+    [["avca", "AVCA poll"], ["goat", "GOAT ranking"]].forEach(function (o) {
+      bar.appendChild(el("button", { type: "button", "aria-pressed": String(rankView === o[0]), text: o[1], onclick: function () { rankView = o[0]; drawRanks(); } }));
     });
-    var teams = data.poll.teams.slice();
-    if (rankSort === "goat") teams.sort(function (a, b) { return (a.goat || 999) - (b.goat || 999); });
-    teams.forEach(function (t) {
-      var move = t.prev == null ? ["new", "up", "not ranked last week"] : t.prev > t.rank ? ["▲" + (t.prev - t.rank), "up", "up " + (t.prev - t.rank) + " from last week"]
-        : t.prev < t.rank ? ["▼" + (t.rank - t.prev), "", "down " + (t.rank - t.prev) + " from last week"] : ["", "", ""];
-      var name = t.id ? el("a", { "class": "nm", href: "#/", text: t.name, title: "Show " + t.name + "'s matches",
-        onclick: function () { state.team = t.id; } }) : el("span", { "class": "nm", text: t.name });
-      var diff = t.goat == null ? 0 : t.rank - t.goat;      // positive: the GOAT ranking has her higher than the poll
-      ol.appendChild(el("li", {}, [rankTag(t.rank), el("span", { "class": "who" }, [logo(t.id), name]), el("span", { "class": "rec", text: t.record || "" }),
-        el("span", { "class": "mv " + move[1], text: move[0], "aria-label": move[2] || null }),
-        el("span", { "class": "goat" + (diff >= 3 ? " hi" : diff <= -3 ? " lo" : ""), text: t.goat == null ? "–" : String(t.goat),
-          "aria-label": t.goat == null ? "no GOAT ranking" : "GOAT ranking " + t.goat,
-          title: t.goat == null ? null : diff === 0 ? "Same place as the poll" : Math.abs(diff) + (Math.abs(diff) === 1 ? " place " : " places ") + (diff > 0 ? "higher" : "lower") + " than the poll" }),
-        versus(t)]));
-    });
-    if (G.top) {
-      $("goat-note").textContent = "GOAT is this site's own ranking of every Division I team. It starts from the team ratings behind the odds, then is rearranged to agree with as many head-to-head results as it can: a team climbs over one it has beaten when the two are close, but not when the ratings say the gap is wide. " +
-        "Among these 25 teams the poll ranks a team below one it has beaten " + G.poll_wrong + " times; the GOAT ranking does " + G.goat_wrong + " times. A GOAT number is shaded when it is three or more places from the poll.";
-      var out = G.top.filter(function (x) { return x.avca == null; });
-      $("goat-out").textContent = out.length ? "In the GOAT top 25 but not in the poll: " + out.map(function (x) { return x.name + " (" + x.rank + ")"; }).join(", ") + "." : "";
+    (goatView ? ["GOAT", "Team", "Record", "AVCA"] : ["AVCA", "Team", "Record", "Change"]).forEach(function (h) { head.appendChild(el("span", { text: h })); });
+    function teamLink(id, name) {
+      return id ? el("a", { "class": "nm", href: "#/", text: name, title: "Show " + name + "'s matches", onclick: function () { state.team = id; } })
+        : el("span", { "class": "nm", text: name });
     }
+    var polled = {};
+    data.poll.teams.forEach(function (t) { if (t.id) polled[t.id] = 1; });
+    if (goatView) {
+      G.top.forEach(function (t) {
+        // a team outside the poll has no page of matches here, so its name is not a link
+        ol.appendChild(el("li", {}, [rankTag(t.rank), el("span", { "class": "who" }, [logo(t.id), teamLink(polled[t.id] ? t.id : null, t.name)]),
+          el("span", { "class": "rec", text: t.record || "" }),
+          el("span", { "class": "mv", text: t.avca == null ? "–" : String(t.avca), "aria-label": t.avca == null ? "not in the AVCA poll" : "AVCA poll " + t.avca }),
+          versus(t)]));
+      });
+    } else {
+      data.poll.teams.forEach(function (t) {
+        var move = t.prev == null ? ["new", "up", "not ranked last week"] : t.prev > t.rank ? ["▲" + (t.prev - t.rank), "up", "up " + (t.prev - t.rank) + " from last week"]
+          : t.prev < t.rank ? ["▼" + (t.rank - t.prev), "", "down " + (t.rank - t.prev) + " from last week"] : ["", "", ""];
+        ol.appendChild(el("li", {}, [rankTag(t.rank), el("span", { "class": "who" }, [logo(t.id), teamLink(t.id, t.name)]), el("span", { "class": "rec", text: t.record || "" }),
+          el("span", { "class": "mv " + move[1], text: move[0], "aria-label": move[2] || null }), versus(t)]));
+      });
+    }
+    var through = day(data.poll.through).toLocaleDateString(undefined, { month: "long", day: "numeric" });
+    $("rank-lede").textContent = goatView ? "This site's own ranking of every Division I team, where beating a team counts for more than it does in the poll."
+      : "The " + data.poll.name + ", through matches of " + through + ".";
+    $("rank-note").textContent = goatView
+      ? "Under each team are its results this season against the rest of this top 25, with their GOAT places. The AVCA column is the team's place in the coaches poll; a dash means it is not ranked there. Redone every night."
+      : "Record and change are from the poll, which is checked for a new one every Monday. Under each team are its results this season against the other 24, with their poll places. Choose a team to see its matches.";
+    $("goat-note").textContent = !goatView ? "" : "It starts from the team ratings behind the odds, then is rearranged to agree with as many head-to-head results as it can: a team climbs over one it has beaten when the two are close, but not when the ratings say the gap is wide. " +
+      "Among the poll's 25 teams, the poll ranks a team below one it has beaten " + G.poll_wrong + " times; the GOAT ranking does " + G.goat_wrong + " times.";
+    $("goat-out").textContent = "";
   }
 
   // ---- one match ----
@@ -443,8 +454,6 @@
     data = d;
     $("brand").textContent = d.site;
     $("lede").textContent = "Every match played by a team in the " + d.poll.name + ", week by week.";
-    $("rank-lede").textContent = "The " + d.poll.name + ", through matches of " + day(d.poll.through).toLocaleDateString(undefined, { month: "long", day: "numeric" }) + ", beside this site's GOAT ranking.";
-    $("rank-note").textContent = "Record and change are from the poll, which is checked for a new one every Monday. Under each team are its results this season against the other 24, with their poll places. The GOAT ranking is redone every night. Choose a team to see its matches.";
     var u = new Date(d.updated);
     $("foot-updated").textContent = "Scores and schedule updated " + (isNaN(u) ? d.updated : u.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })) +
       ". Rankings: " + d.poll.name + " through " + day(d.poll.through).toLocaleDateString(undefined, { dateStyle: "long" }) + ".";

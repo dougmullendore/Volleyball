@@ -70,14 +70,10 @@ h2 { font: 700 1.375rem/1.2 "Barlow Condensed", sans-serif; margin: 0; }
 
 /* ---- rankings page: one compact line per team ---- */
 .ranks { list-style: none; margin: 0; padding: 0; max-width: 34rem; background: var(--sheet); border: 1px solid var(--line); border-radius: 4px; }
-.ranks li, .ranks-head { display: grid; grid-template-columns: 2.25rem 1fr 3.25rem 2.75rem 3rem; align-items: center; gap: 10px; padding: 7px 12px; font-size: .9375rem; }
+.ranks li, .ranks-head { display: grid; grid-template-columns: 2.25rem 1fr 3.25rem 3rem; align-items: center; gap: 10px; padding: 7px 12px; font-size: .9375rem; }
 .ranks li { border-top: 1px solid var(--line); }
 .ranks-head { max-width: 34rem; padding-top: 0; padding-bottom: 6px; font-size: .75rem; font-weight: 600; color: var(--ink-2); }
 .ranks-head span:nth-child(n+3) { text-align: right; }
-.ranks-head span:last-child, .ranks .goat { text-align: center; }
-.ranks .goat { justify-self: center; min-width: 2.1em; padding: 2px 4px; border: 1px solid var(--line); border-radius: 3px; font: 700 .9375rem/1.2 "Barlow Condensed", sans-serif; font-variant-numeric: tabular-nums; }
-.ranks .goat.hi { border-color: var(--teal); background: var(--teal-soft); color: var(--teal); }
-.ranks .goat.lo { background: color-mix(in srgb, var(--lost) 22%, var(--sheet)); color: var(--ink-2); }
 .nav button[aria-pressed="true"] { background: var(--teal-soft); border-color: var(--teal); }
 .ranks li:first-child { border-top: 0; }
 .ranks .vs { grid-column: 2 / -1; min-width: 0; margin-top: -2px; font-size: .8125rem; line-height: 1.5; color: var(--ink-2); }
