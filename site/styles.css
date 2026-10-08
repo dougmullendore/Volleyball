@@ -437,3 +437,5 @@ a.opp:hover .n { color: var(--teal); }
 .trophy.t1 { color: #d4a017; } .trophy.t2 { color: #9aa3ad; } .trophy.t3 { color: #b8733a; }
 .tname { display: inline-flex; align-items: center; white-space: nowrap; }
 h1 .trophy { margin-left: 10px; vertical-align: -4px; }
+/* trophies only on the rankings/standings, teams and team pages */
+#page-matches .trophy, #page-match .trophy, #page-players .trophy, #page-card .trophy { display: none; }
