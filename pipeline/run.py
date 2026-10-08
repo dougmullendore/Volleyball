@@ -196,6 +196,9 @@ def update_boxes(state: Path, now: dt.datetime) -> dict:
     stored = read_json(state / "box.json", {})
     finals = [g for g in sel["games"] if g["state"] == "final"]
     res = box.update(stored, finals, now.date(), log)
+    start = dt.date(sel["season"], *config.SEASON_START).isoformat()
+    for gid in [k for k, v in stored.items() if v.get("date", "") < start]:
+        del stored[gid]                         # earlier seasons' box scores are not used again
     write_json(state / "box.json", stored)
     return res
 

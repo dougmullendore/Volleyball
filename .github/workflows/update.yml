@@ -16,6 +16,7 @@ concurrency:
 
 permissions:
   contents: write
+  actions: write      # to keep the schedule switched on (last step)
 
 jobs:
   update:
@@ -72,3 +73,11 @@ jobs:
           git add -A
           git commit -q -m "Site build $(date -u +%FT%TZ)"
           git push -q -f "$REPO_URL" gh-pages
+
+      # GitHub turns off scheduled jobs after 60 days without activity in the
+      # repository (the off-season, say). Switching it on again each run resets that.
+      - name: Keep the schedule switched on
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/update.yml/enable" || echo "could not switch the schedule on; it may stop after 60 quiet days"

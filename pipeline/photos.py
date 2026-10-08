@@ -276,6 +276,9 @@ def update(stored: dict, teams: dict, today: dt.date, fetch, log) -> dict:
         read += 1
         # keep what was found before for anyone this reading missed
         stored[team] = {"checked": today.isoformat(), "finder": FINDER, "page": page, "photos": {**(have.get("photos") or {}), **found}}
+    for team in [t for t, v in stored.items() if t not in teams]:   # a school out of the poll for a month
+        if not v.get("checked") or (today - dt.date.fromisoformat(v["checked"])).days > 30:
+            del stored[team]
     no_page = [t for t in teams if not (listed.get(t) or (stored.get(t) or {}).get("page"))]
     total = sum(len(n) for n in teams.values())
     with_photo = sum(1 for t, names in teams.items() for pid in names if pid in ((stored.get(t) or {}).get("photos") or {}))

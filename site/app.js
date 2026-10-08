@@ -49,7 +49,8 @@
     return box;
   }
   function rankTag(rank) {
-    return el("span", { "class": "rk" + (rank ? "" : " none"), text: rank ? String(rank) : "", "aria-label": rank ? "ranked " + rank : null });
+    // an unranked team gets a quiet "NR" in the same spot, so the names line up
+    return el("span", { "class": "rk" + (rank ? "" : " nr"), text: rank ? String(rank) : "NR", "aria-label": rank ? "ranked " + rank : "unranked" });
   }
 
   // ---- the rankings page ----
@@ -462,7 +463,7 @@
     var live = m.state === "live";
     function side(s, lost) {
       var t = rankOf(s.id);
-      return el("span", { "class": "side" + (lost ? " lost" : "") }, [t ? rankTag(t.rank) : null, logo(s.id, "sm"), " " + s.name + " ", el("b", { text: s.sets == null ? "" : String(s.sets) })]);
+      return el("span", { "class": "side" + (lost ? " lost" : "") }, [rankTag(t && t.rank), logo(s.id, "sm"), " " + s.name + " ", el("b", { text: s.sets == null ? "" : String(s.sets) })]);
     }
     if (m.state !== "final" && !live) return null;
     return el("p", { "class": "result" }, [el("span", { "class": "when", text: live ? "Live" : short(m.date) }),

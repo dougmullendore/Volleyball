@@ -237,7 +237,11 @@ A minute or two later the page is live at
 - The scoreboard only says "home" and "away"; at neutral-site tournaments those
   are just labels.
 - The earlier, larger version of this site (ratings, WAR, player cards) is in
-  this repository's history, last at commit `17ce558`. Its downloaded matches
-  are still on the `data` branch, which nothing uses any more.
+  this repository's history, last at commit `17ce558`.
+- The repository has three branches: `main` (the code), `state` (what the
+  nightly job stores) and `gh-pages` (the published site, rebuilt each run).
+- GitHub switches off scheduled jobs in a repository with no activity for 60
+  days. Each run switches the job back on, so the nightly update keeps going
+  through the off-season without anyone committing.
 
 Not affiliated with or endorsed by the NCAA, the AVCA or any school.
