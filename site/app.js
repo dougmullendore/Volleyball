@@ -34,6 +34,18 @@
     img.addEventListener("error", function () { pic.style.visibility = "hidden"; });   // no logo for this school: leave the space
     return pic;
   }
+  // A player's photo, shown from her school's roster page; her initials if there is none.
+  function face(p, cls) {
+    var initials = p.name.split(/\s+/).map(function (w) { return w.charAt(0); }).join("").slice(0, 2).toUpperCase();
+    var box = el("span", { "class": "face " + (cls || ""), "aria-hidden": "true" }, [el("span", { text: initials })]);
+    if (p.photo) {
+      var img = el("img", { src: p.photo, alt: "", loading: "lazy", decoding: "async", referrerpolicy: "no-referrer" });
+      img.addEventListener("load", function () { box.classList.add("has"); });
+      img.addEventListener("error", function () { if (img.parentNode) img.parentNode.removeChild(img); });
+      box.appendChild(img);
+    }
+    return box;
+  }
   function rankTag(rank) {
     return el("span", { "class": "rk" + (rank ? "" : " none"), text: rank ? String(rank) : "", "aria-label": rank ? "ranked " + rank : null });
   }
@@ -297,7 +309,7 @@
         }));
         var body = el("tbody", {}, rows.map(function (p) {
           return el("tr", {}, PCOLS.map(function (c) {
-            if (c[0] === "name") return el("td", { "class": "l nm" }, [el("a", { href: "#/player/" + encodeURIComponent(p.id), text: p.name })]);
+            if (c[0] === "name") return el("td", { "class": "l nm" }, [el("a", { href: "#/player/" + encodeURIComponent(p.id) }, [face(p), el("span", { text: p.name })])]);
             if (c[0] === "team") return el("td", { "class": "l tm" }, [logo(p.team_id), el("span", { text: p.team })]);
             var v = c[3](p);
             return el("td", { "class": (c[0] === "impact" ? "strong " : "") + (pstate.sort === c[0] ? "sorted" : ""), text: v == null ? (c[0] === "rank" ? "–" : "") : c[4](v) });
@@ -326,10 +338,11 @@
       var many = POS_MANY[p.pos], nPos = roster.pos_regulars[p.pos] || 0;
       var art = el("article", { "class": "pcard" });
       art.appendChild(el("header", { "class": "pc-head" }, [
-        logo(p.team_id, "big"),
+        face(p, "big"),
         el("div", { "class": "pc-id" }, [
           el("h1", { text: p.name }),
-          el("p", { text: (p.num != null ? "No. " + p.num + ", " : "") + POS_ONE[p.pos].toLowerCase() + ", " + p.team + " (ranked " + p.team_rank + ")" }),
+          el("p", { "class": "pc-team" }, [logo(p.team_id), el("span", { text: p.team + " (ranked " + p.team_rank + ")" })]),
+          el("p", { text: (p.num != null ? "No. " + p.num + ", " : "") + POS_ONE[p.pos].toLowerCase() }),
           el("p", { "class": "pc-sub", text: p.sp + " sets in " + p.mp + " matches, " + p.starts + " starts" })]),
         el("div", { "class": "pc-rank" }, p.regular ? [
           el("b", { text: ordinal(p.rank) }), el("span", { text: "of " + roster.regulars + " regulars" }),

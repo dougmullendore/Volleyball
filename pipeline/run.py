@@ -12,6 +12,7 @@ Usage:  python -m pipeline.run <state_dir> <site_output_dir>
   scoreboard.json   the latest copy of each day's matches
   watch.json        the TV channel or stream found for each upcoming match
   box.json          the box score of every finished match involving a ranked team
+  photos.json       the address of each player's photo on her school's roster page
   status.json       what happened on the last run
 """
 from __future__ import annotations
@@ -25,7 +26,7 @@ import sys
 import traceback
 from pathlib import Path
 
-from . import box, config, players, poll, watch, web
+from . import box, config, photos, players, poll, watch, web
 
 SITE_SRC = Path(__file__).resolve().parents[1] / "site"
 
@@ -195,6 +196,19 @@ def update_boxes(state: Path, now: dt.datetime) -> dict:
     return res
 
 
+def update_photos(state: Path, now: dt.datetime) -> dict:
+    """Find each player's photo on her school's roster page."""
+    sel = ranked_matches(state)
+    rated = players.compute(sel["teams"], sel["games"], read_json(state / "box.json", {}))
+    teams = {}
+    for p in rated["players"]:
+        teams.setdefault(p["team_id"], {})[p["id"]] = p["name"]
+    stored = read_json(state / "photos.json", {})
+    res = photos.update(stored, teams, now.date(), lambda url: web.get_bytes(url).decode("utf-8", "replace"), log)
+    write_json(state / "photos.json", stored, indent=0)
+    return res
+
+
 def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
     sel = ranked_matches(state)
     through, ranked, listed, unmatched = sel["through"], sel["teams"], sel["games"], sel["unmatched"]
@@ -227,6 +241,12 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
         "logo": config.LOGO_URL, "games": listed})
     rated = players.compute(ranked, listed, read_json(state / "box.json", {}))
     rated["through"] = max((g["date"] for g in listed if g["state"] == "final"), default=None)
+    if config.SHOW_PHOTOS:
+        found = read_json(state / "photos.json", {})
+        for p in rated["players"]:
+            url = ((found.get(p["team_id"]) or {}).get("photos") or {}).get(p["id"])
+            if url:
+                p["photo"] = url
     write_json(out / "players.json", rated)
     (out / ".nojekyll").write_text("")
     log(f"site: poll through {through}, {len(listed)} matches listed for {len(rank)} ranked teams, "
@@ -260,6 +280,8 @@ def main(state_dir: str, out_dir: str) -> int:
         stage("scoreboard", lambda: update_scoreboard(state, season_for(now.date())))
         stage("watch", lambda: update_watch(state, now))
         stage("boxes", lambda: update_boxes(state, now))
+        if config.SHOW_PHOTOS:
+            stage("photos", lambda: update_photos(state, now))
     stage("site", lambda: build_site(state, out, now))
     status["finished_utc"] = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
     status["ok"] = all(s["ok"] for s in status["stages"].values())

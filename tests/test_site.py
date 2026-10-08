@@ -217,3 +217,64 @@ def test_percentiles_run_from_low_to_high():
     assert pcts == sorted(pcts) and pcts[0] <= 5 and pcts[-1] >= 95
     assert by["A Hitter19"]["rank"] == 1 and by["A Hitter0"]["rank"] == 20
     assert by["A Hitter5"]["pct"][res["metrics"].index("ast_set")] is None      # hitters are not ranked on setting
+
+
+# ------------------------------------------------------------- player photos --
+from pipeline import photos  # noqa: E402
+
+NAMES = {"t~reilly~ber": "Bergen Reilly", "t~jackson~and": "Andi Jackson", "t~obrien~kas": "Kassie O'Brien",
+         "t~krickovic~teo": "Teodora Kričković"}
+BASE = "https://school.example/sports/volleyball/roster"
+
+
+def test_photo_with_its_own_description():
+    page = ('<img alt="School logo" src="/images/logo.png">'
+            '<img alt="Bergen Reilly" src="/images/2026/reilly.jpg">'
+            '<picture><source type="image/webp" srcset="https://cdn.example/a.webp 1x"><source srcset="https://cdn.example/a.jpg 1x">'
+            '<img alt="Kassie O&#39;Brien headshot" src="data:image/gif;base64,AAAA"></picture>'
+            '<img alt="Andi Jackson and Bergen Reilly celebrate" src="/images/both.jpg">')
+    got = photos.find(page, BASE, NAMES)
+    assert got == {"t~reilly~ber": "https://school.example/images/2026/reilly.jpg", "t~obrien~kas": "https://cdn.example/a.jpg"}
+
+
+def test_photo_described_by_the_link_around_it():
+    page = ('<a href="/roster/andi-jackson/1" aria-label="Andi Jackson jersey number 15 full bio"><picture>'
+            '<source srcset="https://images.example/crop?url=x%2FJackson.png&amp;width=100"><img alt="" src="data:image/gif;base64,AA">'
+            '</picture></a><a href="/x" aria-label="Teodora Kričković jersey number 3 full bio"><img alt src="/i/tk.png"></a>')
+    got = photos.find(page, BASE, NAMES)
+    assert got == {"t~jackson~and": "https://images.example/crop?url=x%2FJackson.png&width=100",
+                   "t~krickovic~teo": "https://school.example/i/tk.png"}
+
+
+def test_photo_kept_in_the_pages_data_block():
+    data = [{"photo": 1, "sound": 8},
+            {"url": 2, "srcset": 3, "original_name": 4, "title": 4, "alt": 5, "mime_type": 6},
+            "https://school.example/imgproxy/big/1980.jpg",
+            "https://school.example/imgproxy/s/160.jpg 160w, https://school.example/imgproxy/m/480.jpg 480w, https://school.example/imgproxy/l/960.jpg 960w",
+            "Reilly_Bergen 2026.JPG", "Nebraska setter Bergen Reilly #2", "image/jpeg",
+            "audio/wav", {"url": 9, "original_name": 10, "mime_type": 7}, "https://school.example/say/jackson.wav", "Andi Jackson name.wav"]
+    block = '<script type="application/json" id="__NUXT_DATA__">' + json.dumps(data) + "</script>"
+    table_only = "<table><tr><th>Bergen Reilly</th></tr><tr><th>Andi Jackson</th></tr></table>" + block
+    assert photos.find(table_only, BASE, NAMES) == {"t~reilly~ber": "https://school.example/imgproxy/m/480.jpg"}
+    lazy = '<img src="data:image/gif;base64,AA" alt="Bergen Reilly" title="Reilly_Bergen 2026.JPG">' + block
+    assert photos.find(lazy, BASE, NAMES) == {"t~reilly~ber": "https://school.example/imgproxy/m/480.jpg"}
+
+
+def test_roster_pages_are_read_weekly_and_old_photos_kept():
+    teams = {"nebraska": {"nebraska~reilly~ber": "Bergen Reilly", "nebraska~jackson~and": "Andi Jackson"}, "nowhere-st": {"x": "A B"}}
+    calls = []
+
+    def fetch(url):
+        calls.append(url)
+        if len(calls) == 1:
+            return '<img alt="Bergen Reilly" src="/r.jpg"><img alt="Andi Jackson" src="/j.jpg">'
+        return '<img alt="Bergen Reilly" src="/r2.jpg">'
+
+    stored, day = {}, dt.date(2026, 10, 7)
+    res = photos.update(stored, teams, day, fetch, lambda m: None)
+    assert res["with_photo"] == 2 and res["no_page"] == ["nowhere-st"] and calls == ["https://huskers.com/sports/volleyball/roster"]
+    photos.update(stored, teams, day + dt.timedelta(days=3), fetch, lambda m: None)
+    assert len(calls) == 1                                    # everyone has a photo: wait for the weekly look
+    photos.update(stored, teams, day + dt.timedelta(days=7), fetch, lambda m: None)
+    assert len(calls) == 2 and stored["nebraska"]["photos"]["nebraska~reilly~ber"].endswith("/r2.jpg")
+    assert stored["nebraska"]["photos"]["nebraska~jackson~and"].endswith("/j.jpg")      # missed this time, kept

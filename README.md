@@ -42,8 +42,22 @@ quality, who was on the court, or how strong the opponent was. When the poll
 changes, players on teams that dropped out disappear and everyone's averages
 shift a little, because the comparison is always with the current top 25.
 
-There are no player photos. No public feed carries them for college
-volleyball; they exist only on each school's own roster page.
+## Player photos
+
+No feed carries player photos for college volleyball, so they come from each
+school's own public roster page.
+
+- `rosters/pages.csv` lists the roster page of each ranked school. **When a
+  new school enters the top 25, add a line for it** (team id as the NCAA
+  writes it, such as `texas-am`, then the address). Until then its players
+  show their initials, and the run's log says which school has no page listed.
+- The job reads each page about once a week, finds the picture described with
+  a player's name, and keeps only the picture's address. The photos are not
+  copied into this repository: the site shows them from the school's site.
+- A player is left without a photo if the page spells her name differently
+  from the box score or has no picture for her.
+- The photos belong to the schools. To remove them all, set
+  `SHOW_PHOTOS = False` in `pipeline/config.py`.
 
 ## Team logos
 
@@ -105,6 +119,8 @@ after a match has ended still sees its final score that evening.
 | `pipeline/poll.py` | Reads the poll and decides when to look for a new one |
 | `pipeline/box.py` | Downloads and stores the box score of each ranked team's match |
 | `pipeline/players.py` | Rates the players against each other and works out percentiles |
+| `pipeline/photos.py` | Finds each player's photo on her school's roster page |
+| `rosters/pages.csv` | The roster page of each ranked school; add a line when a new school is ranked |
 | `pipeline/watch.py` | Finds the TV channel or stream for each upcoming match |
 | `pipeline/web.py` | Downloads the poll page and the NCAA scoreboard |
 | `pipeline/run.py` | The job: update the poll, update the scoreboard, build the page |
@@ -116,7 +132,7 @@ Run the tests with `python tests/run_local.py`.
 Two side branches of this repository hold what the job produces:
 
 - `state`: every poll seen so far (`polls.json`), the season's matches
-  (`scoreboard.json`), the channels found (`watch.json`), the box scores (`box.json`), and what happened on the last run (`status.json`,
+  (`scoreboard.json`), the channels found (`watch.json`), the box scores (`box.json`), photo addresses (`photos.json`), and what happened on the last run (`status.json`,
   `logs/last_run.log`).
 - `gh-pages`: the finished page.
 

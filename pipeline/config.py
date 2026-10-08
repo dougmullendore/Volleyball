@@ -34,6 +34,12 @@ GAME_PAGE = "https://www.ncaa.com/game/"
 # for a light page ("bgl") and for a dark one ("bgd"). Set to "" to show none.
 LOGO_URL = "https://www.ncaa.com/sites/default/files/images/logos/schools/{theme}/{team}.svg"
 
+# Player photos come from each school's own roster page (rosters/pages.csv)
+# and are shown from the school's site, not copied. A page is read again after
+# this many days. Set SHOW_PHOTOS = False to show none.
+SHOW_PHOTOS = True
+PHOTO_REFRESH_DAYS = 7
+
 # Where to watch. Channels are looked up for matches in the next WATCH_DAYS
 # days; further out, networks have usually not been announced.
 WATCH_DAYS = 14
