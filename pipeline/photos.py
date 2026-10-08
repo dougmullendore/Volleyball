@@ -21,6 +21,11 @@ from pathlib import Path
 from . import config
 
 PAGES_FILE = Path(__file__).resolve().parents[1] / "rosters" / "pages.csv"
+# Copies of roster pages saved by hand from a browser, for schools whose sites
+# turn the job away ("prove you are human"). Used only when the live page
+# cannot be read. Save a fresh copy as rosters/saved/<team id>.html when the
+# roster changes.
+SAVED_DIR = PAGES_FILE.parent / "saved"
 
 _IMG = re.compile(r"<img\b[^>]*>", re.I)
 _LINK = re.compile(r"(<a\b[^>]*>)(?:(?!</a>).){0,6000}?</a>", re.I | re.S)
@@ -203,6 +208,9 @@ def find(page: str, base: str, names: dict) -> dict:
         if pid and pid not in out and url:
             out[pid] = url
     # last, players still without a photo: by surname alone, when that cannot be anyone else's
+    for pid, url in table_photos(page, base, names).items():
+        if pid not in out:
+            out[pid] = url
     pics = [(m["text"] + " " + m["name"], _usable(m["url"], base)) for m in media]
     pics += [(alt + " " + file_name, next((u for u in (_usable(u, base) for u in urls + [by_file.get(file_name)]) if u), None))
              for alt, urls, file_name in _images(page)]
@@ -307,11 +315,28 @@ def bios(page: str, names: dict) -> dict:
 
 
 _ROW = re.compile(r"<tr\b.*?</tr>", re.I | re.S)
-_CELL = re.compile(r"<t[dh]\b[^>]*>(.*?)</t[dh]>", re.I | re.S)
+_CELL = re.compile(r"""<t[dh]\b(?:[^>"']|"[^"]*"|'[^']*')*>(.*?)</t[dh]>""", re.I | re.S)
 
 
 def _text(h: str) -> str:
     return re.sub(r"\s+", " ", _html.unescape(re.sub(r"<[^>]+>", " ", h))).strip()
+
+
+def table_photos(page: str, base: str, names: dict) -> dict:
+    """Photos from a roster table whose rows show each player's picture as a
+    background image (or an <img>) beside her name."""
+    want = {pid: _words(n) for pid, n in names.items()}
+    out = {}
+    for row in _ROW.findall(page):
+        words = set(_words(_text(row)))
+        hits = [pid for pid, w in want.items() if w and w[0] in words and w[-1] in words]
+        if len(hits) != 1 or hits[0] in out:
+            continue
+        m = re.search(r"background-image:\s*url\(['\"]?([^'\")]+)", row) or re.search(r'<img\b[^>]*\bsrc="([^"]+)"', row)
+        url = _usable(urllib.parse.urljoin(base, _html.unescape(m.group(1))), base) if m else None
+        if url:
+            out[hits[0]] = url
+    return out
 
 
 def table_bios(page: str, names: dict) -> dict:
@@ -326,18 +351,28 @@ def table_bios(page: str, names: dict) -> dict:
             continue
         if not cols or len(cells) < 3:
             continue
-        cell = dict(zip(cols, (_text(c) for c in cells)))
+        cell = {}
+        for col, c in zip(cols, cells):
+            v = _text(c)
+            if col and v.lower().startswith(col.rstrip(":") + ":"):     # a label shown only on phones
+                v = v[len(col.rstrip(":")) + 1:].strip()
+            cell[col] = v
         words = set(_words(" ".join(cell.values())))
         hits = [pid for pid, w in want.items() if w and w[0] in words and w[-1] in words]
         if len(hits) != 1:
             continue
         d = {}
-        ht = re.match(r"(\d)\s*[-'′]\s*(\d{1,2})", cell.get("ht") or cell.get("height") or "")
+        ht = re.match(r"(\d)\s*[-'′]\s*(\d{1,2})", cell.get("ht") or cell.get("ht.") or cell.get("height") or "")
         if ht:
             d["heightFeet"], d["heightInches"] = int(ht.group(1)), int(ht.group(2))
-        yr = cell.get("yr") or cell.get("cl.") or cell.get("class") or cell.get("year") or ""
-        d["academicYearLong"] = {"fr.": "Freshman", "so.": "Sophomore", "jr.": "Junior", "sr.": "Senior", "gr.": "Graduate"}.get(yr.lower(), yr)
-        d["hometown"] = cell.get("hometown") or ""
+        yr = cell.get("yr") or cell.get("yr.") or cell.get("cl.") or cell.get("class") or cell.get("year") or ""
+        d["academicYearLong"] = {"fr.": "Freshman", "so.": "Sophomore", "jr.": "Junior", "sr.": "Senior", "gr.": "Graduate", "1": "Freshman",
+                                 "2": "Sophomore", "3": "Junior", "4": "Senior", "5": "Graduate"}.get(yr.lower().strip(), yr)
+        home = [x.strip() for x in next((v for k, v in cell.items() if k.startswith("hometown")), "").split(" /")]
+        d["hometown"] = home[0].rstrip("/ ")
+        prev = home[1].strip("/ ") if len(home) > 1 else ""
+        if re.search(r"\b(University|College|State|Univ)\b", prev):    # a college she transferred from
+            d["previousSchool"] = prev
         for net, host in (("instagram", "instagram.com/"), ("twitter", "twitter.com/"), ("twitter", "x.com/"), ("tiktok", "tiktok.com/@")):
             m = re.search(r'href="https?://(?:www\.)?' + re.escape(host) + r'([\w.]+)', row)
             if m:
@@ -437,8 +472,16 @@ def update(stored: dict, teams: dict, today: dt.date, fetch, log, ranked: set | 
         names, have = teams[team], stored.get(team) or {}
         page = listed.get(team) or have.get("page")
         try:
+            saved = SAVED_DIR / f"{team}.html"
             if page:
-                text = fetch(page)
+                try:
+                    text = fetch(page)
+                    if saved.exists() and "Human Verification" in text[:3000]:
+                        raise ValueError("verification page")
+                except Exception:
+                    if not saved.exists():
+                        raise
+                    text = saved.read_text(encoding="utf-8", errors="ignore")
                 found = find(text, page, names)
                 if len(found) < len(names) // 3:          # a roster with no pictures: try each player's own page
                     found.update(from_bio_pages(text, page, {p: n for p, n in names.items() if p not in found}, fetch))
