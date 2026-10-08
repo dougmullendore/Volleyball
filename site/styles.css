@@ -412,7 +412,10 @@ a.opp:hover .n { color: var(--teal); }
 @media (max-width: 640px) {
   .gcard { padding: 14px 12px 16px; }
   .gc-team { grid-template-columns: auto 1fr; grid-template-areas: "logo sets" "name name"; justify-items: start; gap: 6px 10px; }
-  .gc-team:last-child { direction: ltr; justify-items: end; grid-template-areas: "sets logo" "name name"; }
+  .gc-team:last-child { direction: ltr; justify-items: end; grid-template-columns: 1fr auto; grid-template-areas: "sets logo" "name name"; }
+  .gc-team:last-child .gc-sets { justify-self: end; }
+  .gc-score { align-items: start; }
+  .gc-score .gc-mid { align-self: start; margin-top: 12px; }
   .gc-team .logo.gc { grid-area: logo; width: 44px; height: 44px; }
   .gc-team .gc-sets { grid-area: sets; font-size: 2.5rem; }
   .gc-team .gc-name { grid-area: name; font-size: 1.0625rem; }
