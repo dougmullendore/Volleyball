@@ -379,6 +379,10 @@ def _social(links: dict) -> dict:
     return out
 
 
+# players whose page uses another form of their name than the statistics do
+ALIASES = {"madirishel": "madi-kingdon-rishel"}
+
+
 def _lovb_athletes(text: str) -> dict:
     people = {}
     for m in re.finditer(r'\{"id":"\d+","audioUrl":.*?"xTwitter":(?:null|"[^"]*")\}', text):
@@ -422,12 +426,17 @@ def lovb_media(fetch, log, wanted: dict | None = None) -> dict:
         page = None
         plain = re.sub(r"['’.]", "", full.lower())                 # "Brie O'Reilly" -> brie-oreilly
         words = plain.split()
-        for cand in dict.fromkeys([plain, full.lower(), " ".join([words[0], words[-1]]) if len(words) > 2 else plain]):
-            try:
-                page = fetch(LOVB_SITE + teams[tid]["href"] + "/athletes/" + re.sub(r"[^a-z0-9]+", "-", cand).strip("-"))
+        cands = [ALIASES.get(name_key(full))] + [re.sub(r"[^a-z0-9]+", "-", c).strip("-") for c in
+                                                   dict.fromkeys([plain, full.lower(), " ".join([words[0], words[-1]]) if len(words) > 2 else plain])]
+        for cand in [c for c in cands if c]:
+            for base in (LOVB_SITE + teams[tid]["href"] + "/athletes/", LOVB_SITE + "/athletes/"):
+                try:
+                    page = fetch(base + cand)
+                    break
+                except Exception:
+                    continue
+            if page is not None:
                 break
-            except Exception:
-                continue
         if page is None:
             continue
         found = _lovb_athletes(_next_data(page))
@@ -437,7 +446,7 @@ def lovb_media(fetch, log, wanted: dict | None = None) -> dict:
         # an older athlete page: only her picture, as the page's share image
         title = re.search(r"<title>([^<]+)</title>", page)
         img = re.search(r'<meta property="og:image" content="([^"]+)"', page)
-        same = title and (name_key(title.group(1)) == name_key(full) or
+        same = title and (name_key(title.group(1)) == name_key(full) or ALIASES.get(name_key(full)) or
                           (name_key(title.group(1).split()[0]) == name_key(full.split()[0]) and name_key(title.group(1).split()[-1]) == name_key(full.split()[-1])))
         if same and img and "/api/media/" in img.group(1):
             people[name_key(full)] = {"photo": img.group(1).replace("&amp;", "&"), "bio": {}}
@@ -520,7 +529,7 @@ def update_media(state: Path, today: dt.date, log) -> dict:
     for site in LEAGUES:
         path = state / "pro" / f"{site}_media.json"
         have = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
-        if have.get("finder") != 4:          # this file has learned a new way to find players since: read again
+        if have.get("finder") != 5:          # this file has learned a new way to find players since: read again
             have = {k: v for k, v in have.items() if k != "checked"}
         no_logos = not any(v.get("logo") for v in (have.get("teams") or {}).values())
         if have.get("checked") and (today - dt.date.fromisoformat(have["checked"])).days < MEDIA_DAYS and not no_logos:
@@ -550,7 +559,7 @@ def update_media(state: Path, today: dt.date, log) -> dict:
         got["players"] = {**(have.get("players") or {}), **{k: v for k, v in got["players"].items() if v.get("photo") or v.get("bio")}}
         got["teams"] = {**(have.get("teams") or {}), **{k: v for k, v in got["teams"].items() if v.get("logo") or k not in (have.get("teams") or {})}}
         got["checked"] = today.isoformat()
-        got["finder"] = 4
+        got["finder"] = 5
         path.write_text(json.dumps(got), encoding="utf-8")
         res[site] = {"teams": len(got["teams"]), "players": len(got["players"]),
                      "with_photo": sum(1 for v in got["players"].values() if v.get("photo"))}
