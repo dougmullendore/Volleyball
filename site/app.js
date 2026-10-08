@@ -80,6 +80,9 @@
       bar.appendChild(el("button", { type: "button", "aria-pressed": String(rankView === o[0]), text: o[1], onclick: function () { rankView = o[0]; drawRanks(); } }));
     });
     (goatView ? ["GOAT", "Team", "Record", "AVCA"] : ["AVCA", "Team", "Record", "Change"]).forEach(function (h) { head.appendChild(el("span", { text: h })); });
+    // on a wide screen the Beat and Lost to boxes sit in the row, under these two headings
+    head.appendChild(el("span", { "class": "wide beat", text: "Beat" }));
+    head.appendChild(el("span", { "class": "wide lostto", text: "Lost to" }));
     function teamLink(id, name) { return teamA(id, name, "nm"); }
     var polled = {};
     data.poll.teams.forEach(function (t) { if (t.id) polled[t.id] = 1; });
