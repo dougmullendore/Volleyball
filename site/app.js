@@ -386,7 +386,7 @@
           }));
         }));
         holder.appendChild(el("div", { "class": "tablewrap", tabindex: "0", role: "region", "aria-label": "Players table, scrolls sideways" }, [
-          el("table", { "class": "ptable" }, [el("thead", {}, [head]), body])]));
+          el("table", { "class": "ptable pltable" }, [el("thead", {}, [head]), body])]));
         holder.appendChild(el("p", { "class": "note", text: rows.length + " players" + (roster.through ? ", through matches of " + short(roster.through) : "") +
           ". A regular has played at least " + Math.round(100 * roster.weights.regular_share) + "% of her team's sets; only regulars are ranked. Choose a name for her card, or a column heading to sort." }));
         holder.appendChild(el("p", { "class": "note", text: W("players.note") }));
