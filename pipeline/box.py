@@ -30,8 +30,31 @@ def _int(v, default=0):
         return default
 
 
+def fix_text(s: str) -> str:
+    """Undo a name read with the wrong text encoding ("KriÄ\x8dkoviÄ\x87" -> "Kričković"),
+    even after its letters were re-cased, and drop invisible characters."""
+    import itertools
+    s = s or ""
+    leads = [m.start() for m in re.finditer(r"[\u00c0-\u00ff](?=[\u0080-\u00bf])", s)]
+    if leads and len(leads) <= 6:
+        for flips in itertools.product((False, True), repeat=len(leads)):
+            t = list(s)
+            for i, f in zip(leads, flips):
+                if f:
+                    t[i] = t[i].swapcase()
+            try:
+                s = "".join(t).encode("latin-1").decode("utf-8")
+                break
+            except (UnicodeEncodeError, UnicodeDecodeError):
+                continue
+    fixed = re.sub(r"[\u200b-\u200d\ufeff\u0080-\u009f]", "", s).strip()
+    if leads and fixed[:1].islower():           # the capital went to the invisible character
+        fixed = fixed[0].upper() + fixed[1:]
+    return fixed
+
+
 def clean_name(s: str) -> str:
-    s = re.sub(r"\s+", " ", (s or "").strip())
+    s = re.sub(r"\s+", " ", fix_text(s or "").strip())
     return s.title() if s and (s.islower() or s.isupper()) else s
 
 

@@ -22,7 +22,7 @@ from __future__ import annotations
 import re
 import unicodedata
 
-from .box import COLS
+from .box import COLS, fix_text
 
 STATS = ["sets", "k", "e", "ta", "ast", "sa", "se", "sv", "d", "ra", "re", "bs", "ba", "be", "bhe"]
 POS_GROUPS = {"S": "S", "OH": "OH", "O": "OH", "OPP": "OH", "RS": "OH", "RH": "OH", "OH/OPP": "OH",
@@ -96,6 +96,8 @@ def compute(ranked: list[dict], games: list[dict], boxes: dict) -> dict:
         for side in ("home", "away"):
             team = g[side]["id"]
             rows = [dict(zip(COLS, row)) for row in box.get(side) or []]
+            for r in rows:
+                r["first"], r["last"] = fix_text(r["first"]), fix_text(r["last"])
             if team not in rank or not rows:
                 continue
             sets = max(r["sets"] for r in rows)

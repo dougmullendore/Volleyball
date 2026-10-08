@@ -297,6 +297,7 @@ def match_files(out: Path, listed: list[dict], boxes: dict, rated: dict) -> int:
             team, rows = g[side]["id"], []
             for r in b.get(side) or []:
                 row = dict(zip(box.COLS, r))
+                row["first"], row["last"] = box.fix_text(row["first"]), box.fix_text(row["last"])
                 pid = players.player_id(team, row["first"], row["last"])
                 if pid not in ids:
                     pid = by_number.get((team, row["number"], players._norm(row["last"].split()[-1] if row["last"] else "")))
