@@ -407,3 +407,16 @@ a.opp:hover .n { color: var(--teal); }
   .gc-team .gc-sets { grid-area: sets; font-size: 2.5rem; }
   .gc-team .gc-name { grid-area: name; font-size: 1.0625rem; }
 }
+
+/* a player card on a wide screen: the full width, its sections side by side */
+@media (min-width: 900px) {
+  .pcard { max-width: none; display: grid; grid-template-columns: 1fr 1fr; column-gap: 40px; align-items: start; }
+  .pcard > * { grid-column: 1 / -1; }
+  .pcard > .pc-sec { grid-column: auto; }
+  .pcard .pc-head { grid-template-columns: auto 1fr auto; }
+  .pcard > .pc-sec:has(.totals) { grid-column: 1 / -1; }
+  .pcard .totals { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+}
+@media (min-width: 1250px) {
+  .pcard { grid-template-columns: 1fr 1fr 1fr; }
+}
