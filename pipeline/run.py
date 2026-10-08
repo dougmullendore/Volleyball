@@ -348,19 +348,22 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
     kept[str(season)] = {t: round(v, 3) for t, v in rating.items()}
     write_json(state / "ratings.json", kept)
 
-    # The GOAT ranking: the rating order rearranged to respect head-to-head results.
-    count = {}
-    for g in sel["all_games"]:
-        for side in ("home", "away"):
-            count[g[side]["id"]] = count.get(g[side]["id"], 0) + 1
-    division = {t for t, n in count.items() if n >= config.GOAT_MIN_MATCHES and t in rating}
-    division |= {t["id"] for t in ranked if t["id"] in rating}       # a ranked team is always ranked here too
-    ranking = goat.rank(sel["all_games"], rating, division)
+    # The GOAT ranking of every Division I team: head to head, then strength of
+    # schedule, the AVCA poll and record (see pipeline/goat.py).
+    in_poll = {t["id"]: t["rank"] for t in ranked if t["id"]}
+    division = {t["id"] for t in sel["d1_teams"]} | set(in_poll)
+    ranking = goat.rank(sel["all_games"], rating, division, in_poll)
     place = {t: i + 1 for i, t in enumerate(ranking["order"])}
     polled = [t["id"] for t in ranked if t["id"]]
     for t in ranked:
         t["goat"] = place.get(t["id"])
-    in_poll = {t["id"]: t["rank"] for t in ranked if t["id"]}
+    # The number shown beside a team everywhere: its poll rank if it has one,
+    # otherwise 26 and on, in GOAT order, so no two teams share a number.
+    shown, n = {}, config.POLL_SIZE
+    for t in ranking["order"]:
+        if t not in in_poll:
+            n += 1
+            shown[t] = n
     # Each ranked team's results against the other ranked teams, best opponent first.
     # Only matches the poll has seen (played through its date), so this view changes
     # when the poll does, on Mondays; the GOAT view below is redone every night.
@@ -374,9 +377,9 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
             if losses:
                 t["lost"].append([in_poll[other], sel["names"][other], losses, other])
     goat_top = [{"rank": i + 1, "id": t, "name": sel["names"].get(t, t), "avca": in_poll.get(t),
-                 "rating_rank": ranking["base"][t]} for i, t in enumerate(ranking["order"][:config.POLL_SIZE])]
-    # For the GOAT view: each team's record, and its results against the rest of the GOAT top 25.
-    in_goat = {x["id"]: x["rank"] for x in goat_top}
+                 "score_rank": ranking["base"][t], "factors": ranking["factors"][t]} for i, t in enumerate(ranking["order"])]
+    # For the GOAT view: each team's record, and its results against the GOAT top 25.
+    in_goat = {x["id"]: x["rank"] for x in goat_top[:config.POLL_SIZE]}
     results = goat.head_to_head(sel["all_games"])          # every result so far, not only the poll's
     for x in goat_top:
         won = sum(v[0] for (a, _), v in results.items() if a == x["id"])
@@ -388,7 +391,7 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
                 x["beat"].append([in_goat[other], sel["names"][other], wins, other])
             if losses:
                 x["lost"].append([in_goat[other], sel["names"][other], losses, other])
-    goat_info = {"top": goat_top, "weight": config.GOAT_HEAD_TO_HEAD,
+    goat_info = {"top": goat_top, "weight": config.GOAT_HEAD_TO_HEAD, "weights": config.GOAT_WEIGHTS,
                  # among the poll's own 25 teams: results each order has the wrong way round
                  "poll_wrong": goat.contradictions(polled, sel["all_games"], set(polled)),
                  "goat_wrong": goat.contradictions(ranking["order"], sel["all_games"], set(polled))}
@@ -436,7 +439,7 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
         "site": config.SITE_NAME, "updated": now.isoformat(timespec="seconds"), "season": sel["season"],
         "poll": {"name": config.POLL_NAME, "through": through, "teams": ranked, "polls_seen": sel["polls_seen"]},
         "game_page": config.GAME_PAGE, "live_feed": config.ESPN_SCOREBOARD, "live_seconds": config.LIVE_SECONDS,
-        "logo": config.LOGO_URL, "odds_tested": config.ODDS_TESTED, "goat": goat_info, "words": words,
+        "logo": config.LOGO_URL, "odds_tested": config.ODDS_TESTED, "goat": goat_info, "nr": shown, "words": words,
         "d1": [[t["id"], t["name"]] for t in d1], "games": every})
     write_json(out / "players.json", rated)
     write_json(out / "players_d1.json", rated_d1)

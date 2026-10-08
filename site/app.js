@@ -77,14 +77,18 @@
     if (h) h.textContent = W(key + ".title" + (isD1() ? "_d1" : ""));
     if (l && W(key + ".lede" + (isD1() ? "_d1" : ""))) l.textContent = W(key + ".lede" + (isD1() ? "_d1" : ""), { poll: data.poll.name });
   }
-  function rankTag(rank) {
-    // an unranked team gets "NR" in the same spot, coloured like a rank
-    return el("span", { "class": "rk" + (rank ? "" : " nr"), text: rank ? String(rank) : "NR", "aria-label": rank ? "ranked " + rank : "unranked" });
+  // A team's number: its AVCA rank, or for a team outside the poll its place
+  // from 26 on in the GOAT ranking (data.nr), so no two teams share a number.
+  function shownRank(id, rank) { return rank || (id && data.nr && data.nr[id]) || null; }
+  function rankTag(rank, id) {
+    var n = shownRank(id, rank);
+    return el("span", { "class": "rk" + (n ? "" : " nr"), text: n ? String(n) : "NR",
+      "aria-label": rank ? "ranked " + rank : n ? "unranked, " + n + " by the GOAT ranking" : "unranked", title: !rank && n ? "Not in the AVCA poll; " + n + " by the GOAT ranking" : null });
   }
 
   // ---- the rankings page ----
   // The coaches poll beside the site's own GOAT ranking, which gives head-to-head results more say.
-  var rankView = "avca";      // the poll is shown; the GOAT ranking only when asked for
+  var rankView = "avca", goatAll = false;      // the poll is shown; the GOAT ranking only when asked for
   // A team's results against the other ranked teams: "Beat 9 Texas, 12 Texas A&M. Lost to 2 Pittsburgh."
   // Two boxes under the team, side by side: "Beat" on the left, "Lost to" on the right.
   function versus(t) {
@@ -111,8 +115,7 @@
     var polled = {};
     data.poll.teams.forEach(function (t) { if (t.id) polled[t.id] = 1; });
     if (goatView) {
-      G.top.forEach(function (t) {
-        // a team outside the poll has no page of matches here, so its name is not a link
+      (goatAll ? G.top : G.top.slice(0, 25)).forEach(function (t) {
         ol.appendChild(el("li", {}, [rankTag(t.rank), el("span", { "class": "who" }, [logo(t.id), teamLink(t.id, t.name)]),
           el("span", { "class": "rec", text: t.record || "" }),
           el("span", { "class": "mv", text: t.avca == null ? "–" : String(t.avca), "aria-label": t.avca == null ? "not in the AVCA poll" : "AVCA poll " + t.avca }),
@@ -129,9 +132,13 @@
     var through = day(data.poll.through).toLocaleDateString(undefined, { month: "long", day: "numeric" });
     $("rank-lede").textContent = goatView ? W("rankings.lede_goat") : W("rankings.lede", { poll: data.poll.name, date: through });
     $("rank-note").textContent = goatView ? W("rankings.note_goat") : W("rankings.note");
-    $("goat-note").textContent = !goatView ? "" : "It starts from the team ratings behind the odds, then is rearranged to agree with as many head-to-head results as it can: a team climbs over one it has beaten when the two are close, but not when the ratings say the gap is wide. " +
+    $("goat-note").textContent = !goatView ? "" : "Every Division I team is ranked on four things, most important first: head to head, strength of schedule (the average rating of the teams played), its place in the AVCA poll, and its record. " +
+      "A team is ranked above one it has beaten unless the other three say the gap is wide. Elsewhere on the site, teams outside the poll are numbered from 26 in this order. " +
       "Among the poll's 25 teams, the poll ranks a team below one it has beaten " + G.poll_wrong + " times; the GOAT ranking does " + G.goat_wrong + " times.";
-    $("goat-out").textContent = "";
+    var out = $("goat-out");
+    out.textContent = "";
+    if (goatView && G.top.length > 25) out.appendChild(el("button", { type: "button", "class": "morebtn",
+      text: goatAll ? W("rankings.show_top") : W("rankings.show_all", { n: G.top.length }), onclick: function () { goatAll = !goatAll; drawRanks(); } }));
   }
 
   // ---- one match ----
@@ -152,7 +159,7 @@
     var note = !L && g.state === "other" ? (g.note ? g.note.charAt(0).toUpperCase() + g.note.slice(1) : "Not played") : "";
     var when = fin ? "Final" : live ? (L && L.detail) || "In progress" : note ? note : t && !isNaN(t) ? t.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : "Time not set";
     function team(side, s, lost, won) {
-      var kids = [logo(s.id), teamA(s.id, s.name, "name"), rankTag(s.rank)];
+      var kids = [logo(s.id), teamA(s.id, s.name, "name"), rankTag(s.rank, s.id)];
       if (side === "home") kids.reverse();
       return el("span", { "class": "team " + side + (lost ? " lost" : "") + (won ? " won" : "") }, kids);
     }
@@ -261,7 +268,8 @@
     holder.innerHTML = ""; nav.innerHTML = "";
     setHead("matches", "matches");
     var shown = isD1() ? data.games : data.games.filter(function (g) { return g.away.rank || g.home.rank; });
-    var teamsHere = isD1() ? data.d1.map(function (x) { var r = rankOf(x[0]); return { id: x[0], name: x[1], rank: r && r.rank }; }).sort(function (a, b) { return a.name.localeCompare(b.name); })
+    var teamsHere = isD1() ? data.d1.map(function (x) { var r = rankOf(x[0]); return { id: x[0], name: x[1], rank: shownRank(x[0], r && r.rank) }; })
+        .sort(function (a, b) { return (a.rank || 9999) - (b.rank || 9999) || a.name.localeCompare(b.name); })
       : data.poll.teams.filter(function (x) { return x.id; });
     if (state.team && !teamsHere.some(function (x) { return x.id === state.team; })) state.team = null;
     nav.appendChild(scopeSwitch(draw));
@@ -385,8 +393,8 @@
         return s;
       }
       bar.appendChild(pick("Position", pstate.pos, [["", "All positions"]].concat(Object.keys(POS_ONE).map(function (k) { return [k, POS_ONE[k] + "s"]; })), function (v) { pstate.pos = v; }));
-      bar.appendChild(pick("Team", pstate.team, [["", W("matches.all_teams")]].concat(roster.teams.slice().sort(function (a, b) { return isD1() ? a.name.localeCompare(b.name) : a.rank - b.rank; })
-        .map(function (t) { return [t.id, (t.rank ? t.rank + ". " : "") + t.name]; })), function (v) { pstate.team = v; }));
+      bar.appendChild(pick("Team", pstate.team, [["", W("matches.all_teams")]].concat(roster.teams.slice().sort(function (a, b) { return (shownRank(a.id, a.rank) || 9999) - (shownRank(b.id, b.rank) || 9999) || a.name.localeCompare(b.name); })
+        .map(function (t) { var n = shownRank(t.id, t.rank); return [t.id, (n ? n + ". " : "") + t.name]; })), function (v) { pstate.team = v; }));
       var q = el("input", { type: "search", placeholder: "Find a player", "aria-label": "Find a player", value: pstate.q, oninput: function () { pstate.q = q.value; pstate.limit = 200; table(); } });
       bar.appendChild(q);
       var chk = el("input", { type: "checkbox", id: "p-all", checked: pstate.all, onchange: function () { pstate.all = chk.checked; table(); } });
@@ -503,7 +511,7 @@
   }
   function hitFmt(v) { return (v < 0 ? "-" : "") + Math.abs(v).toFixed(3).replace(/^0/, ""); }
   var TCOLS = [   // key, heading, meaning, getter, format, sorts high to low first
-    ["rank", "AVCA", "Rank in the AVCA coaches poll", function (t) { return t.rank; }, String, 0],
+    ["rank", "Rank", "AVCA poll rank; teams outside the poll are numbered from 26 in GOAT ranking order", function (t) { return shownRank(t.id, t.rank); }, String, 0],
     ["name", "Team", "", function (t) { return t.name; }, null, 0],
     ["rec", "W-L", "Matches won and lost", function (t) { return t.w + t.l ? t.w / (t.w + t.l) : null; }, null, 1],
     ["set_pct", "Sets", "Sets won and lost", function (t) { return t.set_pct; }, null, 1],
@@ -544,7 +552,7 @@
         var body = el("tbody", {}, rows.map(function (t) {
           return el("tr", {}, TCOLS.map(function (c) {
             var cls = tstate.sort === c[0] ? "sorted" : "";
-            if (c[0] === "rank") return el("td", { "class": cls }, [rankTag(t.rank)]);
+            if (c[0] === "rank") return el("td", { "class": cls }, [rankTag(t.rank, t.id)]);
             if (c[0] === "name") return el("td", { "class": "l " + cls }, [el("span", { "class": "tcell" }, [logo(t.id), teamA(t.id, t.name)])]);
             if (c[0] === "rec") return el("td", { "class": cls, text: t.w + "-" + t.l });
             if (c[0] === "set_pct") return el("td", { "class": cls, text: t.sw + "-" + t.sl });
@@ -601,7 +609,7 @@
     if (!g) { box.appendChild(el("p", { "class": "empty", text: "This match is not on the list of ranked teams' matches." })); return; }
     var L = g.live, live = L ? L.state === "in" : g.state === "live", fin = L ? L.state === "post" : g.state === "final";
     var t = g.start ? new Date(g.start * 1000) : null;
-    function side(t) { return el("span", { "class": "mside" }, [rankTag(t.rank), logo(t.id), teamA(t.id, t.name)]); }
+    function side(t) { return el("span", { "class": "mside" }, [rankTag(t.rank, t.id), logo(t.id), teamA(t.id, t.name)]); }
     var title = el("h1", { "class": "mtitle" }, [side(g.away), el("span", { "class": "mv", text: " at " }), side(g.home)]);
     var status = el("p", { "class": "mstatus" }, [live ? liveTag() : null,
       el("span", { text: (live ? " " : "") + long(g.date) + (t && !isNaN(t) ? ", " + t.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : "") + (fin ? " · Final" : "") })]);
@@ -632,7 +640,7 @@
             var won = mine != null && other && mine > +other.displayValue && (i < n - 1 || !nowLive);
             cells.push(el("td", { "class": won ? "won" : "", text: mine == null ? "" : String(mine) }));
           }
-          return el("tr", {}, [el("th", { scope: "row", "class": "l" }, [el("span", { "class": "stm" }, [rankTag(s.rank), logo(s.id, "sm"), teamA(s.id, s.name)])])].concat(cells).concat([el("td", { "class": "tot", text: c.score || "0" })]));
+          return el("tr", {}, [el("th", { scope: "row", "class": "l" }, [el("span", { "class": "stm" }, [rankTag(s.rank, s.id), logo(s.id, "sm"), teamA(s.id, s.name)])])].concat(cells).concat([el("td", { "class": "tot", text: c.score || "0" })]));
         }
         var head = el("tr", {}, [el("th", { scope: "col", "class": "l", text: nowLive ? (st.shortDetail || "Live") : "Set" })]);
         for (var i = 1; i <= n; i++) head.appendChild(el("th", { scope: "col", text: String(i) }));
@@ -647,7 +655,7 @@
         boxes.innerHTML = "";
         [["away", g.away], ["home", g.home]].forEach(function (p) {
           var side = p[0], s = p[1];
-          boxes.appendChild(el("h2", { "class": "mteam" }, [rankTag(s.rank), logo(s.id), teamA(s.id, s.name)]));
+          boxes.appendChild(el("h2", { "class": "mteam" }, [rankTag(s.rank, s.id), logo(s.id), teamA(s.id, s.name)]));
           boxes.appendChild(boxTable(side, d[side] || [], s.name));
           var ts = (d.tsets || {})[side] || [];
           if (ts.length) boxes.appendChild(el("p", { "class": "bysets" }, ["Hitting by set: "].concat(ts.map(function (x, i) {

@@ -429,23 +429,29 @@ def _won(i, winner, loser, date="2026-09-01"):
 
 
 def test_goat_ranking_puts_a_winner_above_a_close_rival():
-    rating = {"a": 3.0, "b": 2.8, "c": 2.0, "d": 1.0}
-    teams = set(rating)
-    assert goat.rank([], rating, teams)["order"] == ["a", "b", "c", "d"]                 # no results: the rating order
-    assert goat.rank([_won(1, "b", "a")], rating, teams)["order"] == ["b", "a", "c", "d"]   # close, and b beat a
-    assert goat.rank([_won(1, "d", "a")], rating, teams)["order"] == ["a", "b", "c", "d"]   # one upset does not undo a wide gap
-    split = [_won(1, "b", "a"), _won(2, "a", "b", "2026-09-08")]
-    assert goat.rank(split, rating, teams)["order"] == ["a", "b", "c", "d"]              # 1-1: nothing to enforce
+    rating, teams = {"a": 1.0, "b": 1.0, "c": 1.0, "d": 1.0}, {"a", "b", "c", "d"}
+    poll = {"a": 1, "b": 2, "c": 3, "d": 4}
+    assert goat.rank([], rating, teams, poll)["order"] == ["a", "b", "c", "d"]                  # no results: the poll decides
+    assert goat.rank([_won(1, "b", "a")], rating, teams, poll)["order"][:2] == ["b", "a"]       # close, and b beat a
+    split = [_won(1, "b", "a"), _won(2, "a", "b")]
+    assert goat.rank(split, rating, teams, poll)["order"][:2] == ["a", "b"]                      # 1-1: nothing to enforce
+
+
+def test_goat_ranking_weighs_schedule_before_record():
+    # x and y both 1-1; x played the stronger teams, so it ranks higher
+    rating = {"x": 0.0, "y": 0.0, "s1": 3.0, "s2": 3.0, "w1": -3.0, "w2": -3.0}
+    games = [_won(1, "x", "s1"), _won(2, "s2", "x"), _won(3, "y", "w1"), _won(4, "w2", "y")]
+    order = goat.rank(games, rating, {"x", "y"}, {})["order"]
+    assert order == ["x", "y"]
 
 
 def test_goat_ranking_does_not_jump_teams_it_has_not_beaten():
-    # c beat a, but b sits between them and c has no claim on b; b also beat c
-    rating = {"a": 3.0, "b": 2.9, "c": 2.8, "d": 1.0}
-    order = goat.rank([_won(1, "c", "a"), _won(2, "b", "c")], rating, set(rating))["order"]
+    rating, poll = {"a": 1.0, "b": 1.0, "c": 1.0, "d": 1.0}, {"a": 1, "b": 2, "c": 3, "d": 20}
+    order = goat.rank([_won(1, "c", "a"), _won(2, "b", "c")], rating, set(rating), poll)["order"]
     assert order.index("b") < order.index("c")
     # results in a circle cannot all be honored: it keeps as many as it can (two of three here)
     circle = [_won(1, "b", "a"), _won(2, "c", "b"), _won(3, "a", "c")]
-    got = goat.rank(circle, rating, set(rating))["order"]
+    got = goat.rank(circle, rating, set(rating), poll)["order"]
     assert goat.contradictions(got, circle, set(rating)) == 1 and got[-1] == "d"
 
 
@@ -462,21 +468,19 @@ def test_the_page_carries_the_goat_ranking():
     run.write_json(state / "polls.json", {found["through"]: found["rows"]})
     games = [run.parse_contest(c) for c in contests()]
     run.write_json(state / "scoreboard.json", {"season": 2026, "days": {"2026-10-03": games}})
-    old = config.GOAT_MIN_MATCHES
-    config.GOAT_MIN_MATCHES = 1                 # one day of matches: everyone has played once
-    try:
-        run.build_site(state, out, dt.datetime(2026, 10, 7, tzinfo=UTC))
-    finally:
-        config.GOAT_MIN_MATCHES = old
+    run.build_site(state, out, dt.datetime(2026, 10, 7, tzinfo=UTC))
     data = json.loads((out / "data.json").read_text())
     by = {t["id"]: t for t in data["poll"]["teams"] if t["id"]}
-    assert by["nebraska"]["goat"] == 1 and all(isinstance(t["goat"], int) for t in by.values())
+    assert all(isinstance(t["goat"], int) for t in by.values())          # every ranked team has a GOAT place
     top = data["goat"]["top"]
-    assert [x["rank"] for x in top] == list(range(1, 26)) and top[0]["id"] == "nebraska" and top[0]["avca"] == 1
+    assert [x["rank"] for x in top] == list(range(1, len(top) + 1)) and len(top) >= 25
+    # teams outside the poll are numbered from 26, in GOAT order, with no number used twice
+    assert sorted(data["nr"].values()) == list(range(26, 26 + len(data["nr"])))
     assert data["goat"]["goat_wrong"] <= data["goat"]["poll_wrong"]
     # the GOAT view has what it needs for every team, in or out of the poll
     assert all(set(x) >= {"record", "beat", "lost", "avca"} and x["record"].count("-") == 1 for x in top)
-    assert top[0]["record"] == "1-0" and top[0]["beat"] == []        # Nebraska beat Maryland that day; Maryland is not in this top 25
+    neb = [x for x in top if x["id"] == "nebraska"][0]
+    assert neb["avca"] == 1 and neb["record"] == "1-0"
 
 
 def test_rankings_list_results_against_other_ranked_teams():

@@ -133,27 +133,23 @@ belong to the schools. To remove them, set `LOGO_URL = ""` in
 
 ## GOAT ranking
 
-The Rankings page opens on the AVCA poll. A button switches it to the site's
-own GOAT ranking, which gives head-to-head results more say than the poll
-does; it is not shown until asked for.
+The Rankings page's GOAT tab is the site's own ranking of every Division I
+team (`pipeline/goat.py`), redone every night. Four things decide it, most
+important first:
 
-- In either view, under each team the page lists who it has beaten and lost
-  to among the other 24 teams on the list this season, with their places.
-- It ranks every Division I team, so the GOAT top 25 can include teams the
-  poll leaves out. Each row shows the team's place in the poll, or a dash.
-- It starts from the team ratings behind the odds. Then it looks for the
-  order that agrees with the most head-to-head results while staying close to
-  those ratings. A team climbs over one it has beaten when the two are close;
-  it does not when the ratings say the gap is wide, and it does not jump teams
-  in between that it has no claim on. A 1-1 split settles nothing.
-- `GOAT_HEAD_TO_HEAD` in `pipeline/config.py` sets how much one head-to-head
-  win can overturn (1.5 rating points now). Raise it and head-to-head counts
-  for more; at 0 the GOAT ranking is just the rating order.
-- The GOAT view reports the score: among the poll's 25 teams, how many times each
-  ranking has a team below one it has beaten. On 7 October 2026 the poll did
-  18 times and the GOAT ranking 7.
-- It is redone every night, not only on Mondays. The method is at the top of
-  `pipeline/goat.py`.
+1. **Head to head.** A team is ranked above one it has beaten, unless the
+   other three factors say the gap between them is wide
+   (`GOAT_HEAD_TO_HEAD`). Results that form a circle cannot all be honored;
+   the ranking keeps as many as it can.
+2. **Strength of schedule:** the average rating of the teams it has played
+   (the ratings behind the odds).
+3. **The AVCA poll:** a ranked team gets credit for its place in it.
+4. **Record:** its share of matches won.
+
+Factors 2 to 4 are combined with the weights in `GOAT_WEIGHTS` (0.5, 0.3,
+0.2). Everywhere else on the site a team's number is its AVCA rank, or, for a
+team outside the poll, its place from 26 onward in GOAT order, so no two teams
+share a number.
 
 ## Odds
 
