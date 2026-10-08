@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ['pipeline/**', 'site/**', 'rosters/**', '.github/workflows/update.yml']
+    paths: ['pipeline/**', 'site/**', 'rosters/**', 'ratings/**', '.github/workflows/update.yml']
 
 concurrency:
   group: update

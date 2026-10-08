@@ -13,6 +13,7 @@ Usage:  python -m pipeline.run <state_dir> <site_output_dir>
   watch.json        the TV channel or stream found for each upcoming match
   box.json          the box score of every finished match involving a ranked team
   photos.json       the address of each player's photo on her school's roster page
+  ratings.json      every team's rating, this season and last (behind the odds)
   status.json       what happened on the last run
 """
 from __future__ import annotations
@@ -26,7 +27,7 @@ import sys
 import traceback
 from pathlib import Path
 
-from . import box, config, photos, players, poll, watch, web
+from . import box, config, odds, photos, players, poll, watch, web
 
 SITE_SRC = Path(__file__).resolve().parents[1] / "site"
 
@@ -152,7 +153,7 @@ def ranked_matches(state: Path) -> dict:
         for s in (g["away"], g["home"]):
             s["rank"] = rank.get(s["id"])
     return {"through": through, "polls_seen": len(polls), "season": board["season"], "teams": ranked,
-            "games": listed, "names": names, "unmatched": unmatched}
+            "games": listed, "all_games": list(games.values()), "names": names, "unmatched": unmatched}
 
 
 def update_watch(state: Path, now: dt.datetime) -> dict:
@@ -174,7 +175,8 @@ def update_watch(state: Path, now: dt.datetime) -> dict:
         new = found.get(g["id"]) or {}
         stored[str(g["id"])] = {"channels": new.get("channels") or old.get("channels") or [],
                                 "espn": new.get("espn") or old.get("espn"),
-                                "flip": new["flip"] if new.get("espn") else bool(old.get("flip"))}
+                                "flip": new["flip"] if new.get("espn") else bool(old.get("flip")),
+                                "neutral": new["neutral"] if new.get("espn") else bool(old.get("neutral"))}
     write_json(state / "watch.json", stored, indent=0)
     have = sum(1 for g in soon if stored[str(g["id"])]["channels"])
     followable = sum(1 for g in soon if stored[str(g["id"])]["espn"])
@@ -213,9 +215,25 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
     sel = ranked_matches(state)
     through, ranked, listed, unmatched = sel["through"], sel["teams"], sel["games"], sel["unmatched"]
     rank = {t["id"]: t["rank"] for t in ranked if t["id"]}
+    # Odds: rate every Division I team from this season's results, starting from
+    # where each finished last season, and give each coming match a chance.
+    season = sel["season"]
+    kept = read_json(state / "ratings.json", {})
+    start = kept.get(str(season - 1))
+    if start is None:
+        first = odds.seed()
+        start = first.get("ratings", {}) if first.get("season", season) < season else {}
+    rating, _ = odds.rate(sel["all_games"], start)
+    kept = {k: v for k, v in kept.items() if int(k) >= season - 1}
+    kept[str(season)] = {t: round(v, 3) for t, v in rating.items()}
+    write_json(state / "ratings.json", kept)
+
     where = read_json(state / "watch.json", {})
     for g in listed:
         w = where.get(str(g["id"]))
+        if g["state"] in ("upcoming", "live") and g["home"]["id"] in rating and g["away"]["id"] in rating:
+            neutral = isinstance(w, dict) and bool(w.get("neutral"))
+            g["p"] = round(odds.match_chance(rating[g["home"]["id"]], rating[g["away"]["id"]], neutral), 3)   # the home team's chance
         if g["state"] != "final" and w is not None:
             if isinstance(w, list):
                 w = {"channels": w}
@@ -238,7 +256,7 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
         "site": config.SITE_NAME, "updated": now.isoformat(timespec="seconds"), "season": sel["season"],
         "poll": {"name": config.POLL_NAME, "through": through, "teams": ranked, "polls_seen": sel["polls_seen"]},
         "game_page": config.GAME_PAGE, "live_feed": config.ESPN_SCOREBOARD, "live_seconds": config.LIVE_SECONDS,
-        "logo": config.LOGO_URL, "games": listed})
+        "logo": config.LOGO_URL, "odds_tested": config.ODDS_TESTED, "games": listed})
     rated = players.compute(ranked, listed, read_json(state / "box.json", {}))
     rated["through"] = max((g["date"] for g in listed if g["state"] == "final"), default=None)
     if config.SHOW_PHOTOS:
@@ -254,7 +272,8 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
         + (f"; NOT MATCHED to a scoreboard team: {unmatched}" if unmatched else ""))
     return {"poll_through": through, "matches_listed": len(listed), "teams_matched": len(rank), "unmatched": unmatched,
             "with_channel": sum(1 for g in listed if g.get("watch")),
-            "players": len(rated["players"]), "regulars": rated["regulars"]}
+            "players": len(rated["players"]), "regulars": rated["regulars"],
+            "with_odds": sum(1 for g in listed if "p" in g), "teams_rated": len(rating)}
 
 
 def check_teams(status: dict) -> dict:

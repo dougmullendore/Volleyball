@@ -350,3 +350,66 @@ def test_photo_tied_to_the_player_in_the_data_block():
     page = ('<img src="data:image/gif;base64,AA" alt="head shot">'
             '<script type="application/json" id="__NUXT_DATA__">' + json.dumps(data) + "</script>")
     assert photos.find(page, BASE, NAMES) == {"t~jackson~and": "https://school.example/imgproxy/aj.jpg"}
+
+
+# --------------------------------------------------------------------- odds --
+from pipeline import config, odds  # noqa: E402
+
+
+def test_match_chance_follows_the_ratings():
+    even = odds.match_chance(1.0, 1.0, neutral=True)
+    assert abs(even - 0.5) < 1e-9
+    assert odds.match_chance(1.0, 1.0) > 0.5                              # home court
+    assert abs(odds.match_chance(2.0, 0.5, True) + odds.match_chance(0.5, 2.0, True) - 1) < 1e-9
+    assert 0.5 < odds.match_chance(1.5, 1.0, True) < odds.match_chance(2.5, 1.0, True) < 1
+    # winning a match is likelier than winning one set, for the better team
+    assert odds.match_chance(2.0, 1.0, True) > odds.set_chance(config.ODDS_STRETCH * 1.0)
+
+
+def test_ratings_move_toward_results():
+    def game(i, home, away, hs, vs, state="final"):
+        return {"id": i, "date": f"2026-09-{i + 1:02d}", "start": None, "state": state,
+                "home": {"id": home, "sets": hs}, "away": {"id": away, "sets": vs}}
+    # a and b start level; a keeps sweeping b. c is listed only twice, so it is taken for a non-Division I school
+    games = [game(i, "a", "b", 3, 0) if i % 2 else game(i, "b", "a", 0, 3) for i in range(10)]
+    games += [game(20, "a", "c", None, None, "upcoming"), game(21, "c", "b", None, None, "upcoming")]
+    rating, pregame = odds.rate(games, {"a": 1.0, "b": 1.0})
+    assert rating["a"] > 1.0 > rating["b"] and rating["c"] == config.ODDS_NEW
+    assert len(pregame) == 10 and 20 not in pregame
+    first, last = pregame[0], pregame[9]
+    assert abs((1 - first) - 0.5) < 0.1 and last > 0.8                      # by the tenth meeting a is a clear favorite
+    assert abs(rating["a"] - 0.95) > abs(rating["b"] - 0.95) * 0.5         # both moved, by similar amounts
+    # a school that finished last season strongly starts strongly
+    strong, _ = odds.rate([game(1, "x", "y", None, None, "upcoming")] * 1 + [game(2 + i, "x", "y", None, None, "upcoming") for i in range(8)],
+                          {"x": 3.0})
+    assert abs(strong["x"] - config.ODDS_KEEP * 3.0) < 1e-9 and strong["y"] == config.ODDS_NEW / 2
+
+
+def test_the_page_gives_odds_for_matches_not_yet_played():
+    state, out = Path(tempfile.mkdtemp(prefix="state")), Path(tempfile.mkdtemp(prefix="site")) / "dist"
+    found = poll.parse_page(poll_page())
+    run.write_json(state / "polls.json", {found["through"]: found["rows"]})
+    games = [run.parse_contest(c) for c in contests()]
+    todo = next(g for g in games if g["home"]["id"] == "penn-st")           # Iowa at Penn State, not yet played
+    todo["state"], todo["home"]["sets"], todo["away"]["sets"] = "upcoming", None, None
+    run.write_json(state / "scoreboard.json", {"season": 2026, "days": {"2026-10-03": games}})
+    res = run.build_site(state, out, dt.datetime(2026, 10, 3, tzinfo=UTC))
+    data = json.loads((out / "data.json").read_text())
+    shown = {(g["away"]["id"], g["home"]["id"]): g for g in data["games"]}
+    p = shown[("iowa", "penn-st")]["p"]
+    assert 0.6 < p < 0.999                                                    # the home team's chance: Penn State is the favorite
+    assert all("p" not in g for g in data["games"] if g["state"] == "final")
+    assert res["with_odds"] == 1 and data["odds_tested"]["matches"] > 20000
+    kept = json.loads((state / "ratings.json").read_text())
+    assert set(kept) == {"2026"} and kept["2026"]["penn-st"] > kept["2026"]["iowa"]
+    # at a neutral site the home edge is taken away
+    run.write_json(state / "watch.json", {str(todo["id"]): {"channels": [], "espn": "1", "flip": False, "neutral": True}})
+    run.build_site(state, out, dt.datetime(2026, 10, 3, tzinfo=UTC))
+    again = json.loads((out / "data.json").read_text())
+    assert next(g["p"] for g in again["games"] if g["id"] == todo["id"]) < p
+
+
+def test_last_seasons_ratings_file_is_usable():
+    first = odds.seed()
+    assert first["season"] == 2025 and len(first["ratings"]) > 300
+    assert first["ratings"]["nebraska"] > 2 and all(isinstance(v, float) for v in first["ratings"].values())

@@ -12,7 +12,7 @@ You do not need to run anything. GitHub does it all on a schedule.
   and how far it moved from last week. Choose a team to see its matches.
 - **Matches** (first page): every match this week involving a ranked team, grouped by
   day. Upcoming matches show the start time in the reader's own time zone and
-  where to watch; finished ones show the score in sets and link to the NCAA's
+  where to watch; and each team's chance of winning; finished ones show the score in sets and link to the NCAA's
   box score. A
   match between two ranked teams has a green edge. Buttons step to earlier
   and later weeks, and a menu narrows the list to one team's whole season.
@@ -68,6 +68,26 @@ Logos appear beside team names. They are not stored in this repository: the
 page shows them straight from ncaa.com, which has one for every school. They
 belong to the schools. To remove them, set `LOGO_URL = ""` in
 `pipeline/config.py`.
+
+## Odds
+
+Each match not yet played shows both teams' chance of winning, the favorite
+in bold. There are no public betting lines for college volleyball, so these
+are the site's own estimate, not a sportsbook's.
+
+- Every Division I team has a rating, built from sets won and lost and who
+  they were against. It moves after each match, quickly early in the season
+  and slowly later, and a team starts each season on 95% of where it finished
+  the last one. Home court is worth a little; at neutral sites (as ESPN marks
+  them) it is left out.
+- Tested on 23,008 matches from 2022 to 2026, always predicting from what was
+  known beforehand, the favorite won 76.8% of the time (the home team wins
+  57.8%), and the percentages were honest: teams given 70 to 80% won 74%.
+- It knows results, not rosters: an injury only shows once the scores change.
+- Ratings are kept in `ratings.json` on the `state` branch, so next season
+  starts from this one by itself. `ratings/seed.json` holds where teams
+  finished 2025, for this first season. The settings are in
+  `pipeline/config.py` and the method at the top of `pipeline/odds.py`.
 
 ## Where to watch
 
@@ -149,6 +169,7 @@ scoreboard or the box scores cannot be read at all.
 | `pipeline/players.py` | Rates the players against each other and works out percentiles |
 | `pipeline/photos.py` | Finds each player's photo on her school's roster page |
 | `rosters/pages.csv` | The roster page of each ranked school; add a line when a new school is ranked |
+| `pipeline/odds.py` | Rates every team from results and turns two ratings into a chance of winning |
 | `pipeline/watch.py` | Finds the TV channel or stream for each upcoming match |
 | `pipeline/web.py` | Downloads the poll page and the NCAA scoreboard |
 | `pipeline/run.py` | The job: update the poll, update the scoreboard, build the page |

@@ -48,6 +48,18 @@ ROSTER_PATHS = ["/sports/womens-volleyball/roster", "/sports/volleyball/roster",
                 "/sports/w-volley/roster", "/sports/wvb/roster", "/sports/womens-volleyball/roster/",
                 "/sports/volleyball/roster/"]
 
+# Odds: each team's chance of winning, from this site's own ratings (see
+# pipeline/odds.py). These settings were chosen by testing on 2022-2026 results.
+ODDS_STEP = 0.18          # how far a rating moves per surprising set, early in the season
+ODDS_SETTLE = 4           # after about this many matches the moves get smaller
+ODDS_MIN_STEP = 0.04      # and never smaller than this
+ODDS_KEEP = 0.95          # share of last season's rating a team starts with
+ODDS_HOME = 0.14          # home court, in the same units as a rating
+ODDS_NEW = -1.2           # starting rating of a school with no history and few matches
+ODDS_FEW_MATCHES = 8
+ODDS_STRETCH = 0.9        # pulls chances slightly toward 50-50; made them match results better
+ODDS_TESTED = {"matches": 23008, "favorite_won": 0.768, "seasons": "2022 to 2026"}
+
 # Where to watch. Channels are looked up for matches in the next WATCH_DAYS
 # days; further out, networks have usually not been announced.
 WATCH_DAYS = 14

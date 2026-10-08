@@ -52,7 +52,8 @@ def parse_espn(doc: dict) -> list[dict]:
         home = next(((c.get("team") or {}).get("location") for c in sides if c.get("homeAway") == "home"), None)
         t = _epoch(e.get("date") or comp.get("date"))
         if t and len(teams) == 2:
-            out.append({"t": t, "teams": teams, "channels": names, "espn": str(e["id"]) if e.get("id") else None, "home": home})
+            out.append({"t": t, "teams": teams, "channels": names, "espn": str(e["id"]) if e.get("id") else None, "home": home,
+                        "neutral": bool(comp.get("neutralSite"))})
     return out
 
 
@@ -102,7 +103,7 @@ def assign(games: list[dict], listings: list[dict], names: dict) -> dict:
         if not found:
             continue
         best = min(found, key=lambda f: f[:2])
-        chans, espn, flip = [], None, False
+        chans, espn, flip, neutral = [], None, False, False
         for n, gap, item in sorted(found, key=lambda f: f[:2]):
             # the same match in both sources: both teams agree, or one does and so does the start time
             if n == best[0] and (n == -2 or abs(item["t"] - best[2]["t"]) <= 3600):
@@ -111,10 +112,10 @@ def assign(games: list[dict], listings: list[dict], names: dict) -> dict:
                     if c and c not in chans:
                         chans.append(c)
                 if item.get("espn") and not espn:
-                    espn = item["espn"]
+                    espn, neutral = item["espn"], bool(item.get("neutral"))
                     away_name = next((t for t in item["teams"] if t != item.get("home")), None)
                     flip = item.get("home_id") == g["away"]["id"] or (item.get("home_id") is None and seen.get(away_name) == g["home"]["id"])
-        out[g["id"]] = {"channels": chans, "espn": espn, "flip": bool(flip)}
+        out[g["id"]] = {"channels": chans, "espn": espn, "flip": bool(flip), "neutral": neutral}
     return out
 
 

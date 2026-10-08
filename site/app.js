@@ -65,6 +65,13 @@
   }
 
   // ---- one match ----
+  // [away, home] chances as whole percentages that add up to 100; never shown as 0 or 100
+  function pct(home) { var n = Math.min(99, Math.max(1, Math.round(home * 100))); return [(100 - n) + "%", n + "%"]; }
+  function oddsNote() {
+    var t = data.odds_tested;
+    return " Percentages are each team's chance of winning, from this site's own ratings of results, opponents and home court; they are not betting lines." +
+      (t ? " Tested on " + t.matches.toLocaleString("en-US") + " past matches, the favorite won " + Math.round(t.favorite_won * 100) + "% of the time." : "");
+  }
   function row(g) {
     // g.live is the score read from ESPN while the match is on (see "live scores" below)
     var L = g.live, fin = L ? L.state === "post" : g.state === "final", live = L ? L.state === "in" : g.state === "live";
@@ -86,7 +93,12 @@
       ? el("span", { "class": "mid", "aria-label": g.away.name + " " + as + ", " + g.home.name + " " + hs + " in sets" + (pts ? "; this set " + pts[0] + " to " + pts[1] : "") }, [
           sets("sa", as, homeWon, pts && pts[0]), el("span", { "class": "dash", text: "–" }), sets("sh", hs, awayWon, pts && pts[1]),
           pts ? el("span", { "class": "pts", text: pts[0] + "–" + pts[1] }) : null])
-      : el("span", { "class": "mid at", text: "at" });
+      : g.p != null && !fin
+        // not started: each team's chance of winning, the favorite in bold
+        ? el("span", { "class": "mid odds", "aria-label": g.away.name + " " + pct(g.p)[0] + ", " + g.home.name + " " + pct(g.p)[1] + " chance of winning" }, [
+            el("span", { "class": "sa " + (g.p > 0.5 ? "l" : "w"), text: pct(g.p)[0] }), el("span", { "class": "dash", text: "at" }),
+            el("span", { "class": "sh " + (g.p < 0.5 ? "l" : "w"), text: pct(g.p)[1] })])
+        : el("span", { "class": "mid at", text: "at" });
     var more = [];
     if (g.round) more.push(g.round + " ");
     if (!fin && g.watch) {
@@ -188,7 +200,7 @@
       var mine = data.games.filter(function (g) { return g.away.id === t.id || g.home.id === t.id; });
       head.textContent = "No. " + t.rank + " " + t.name + ", whole season";
       var next = mine.filter(function (g) { return g.state !== "final" && g.date >= today; }), done = mine.filter(function (g) { return g.state === "final" || g.date < today; });
-      if (next.length) { holder.appendChild(el("p", { "class": "note", text: next.length + " still to play, " + done.length + " played." })); listInto(holder, next); }
+      if (next.length) { holder.appendChild(el("p", { "class": "note", text: next.length + " still to play, " + done.length + " played." + oddsNote() })); listInto(holder, next); }
       if (done.length) { holder.appendChild(el("h3", { "class": "day", text: "Already played, newest first" })); listInto(holder, done, true); }
       if (!mine.length) holder.appendChild(el("p", { "class": "empty", text: "No matches are listed for " + t.name + " this season." }));
       return;
@@ -212,6 +224,7 @@
     var both = games.filter(function (g) { return g.away.rank && g.home.rank; }).length;
     holder.appendChild(el("p", { "class": "note", text: games.length + " matches this week" + (both ? ", " + both + " of them between two ranked teams (marked with a green edge)" : "") +
       ". The visiting team is on the left, and the channel or streaming service is on the right for matches in the next two weeks. Numbers are this week's rankings, also for earlier weeks. Choose a team to see its whole season." }));
+    if (games.some(function (g) { return g.p != null && g.state !== "final"; })) holder.appendChild(el("p", { "class": "note", text: oddsNote().trim() }));
   }
 
   // ---- players ----
