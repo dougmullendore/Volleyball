@@ -442,3 +442,5 @@ a.opp:hover .n { color: var(--teal); }
 h1 .trophy { margin-left: 10px; vertical-align: -4px; }
 /* trophies only on the rankings/standings, teams and team pages */
 #page-matches .trophy, #page-match .trophy, #page-players .trophy, #page-card .trophy { display: none; }
+/* headings without a sort button get the same padding as the cells under them */
+.ptable thead th:not(:has(button)) { padding: 8px 10px; }
