@@ -51,17 +51,34 @@
   }
 
   // ---- the rankings page ----
+  // The coaches poll beside the site's own GOAT ranking, which gives head-to-head results more say.
+  var rankSort = "avca";
   function drawRanks() {
-    var ol = $("ranks");
-    ol.innerHTML = "";
-    data.poll.teams.forEach(function (t) {
+    var ol = $("ranks"), bar = $("rank-sort"), G = data.goat || {};
+    ol.innerHTML = ""; bar.innerHTML = "";
+    [["avca", "Order by AVCA poll"], ["goat", "Order by GOAT ranking"]].forEach(function (o) {
+      bar.appendChild(el("button", { type: "button", "aria-pressed": String(rankSort === o[0]), text: o[1], onclick: function () { rankSort = o[0]; drawRanks(); } }));
+    });
+    var teams = data.poll.teams.slice();
+    if (rankSort === "goat") teams.sort(function (a, b) { return (a.goat || 999) - (b.goat || 999); });
+    teams.forEach(function (t) {
       var move = t.prev == null ? ["new", "up", "not ranked last week"] : t.prev > t.rank ? ["▲" + (t.prev - t.rank), "up", "up " + (t.prev - t.rank) + " from last week"]
         : t.prev < t.rank ? ["▼" + (t.rank - t.prev), "", "down " + (t.rank - t.prev) + " from last week"] : ["", "", ""];
       var name = t.id ? el("a", { "class": "nm", href: "#/", text: t.name, title: "Show " + t.name + "'s matches",
         onclick: function () { state.team = t.id; } }) : el("span", { "class": "nm", text: t.name });
+      var diff = t.goat == null ? 0 : t.rank - t.goat;      // positive: the GOAT ranking has her higher than the poll
       ol.appendChild(el("li", {}, [rankTag(t.rank), el("span", { "class": "who" }, [logo(t.id), name]), el("span", { "class": "rec", text: t.record || "" }),
-        el("span", { "class": "mv " + move[1], text: move[0], "aria-label": move[2] || null })]));
+        el("span", { "class": "mv " + move[1], text: move[0], "aria-label": move[2] || null }),
+        el("span", { "class": "goat" + (diff >= 3 ? " hi" : diff <= -3 ? " lo" : ""), text: t.goat == null ? "–" : String(t.goat),
+          "aria-label": t.goat == null ? "no GOAT ranking" : "GOAT ranking " + t.goat,
+          title: t.goat == null ? null : diff === 0 ? "Same place as the poll" : Math.abs(diff) + (Math.abs(diff) === 1 ? " place " : " places ") + (diff > 0 ? "higher" : "lower") + " than the poll" })]));
     });
+    if (G.top) {
+      $("goat-note").textContent = "GOAT is this site's own ranking of every Division I team. It starts from the team ratings behind the odds, then is rearranged to agree with as many head-to-head results as it can: a team climbs over one it has beaten when the two are close, but not when the ratings say the gap is wide. " +
+        "Among these 25 teams the poll ranks a team below one it has beaten " + G.poll_wrong + " times; the GOAT ranking does " + G.goat_wrong + " times. A GOAT number is shaded when it is three or more places from the poll.";
+      var out = G.top.filter(function (x) { return x.avca == null; });
+      $("goat-out").textContent = out.length ? "In the GOAT top 25 but not in the poll: " + out.map(function (x) { return x.name + " (" + x.rank + ")"; }).join(", ") + "." : "";
+    }
   }
 
   // ---- one match ----
@@ -411,8 +428,8 @@
     data = d;
     $("brand").textContent = d.site;
     $("lede").textContent = "Every match played by a team in the " + d.poll.name + ", week by week.";
-    $("rank-lede").textContent = "The " + d.poll.name + ", through matches of " + day(d.poll.through).toLocaleDateString(undefined, { month: "long", day: "numeric" }) + ".";
-    $("rank-note").textContent = "Record and movement from last week's poll. This page is checked for a new poll every Monday. Choose a team to see its matches.";
+    $("rank-lede").textContent = "The " + d.poll.name + ", through matches of " + day(d.poll.through).toLocaleDateString(undefined, { month: "long", day: "numeric" }) + ", beside this site's GOAT ranking.";
+    $("rank-note").textContent = "Record and change are from the poll, which is checked for a new one every Monday. The GOAT ranking is redone every night. Choose a team to see its matches.";
     var u = new Date(d.updated);
     $("foot-updated").textContent = "Scores and schedule updated " + (isNaN(u) ? d.updated : u.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })) +
       ". Rankings: " + d.poll.name + " through " + day(d.poll.through).toLocaleDateString(undefined, { dateStyle: "long" }) + ".";

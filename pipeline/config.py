@@ -60,6 +60,13 @@ ODDS_FEW_MATCHES = 8
 ODDS_STRETCH = 0.9        # pulls chances slightly toward 50-50; made them match results better
 ODDS_TESTED = {"matches": 23008, "favorite_won": 0.768, "seasons": "2022 to 2026"}
 
+# The GOAT ranking (pipeline/goat.py): the rating order, rearranged to agree
+# with head-to-head results. One head-to-head win may overturn up to this much
+# rating difference; raise it and head-to-head counts for more.
+GOAT_HEAD_TO_HEAD = 1.5
+GOAT_POOL = 80           # how far down the rating order teams can be rearranged
+GOAT_MIN_MATCHES = 12    # a school with fewer matches listed is not a Division I team and is not ranked
+
 # Where to watch. Channels are looked up for matches in the next WATCH_DAYS
 # days; further out, networks have usually not been announced.
 WATCH_DAYS = 14

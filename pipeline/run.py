@@ -27,7 +27,7 @@ import sys
 import traceback
 from pathlib import Path
 
-from . import box, config, odds, photos, players, poll, watch, web
+from . import box, config, goat, odds, photos, players, poll, watch, web
 
 SITE_SRC = Path(__file__).resolve().parents[1] / "site"
 
@@ -228,6 +228,25 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
     kept[str(season)] = {t: round(v, 3) for t, v in rating.items()}
     write_json(state / "ratings.json", kept)
 
+    # The GOAT ranking: the rating order rearranged to respect head-to-head results.
+    count = {}
+    for g in sel["all_games"]:
+        for side in ("home", "away"):
+            count[g[side]["id"]] = count.get(g[side]["id"], 0) + 1
+    division = {t for t, n in count.items() if n >= config.GOAT_MIN_MATCHES and t in rating}
+    ranking = goat.rank(sel["all_games"], rating, division)
+    place = {t: i + 1 for i, t in enumerate(ranking["order"])}
+    polled = [t["id"] for t in ranked if t["id"]]
+    for t in ranked:
+        t["goat"] = place.get(t["id"])
+    in_poll = {t["id"]: t["rank"] for t in ranked if t["id"]}
+    goat_top = [{"rank": i + 1, "id": t, "name": sel["names"].get(t, t), "avca": in_poll.get(t),
+                 "rating_rank": ranking["base"][t]} for i, t in enumerate(ranking["order"][:config.POLL_SIZE])]
+    goat_info = {"top": goat_top, "weight": config.GOAT_HEAD_TO_HEAD,
+                 # among the poll's own 25 teams: results each order has the wrong way round
+                 "poll_wrong": goat.contradictions(polled, sel["all_games"], set(polled)),
+                 "goat_wrong": goat.contradictions(ranking["order"], sel["all_games"], set(polled))}
+
     where = read_json(state / "watch.json", {})
     for g in listed:
         w = where.get(str(g["id"]))
@@ -256,7 +275,7 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
         "site": config.SITE_NAME, "updated": now.isoformat(timespec="seconds"), "season": sel["season"],
         "poll": {"name": config.POLL_NAME, "through": through, "teams": ranked, "polls_seen": sel["polls_seen"]},
         "game_page": config.GAME_PAGE, "live_feed": config.ESPN_SCOREBOARD, "live_seconds": config.LIVE_SECONDS,
-        "logo": config.LOGO_URL, "odds_tested": config.ODDS_TESTED, "games": listed})
+        "logo": config.LOGO_URL, "odds_tested": config.ODDS_TESTED, "goat": goat_info, "games": listed})
     rated = players.compute(ranked, listed, read_json(state / "box.json", {}))
     rated["through"] = max((g["date"] for g in listed if g["state"] == "final"), default=None)
     if config.SHOW_PHOTOS:

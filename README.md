@@ -69,6 +69,27 @@ page shows them straight from ncaa.com, which has one for every school. They
 belong to the schools. To remove them, set `LOGO_URL = ""` in
 `pipeline/config.py`.
 
+## GOAT ranking
+
+The Rankings page shows the AVCA poll with a second column: the site's own
+GOAT ranking, which gives head-to-head results more say than the poll does.
+
+- It ranks every Division I team, so a poll team's GOAT number can be past 25,
+  and the page lists GOAT top-25 teams the poll leaves out.
+- It starts from the team ratings behind the odds. Then it looks for the
+  order that agrees with the most head-to-head results while staying close to
+  those ratings. A team climbs over one it has beaten when the two are close;
+  it does not when the ratings say the gap is wide, and it does not jump teams
+  in between that it has no claim on. A 1-1 split settles nothing.
+- `GOAT_HEAD_TO_HEAD` in `pipeline/config.py` sets how much one head-to-head
+  win can overturn (1.5 rating points now). Raise it and head-to-head counts
+  for more; at 0 the GOAT ranking is just the rating order.
+- The page reports the score: among the poll's 25 teams, how many times each
+  ranking has a team below one it has beaten. On 7 October 2026 the poll did
+  18 times and the GOAT ranking 7.
+- It is redone every night, not only on Mondays. The method is at the top of
+  `pipeline/goat.py`.
+
 ## Odds
 
 Each match not yet played shows both teams' chance of winning, the favorite
@@ -140,7 +161,7 @@ Nothing needs doing. On the run that picks up the new poll:
 
 | Part | What happens |
 | --- | --- |
-| Rankings | The new poll replaces the old one |
+| Rankings | The new poll replaces the old one; the GOAT ranking already covers every Division I team |
 | Matches | The school's whole season is listed; a school that dropped out is removed |
 | Where to watch, live scores | Looked up for its matches in the next two weeks, like everyone else's |
 | Players | Its box scores for the season so far are downloaded, and every player is re-rated against the new 25 |
@@ -169,6 +190,7 @@ scoreboard or the box scores cannot be read at all.
 | `pipeline/players.py` | Rates the players against each other and works out percentiles |
 | `pipeline/photos.py` | Finds each player's photo on her school's roster page |
 | `rosters/pages.csv` | The roster page of each ranked school; add a line when a new school is ranked |
+| `pipeline/goat.py` | The GOAT ranking: the rating order rearranged to respect head-to-head results |
 | `pipeline/odds.py` | Rates every team from results and turns two ratings into a chance of winning |
 | `pipeline/watch.py` | Finds the TV channel or stream for each upcoming match |
 | `pipeline/web.py` | Downloads the poll page and the NCAA scoreboard |
