@@ -450,6 +450,7 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
         "poll": {"name": config.POLL_NAME, "through": through, "teams": ranked, "polls_seen": sel["polls_seen"]},
         "game_page": config.GAME_PAGE, "live_feed": config.ESPN_SCOREBOARD, "live_seconds": config.LIVE_SECONDS,
         "logo": config.LOGO_URL, "odds_tested": config.ODDS_TESTED, "goat": goat_info, "nr": shown, "words": words,
+        "medals": {t["id"]: t["rank"] for t in ranked if t.get("id") and t["rank"] <= 3},
         "d1": [[t["id"], t["name"]] for t in d1], "games": every})
     write_json(out / "players.json", rated)
     write_json(out / "players_d1.json", rated_d1)

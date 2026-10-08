@@ -60,10 +60,23 @@
     }
     return box;
   }
-  // A team's name as a link to its page.
+  // A gold, silver or bronze trophy for the top three: the poll's top three for college,
+  // the last champion, runner-up and third for a pro league between seasons.
+  var TROPHY = "M7 3h10v2h3v3a4 4 0 0 1-4 4h-.3A5 5 0 0 1 13 14.9V17h3v3H8v-3h3v-2.1A5 5 0 0 1 8.3 12H8a4 4 0 0 1-4-4V5h3zm0 4H6v1a2 2 0 0 0 1 1.7zm10 0v2.7A2 2 0 0 0 18 8V7z";
+  function trophy(id) {
+    var m = id && data.medals && data.medals[id];
+    if (!m) return null;
+    var label = ["", "First", "Second", "Third"][m] + (PRO() ? (m === 1 ? ": league champion" : m === 2 ? ": championship runner-up" : ": third") : " in the poll");
+    var s = el("span", { "class": "trophy t" + m, title: label, "aria-label": label, role: "img" });
+    s.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + TROPHY + '"/></svg>';
+    return s;
+  }
+  // A team's name as a link to its page, with its trophy if it has one.
   function teamA(id, name, cls) {
-    return id ? el("a", { "class": "tlink " + (cls || ""), href: "#/team/" + encodeURIComponent(id), text: name })
+    var a = id ? el("a", { "class": "tlink " + (cls || ""), href: "#/team/" + encodeURIComponent(id), text: name })
       : el("span", { "class": cls || "", text: name });
+    var t = trophy(id);
+    return t ? el("span", { "class": "tname" }, [a, t]) : a;
   }
   // The site's wording, from words.txt (see the top of that file). {name} is filled from `vars`.
   function W(key, vars) {
@@ -869,7 +882,7 @@
     if (t && t.record) bits.push(t.record);
     bits.push(t ? "No. " + t.rank + " in the " + data.poll.name : "Not ranked in the " + data.poll.name);
     if (goat) bits.push("No. " + goat.rank + " in the GOAT ranking");
-    box.appendChild(el("div", { "class": "thead" }, [logo(id, "big"), el("div", {}, [el("h1", { text: name }), el("p", { "class": "tsub", text: bits.join(" · ") })])]));
+    box.appendChild(el("div", { "class": "thead" }, [logo(id, "big"), el("div", {}, [el("h1", {}, [name, trophy(id)]), el("p", { "class": "tsub", text: bits.join(" · ") })])]));
     box.appendChild(el("div", { "class": "nav filters" }, [scopeSwitch(function () { drawTeam(id); }, !t)]));
     if (t) box.appendChild(el("div", { "class": "tvs" }, [versus(t)]));
 

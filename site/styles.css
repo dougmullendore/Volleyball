@@ -430,3 +430,10 @@ a.opp:hover .n { color: var(--teal); }
 @media (min-width: 1250px) {
   .pcard { grid-template-columns: 1fr 1fr 1fr; }
 }
+
+/* gold, silver and bronze trophies for the top three */
+.trophy { display: inline-flex; vertical-align: -2px; margin-left: 5px; }
+.trophy svg { width: 1.2em; height: 1.2em; fill: currentColor; }
+.trophy.t1 { color: #d4a017; } .trophy.t2 { color: #9aa3ad; } .trophy.t3 { color: #b8733a; }
+.tname { display: inline-flex; align-items: center; white-space: nowrap; }
+h1 .trophy { margin-left: 10px; vertical-align: -4px; }
