@@ -270,8 +270,15 @@ def build(state: Path, out: Path, site: str, now: dt.datetime, words: dict, writ
     media_file = state / "pro" / f"{site}_media.json"
     media = json.loads(media_file.read_text(encoding="utf-8")) if media_file.exists() else {}
     found = media.get("players") or {}
+    others = {}                     # the other league's site, for players who have played in both
+    for other in LEAGUES:
+        f = state / "pro" / f"{other}_media.json"
+        if other != site and f.exists():
+            others.update(json.loads(f.read_text(encoding="utf-8")).get("players") or {})
     for p in rated["players"]:
         m = found.get(name_key(p["name"]))
+        if not (m and m.get("photo")) and (others.get(name_key(p["name"])) or {}).get("photo"):
+            m = {**others[name_key(p["name"])], "bio": {**(others[name_key(p["name"])].get("bio") or {}), **((m or {}).get("bio") or {})}}
         if m:
             if m.get("photo"):
                 p["photo"] = m["photo"]
@@ -437,7 +444,7 @@ def lovb_media(fetch, log, wanted: dict | None = None) -> dict:
     return {"teams": {k: {"logo": v["logo"]} for k, v in teams.items()}, "players": people}
 
 
-def mlv_media(fetch, names: list[str], log) -> dict:
+def mlv_media(fetch, names: list[str], log, extra: list[str] = ()) -> dict:
     """Team logos and colours from provolleyball.com, and each player's headshot,
     height, hometown, college and social links from her page there."""
     teams = {}
@@ -469,6 +476,8 @@ def mlv_media(fetch, names: list[str], log) -> dict:
             break
         page_no += 1
     people = {}
+    # players from the other league who also have a page here (many have played in both)
+    names = list(names) + [n for n in extra if name_key(n) in listed]
     for full in names:
         first, _, rest = full.partition(" ")
         tries = [listed.get(name_key(full))] + [listed.get("~" + name_key(w) + name_key(first)[:3])
@@ -511,7 +520,7 @@ def update_media(state: Path, today: dt.date, log) -> dict:
     for site in LEAGUES:
         path = state / "pro" / f"{site}_media.json"
         have = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
-        if have.get("finder") != 3:          # this file has learned a new way to find players since: read again
+        if have.get("finder") != 4:          # this file has learned a new way to find players since: read again
             have = {k: v for k, v in have.items() if k != "checked"}
         no_logos = not any(v.get("logo") for v in (have.get("teams") or {}).values())
         if have.get("checked") and (today - dt.date.fromisoformat(have["checked"])).days < MEDIA_DAYS and not no_logos:
@@ -530,7 +539,9 @@ def update_media(state: Path, today: dt.date, log) -> dict:
                 got = lovb_media(fetch, log, wanted)
             else:
                 names = sorted({(r[0] + " " + r[1]).strip() for b in (s or {}).get("boxes", {}).values() for side in ("home", "away") for r in b[side]})
-                got = mlv_media(fetch, names, log)
+                other = load(state, "lovb") or {}
+                extra = sorted({(r[0] + " " + r[1]).strip() for b in other.get("boxes", {}).values() for side in ("home", "away") for r in b[side]})
+                got = mlv_media(fetch, names, log, extra)
         except Exception as e:
             log(f"{site} logos and photos: {e!r}"[:160])
             res[site] = f"failed: {e!r}"[:120]
@@ -539,7 +550,7 @@ def update_media(state: Path, today: dt.date, log) -> dict:
         got["players"] = {**(have.get("players") or {}), **{k: v for k, v in got["players"].items() if v.get("photo") or v.get("bio")}}
         got["teams"] = {**(have.get("teams") or {}), **{k: v for k, v in got["teams"].items() if v.get("logo") or k not in (have.get("teams") or {})}}
         got["checked"] = today.isoformat()
-        got["finder"] = 3
+        got["finder"] = 4
         path.write_text(json.dumps(got), encoding="utf-8")
         res[site] = {"teams": len(got["teams"]), "players": len(got["players"]),
                      "with_photo": sum(1 for v in got["players"].values() if v.get("photo"))}
