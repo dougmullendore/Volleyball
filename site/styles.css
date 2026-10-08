@@ -57,7 +57,7 @@ h2 { font: 700 1.375rem/1.2 "Barlow Condensed", sans-serif; margin: 0; }
 /* a team's place in the poll, worn like a shirt number */
 .rk { display: inline-grid; place-items: center; flex: none; min-width: 1.75em; height: 1.5em; padding: 0 .2em; border-radius: 3px;
   background: var(--ball); color: var(--ball-ink); font: 700 .9375rem/1 "Barlow Condensed", sans-serif; font-variant-numeric: tabular-nums; }
-.rk.nr { background: none; box-shadow: inset 0 0 0 1px var(--line); color: var(--ink-2); font-size: .75rem; font-weight: 600; letter-spacing: .02em; }
+.rk.nr { background: none; box-shadow: inset 0 0 0 1px var(--line); color: var(--ink-2); }   /* same size as a rank */
 
 /* team logos, shown from ncaa.com and turned one colour by the filters in index.html */
 .logo { display: inline-block; flex: none; width: 20px; height: 20px; line-height: 0; }
