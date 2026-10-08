@@ -44,7 +44,7 @@ def pages() -> dict:
 
 # Raised whenever find() learns something new, so teams with players still
 # missing a photo are read again straight away rather than the next day.
-FINDER = 5
+FINDER = 6
 
 
 def _words(s: str) -> list[str]:
@@ -294,6 +294,17 @@ def bios(page: str, names: dict) -> dict:
                     soc = at(d.get("socials"))
                     if isinstance(soc, dict):
                         r["socials"] = {k: {kk: at(vv) for kk, vv in (at(v) or {}).items()} for k, v in soc.items() if isinstance(at(v), dict)}
+                    links = at(d.get("social_links"))
+                    if isinstance(links, list):          # WMT sites: a list of {social_network: {name}, account}
+                        for ref in links:
+                            e = at(ref)
+                            if not isinstance(e, dict):
+                                continue
+                            net, acct = at(e.get("social_network")), at(e.get("account"))
+                            name = (at(net.get("name")) if isinstance(net, dict) else "") or ""
+                            key = {"instagram": "instagram", "twitter": "twitter", "x": "twitter", "tiktok": "tiktok"}.get(str(name).strip().lower())
+                            if key and isinstance(acct, str) and acct.strip():
+                                r.setdefault(key + "Username", acct.strip())
                     entries.append(r)
     dec = json.JSONDecoder()
     for m in _PLAYERS_LIST.finditer(page):
@@ -456,7 +467,8 @@ def update(stored: dict, teams: dict, today: dt.date, fetch, log, ranked: set | 
     for team, names in teams.items():
         have = stored.get(team) or {}
         age = (today - dt.date.fromisoformat(have["checked"])).days if have.get("checked") else 10 ** 6
-        missing = any(pid not in (have.get("photos") or {}) for pid in names) or "bios" not in have
+        missing = any(pid not in (have.get("photos") or {}) for pid in names) or "bios" not in have \
+            or (have.get("finder") or 0) < 6            # read once more for social links on WMT sites
         improved = have.get("finder") != FINDER     # this file has learned a new way to find photos since
         again = 1 if team in ranked else 3
         moved = bool(listed.get(team)) and listed[team] != have.get("page")   # a page just added to rosters/pages.csv

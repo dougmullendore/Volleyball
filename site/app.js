@@ -334,6 +334,7 @@
     var days = {}, order = [];
     games.forEach(function (g) { if (!days[g.date]) { days[g.date] = []; order.push(g.date); } days[g.date].push(g); });
     if (newestFirst) order.reverse();
+    else if (order.indexOf(today) > 0) { order.splice(order.indexOf(today), 1); order.unshift(today); }   // today's matches first
     order.forEach(function (d) {
       holder.appendChild(el("h3", { "class": "day" + (d === today ? " today" : ""), text: (d === today ? "Today, " : "") + long(d) }));
       holder.appendChild(el("ol", { "class": "games" }, days[d].map(row)));
