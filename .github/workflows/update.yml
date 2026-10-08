@@ -25,12 +25,12 @@ permissions:
 
 jobs:
   update:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 40
     env:
       REPO_URL: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Get what was stored last time
         run: |
@@ -41,7 +41,7 @@ jobs:
           fi
           mkdir -p state/logs
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.13'
 

@@ -189,6 +189,10 @@ def load(state: Path, site: str) -> dict | None:
     for mid, s in scores.items():
         if mid in boxes:
             boxes[mid]["setpts"] = s
+    live_f = folder / f"{site}_live_boxes.json"           # box scores read during a match (MLV), until volleydata has them
+    if live_f.exists():
+        for mid, b in json.loads(live_f.read_text(encoding="utf-8")).items():
+            boxes.setdefault(mid, b)
     # each team's short code (HOU, IND...), for the badge shown in place of a logo
     abbr = {}
     for (mid, pname), i in info.items():
@@ -758,3 +762,55 @@ def merge_schedule(state: Path, site: str, games: list[dict], season: int) -> tu
 def time_now() -> float:
     import time
     return time.time()
+
+
+# ---- MLV box scores during a match, from the league's match centre ----
+def _sum(r: dict, stem: str) -> int:
+    return sum(_f(r.get(f"{stem}_{k}")) for k in ("win", "err", "minus", "plus", "hp", "ex"))
+
+
+def mlv_live_boxes(state: Path, now: dt.datetime, log) -> dict:
+    """Box scores of MLV matches under way or finished in the last day that
+    volleydata does not have yet, into <state>/pro/mlv_live_boxes.json."""
+    f = state / "pro" / "mlv_schedule.json"
+    if not f.exists():
+        return {"matches": 0}
+    t = now.timestamp()
+    have_vd = {r["match_id"] for r in _rows(state / "pro" / "pvf_schedule.csv")}
+    games = [g for g in json.loads(f.read_text(encoding="utf-8")).get("games", [])
+             if g.get("event") and g["state"] in ("live", "final") and t - 30 * 3600 <= g["start"] <= t + 600
+             and str(g.get("vs")) not in have_vd]
+    out_f = state / "pro" / "mlv_live_boxes.json"
+    stored = json.loads(out_f.read_text(encoding="utf-8")) if out_f.exists() else {}
+    if not games:
+        return {"matches": 0}
+    get = lambda url: json.loads(web.get_bytes(url, timeout=20, tries=2, headers={"Accept": "application/json"}))
+    names, page = {}, 1
+    while page < 20:
+        d = get(f"{MLV_SITE}/api/players?per_page=200&page={page}")
+        for p in d.get("data") or []:
+            names[p["id"]] = (p.get("first_name") or "", p.get("last_name") or "")
+        if len(d.get("data") or []) < 200:
+            break
+        page += 1
+    done = 0
+    for g in games:
+        try:
+            rows = get(f"{MLV_SITE}/api/volley-station/match-stats-sheet?filter[schedule_event_id]={g['event']}&per_page=100").get("data") or []
+        except Exception as e:
+            log(f"MLV live box {g['event']}: {e!r}"[:120])
+            continue
+        b = {"home": [], "away": [], "status": "F" if g["state"] == "final" else "L", "tsets": {}}
+        for r in rows:
+            first, last = names.get(r.get("player_id"), ("", f"No. {r.get('number')}"))
+            side = "home" if r.get("is_home") else "away"
+            b[side].append([first, last, r.get("number"), "L" if r.get("libero") else "", 0, _f(r.get("played_sets")),
+                            _f(r.get("spike_win")), _f(r.get("spike_err")), _sum(r, "spike"), _f(r.get("assists")),
+                            _f(r.get("serve_win")), _f(r.get("serve_err")), _sum(r, "serve"), _f(r.get("successful_digs")),
+                            _sum(r, "rec"), _f(r.get("rec_err")), _f(r.get("block_win")), 0, 0, 0])
+        if b["home"] or b["away"]:
+            stored[str(g.get("vs") or g["event"])] = b
+            done += 1
+    out_f.write_text(json.dumps(stored), encoding="utf-8")
+    log(f"MLV live box scores: {done} matches")
+    return {"matches": done}

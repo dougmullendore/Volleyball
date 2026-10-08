@@ -515,6 +515,7 @@ def main(state_dir: str, out_dir: str) -> int:
         pro_on = pro.live_now(state, now)
         if pro_on:
             stage("pro schedules", lambda: pro.update_schedules(state, log))
+            stage("MLV box scores now", lambda: pro.mlv_live_boxes(state, now, log))
         if not todo and not pro_on:
             log("match-night run: no ranked team is playing right now; nothing to do")
             return 0
@@ -539,6 +540,7 @@ def main(state_dir: str, out_dir: str) -> int:
             stage("photos", lambda: update_photos(state, now))
         stage("pro data", lambda: pro.download(state, log))
         stage("pro schedules", lambda: pro.update_schedules(state, log))
+        stage("MLV box scores now", lambda: pro.mlv_live_boxes(state, now, log))
         stage("pro photos", lambda: pro.update_media(state, now.date(), log))
     stage("site", lambda: build_site(state, out, now))
     stage("pro leagues", lambda: build_pro(state, out, now))
