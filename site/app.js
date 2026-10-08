@@ -241,6 +241,9 @@
   function draw() {
     var holder = $("list"), nav = $("nav"), head = $("h-list");
     holder.innerHTML = ""; nav.innerHTML = "";
+    // which side is which: over the columns on a wide screen, beside the two lines on a phone
+    holder.appendChild(el("div", { "class": "hahead", "aria-hidden": "true" }, [el("span"), el("span", { "class": "ha away", text: W("matches.away") }),
+      el("span"), el("span", { "class": "ha home", text: W("matches.home") }), el("span")]));
     var weeks = {};
     data.games.forEach(function (g) { weeks[monday(g.date)] = 1; });
     var first = Object.keys(weeks).sort()[0], last = Object.keys(weeks).sort().pop();

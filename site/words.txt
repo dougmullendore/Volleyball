@@ -25,6 +25,8 @@ matches.no_broadcast = No broadcast listed
 matches.box_score = Box score
 matches.live_box_score = Live box score
 matches.live = Live
+matches.away = Away
+matches.home = Home
 
 # ---- Rankings page ----
 rankings.title = Top 25 Rankings
