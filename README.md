@@ -31,6 +31,17 @@ than two weeks away show nothing, because networks are usually not announced
 that far ahead. Channels are refreshed every night and can change late; the
 page says so in its footer.
 
+## Live scores
+
+While a ranked team's match is being played, the page itself re-reads ESPN's
+public scoreboard every 20 seconds and updates that match's row: sets won in
+big numbers, points in the current set in small ones, and "Final" when it
+ends. This happens in the reader's browser, so it needs no extra runs on
+GitHub. It starts 15 minutes before a match's listed start time, pauses while
+the tab is in the background, and covers every match the nightly job managed
+to find in ESPN's schedule (nearly all of them). If ESPN cannot be reached,
+the row simply stays as it was.
+
 ## When it updates
 
 The file `.github/workflows/update.yml` tells GitHub when to run:
@@ -46,8 +57,9 @@ The poll normally comes out on Monday afternoon. If both Monday looks miss it
 poll it has is more than eight days old and looks again every night until it
 finds the new one. In between, the page keeps showing the last poll it has.
 
-Scores are refreshed once a night, so a match played this evening shows its
-result tomorrow morning.
+The stored scores are refreshed once a night. In between, matches in
+progress are followed live as described above; a reader who opens the page
+after a match has ended still sees its final score that evening.
 
 ## Where things are
 

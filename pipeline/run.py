@@ -165,16 +165,21 @@ def update_watch(state: Path, now: dt.datetime) -> dict:
     keep = {str(g["id"]) for g in sel["games"] if g["state"] != "final"}
     stored = {k: v for k, v in stored.items() if k in keep}           # finished matches are dropped
     for g in soon:
-        chans = found.get(g["id"])
-        if chans or str(g["id"]) not in stored:
-            stored[str(g["id"])] = chans or []
+        old = stored.get(str(g["id"])) or {}
+        if isinstance(old, list):                    # the first version stored only the channels
+            old = {"channels": old}
+        new = found.get(g["id"]) or {}
+        stored[str(g["id"])] = {"channels": new.get("channels") or old.get("channels") or [],
+                                "espn": new.get("espn") or old.get("espn"),
+                                "flip": new["flip"] if new.get("espn") else bool(old.get("flip"))}
     write_json(state / "watch.json", stored, indent=0)
-    have = sum(1 for g in soon if stored.get(str(g["id"])))
+    have = sum(1 for g in soon if stored[str(g["id"])]["channels"])
+    followable = sum(1 for g in soon if stored[str(g["id"])]["espn"])
     log(f"watch: {len(listings):,} listings read; a channel for {have} of {len(soon)} matches in the next {config.WATCH_DAYS} days"
         + (f"; could not read: {failed}" if failed else ""))
     if failed and not listings:
         raise RuntimeError("no TV listings could be read: " + "; ".join(failed)[:300])
-    return {"matches_soon": len(soon), "with_channel": have, "listings": len(listings), "failed": failed}
+    return {"matches_soon": len(soon), "with_channel": have, "with_live_score": followable, "listings": len(listings), "failed": failed}
 
 
 def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
@@ -183,8 +188,13 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
     rank = {t["id"]: t["rank"] for t in ranked if t["id"]}
     where = read_json(state / "watch.json", {})
     for g in listed:
-        if g["state"] != "final" and str(g["id"]) in where:
-            g["watch"] = where[str(g["id"])]      # an empty list means: looked, nothing announced
+        w = where.get(str(g["id"]))
+        if g["state"] != "final" and w is not None:
+            if isinstance(w, list):
+                w = {"channels": w}
+            g["watch"] = w.get("channels") or []      # an empty list means: looked, nothing announced
+            if w.get("espn"):
+                g["espn"] = [w["espn"], 1 if w.get("flip") else 0]   # lets the page follow the score live
     if out.exists():
         shutil.rmtree(out)
     shutil.copytree(SITE_SRC, out)
@@ -200,7 +210,8 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
     write_json(out / "data.json", {
         "site": config.SITE_NAME, "updated": now.isoformat(timespec="seconds"), "season": sel["season"],
         "poll": {"name": config.POLL_NAME, "through": through, "teams": ranked, "polls_seen": sel["polls_seen"]},
-        "game_page": config.GAME_PAGE, "games": listed})
+        "game_page": config.GAME_PAGE, "live_feed": config.ESPN_SCOREBOARD, "live_seconds": config.LIVE_SECONDS,
+        "games": listed})
     (out / ".nojekyll").write_text("")
     log(f"site: poll through {through}, {len(listed)} matches listed for {len(rank)} ranked teams"
         + (f"; NOT MATCHED to a scoreboard team: {unmatched}" if unmatched else ""))

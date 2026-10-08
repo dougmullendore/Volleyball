@@ -111,7 +111,8 @@ def test_channels_are_matched_to_matches():
     names = {s["id"]: s["name"] for g in games for s in (g["away"], g["home"])}
     found = watch.assign(games, listings(), names)
     assert len(found) >= 105                                   # nearly every match that day is in a listing
-    by_teams = {(g["away"]["id"], g["home"]["id"]): found.get(g["id"]) for g in games}
+    by_teams = {(g["away"]["id"], g["home"]["id"]): (found.get(g["id"]) or {}).get("channels") for g in games}
+    assert sum(1 for f in found.values() if f["espn"]) >= 105 and not any(f["flip"] for f in found.values())
     assert by_teams[("louisville", "notre-dame")] == ["ACC Network Extra"]     # ESPN writes "ACCNX"
     assert by_teams[("virginia", "stanford")] == ["ACC Network Extra"]
     assert by_teams[("nebraska", "maryland")] == ["B1G+"]      # both sources list it; shown once
@@ -144,8 +145,12 @@ def test_the_page_carries_channels_for_matches_not_yet_played():
     ranked = run.ranked_matches(state)
     where = watch.assign(ranked["games"], listings(), ranked["names"])
     run.write_json(state / "watch.json", {str(k): v for k, v in where.items()})
+    assert where[next(g["id"] for g in games if g["home"]["id"] == "maryland")]["espn"]
     run.build_site(state, out, dt.datetime(2026, 10, 2, tzinfo=UTC))
     data = json.loads((out / "data.json").read_text())
     shown = {(g["away"]["id"], g["home"]["id"]): g.get("watch") for g in data["games"]}
     assert shown[("nebraska", "maryland")] == ["B1G+"] and shown[("louisville", "notre-dame")] == ["ACC Network Extra"]
     assert shown[("iowa", "penn-st")] is None                  # finished: no channel shown
+    followed = [g for g in data["games"] if g.get("espn")]
+    assert followed and all(len(g["espn"]) == 2 and g["espn"][0].isdigit() for g in followed)
+    assert data["live_feed"].startswith("https://site.api.espn.com/")

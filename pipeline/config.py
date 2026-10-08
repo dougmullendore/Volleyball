@@ -30,6 +30,9 @@ GAME_PAGE = "https://www.ncaa.com/game/"
 # Where to watch. Channels are looked up for matches in the next WATCH_DAYS
 # days; further out, networks have usually not been announced.
 WATCH_DAYS = 14
+# While a ranked team's match is being played, the page itself re-reads ESPN's
+# scoreboard this often (in seconds) and shows the score as it changes.
+LIVE_SECONDS = 20
 ESPN_SCOREBOARD = "https://site.api.espn.com/apis/site/v2/sports/volleyball/womens-college-volleyball/scoreboard?limit=500&dates="
 BIGTEN_SCHEDULE = "https://bigten.org/services/responsive-calendar.ashx?start={start}&end={end}%2023:59:59&sport_id=28&school_id=0"
 

@@ -40,15 +40,19 @@ def _epoch(text: str) -> float | None:
 
 
 def parse_espn(doc: dict) -> list[dict]:
-    """One day of ESPN's scoreboard as [{"t": start, "teams": [names], "channels": [...]}]."""
+    """One day of ESPN's scoreboard as [{"t": start, "teams": [names], "channels": [...],
+    "espn": event id, "home": the home team's name}]. The event id is what the
+    page uses to follow the match's score while it is being played."""
     out = []
     for e in doc.get("events") or []:
         comp = (e.get("competitions") or [{}])[0]
         names = [n for b in comp.get("broadcasts") or [] for n in b.get("names") or []]
-        teams = [(c.get("team") or {}).get("location") or "" for c in comp.get("competitors") or []]
+        sides = comp.get("competitors") or []
+        teams = [(c.get("team") or {}).get("location") or "" for c in sides]
+        home = next(((c.get("team") or {}).get("location") for c in sides if c.get("homeAway") == "home"), None)
         t = _epoch(e.get("date") or comp.get("date"))
         if t and len(teams) == 2:
-            out.append({"t": t, "teams": teams, "channels": names})
+            out.append({"t": t, "teams": teams, "channels": names, "espn": str(e["id"]) if e.get("id") else None, "home": home})
     return out
 
 
@@ -72,7 +76,9 @@ def parse_bigten(rows: list) -> list[dict]:
 
 
 def assign(games: list[dict], listings: list[dict], names: dict) -> dict:
-    """{match id: [channels]} for every match that has a listing. A listing
+    """{match id: {"channels": [...], "espn": ESPN's id for the match or None,
+    "flip": True when ESPN calls the other team the home team}} for every
+    match that has a listing. A listing
     belongs to a match when both teams are the same and the start times are
     within six hours, or one team is the same and they start within two."""
     seen = {}
@@ -82,6 +88,7 @@ def assign(games: list[dict], listings: list[dict], names: dict) -> dict:
                 if t not in seen:
                     seen[t] = poll.match_school(t, names)
             item["ids"] = {seen[t] for t in item["teams"]} - {None}
+            item["home_id"] = seen.get(item.get("home"))
     out = {}
     for g in games:
         if not g.get("start"):
@@ -95,7 +102,7 @@ def assign(games: list[dict], listings: list[dict], names: dict) -> dict:
         if not found:
             continue
         best = min(found, key=lambda f: f[:2])
-        chans = []
+        chans, espn, flip = [], None, False
         for n, gap, item in sorted(found, key=lambda f: f[:2]):
             # the same match in both sources: both teams agree, or one does and so does the start time
             if n == best[0] and (n == -2 or abs(item["t"] - best[2]["t"]) <= 3600):
@@ -103,7 +110,11 @@ def assign(games: list[dict], listings: list[dict], names: dict) -> dict:
                     c = channel(c)
                     if c and c not in chans:
                         chans.append(c)
-        out[g["id"]] = chans
+                if item.get("espn") and not espn:
+                    espn = item["espn"]
+                    away_name = next((t for t in item["teams"] if t != item.get("home")), None)
+                    flip = item.get("home_id") == g["away"]["id"] or (item.get("home_id") is None and seen.get(away_name) == g["home"]["id"])
+        out[g["id"]] = {"channels": chans, "espn": espn, "flip": bool(flip)}
     return out
 
 

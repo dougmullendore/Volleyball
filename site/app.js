@@ -45,33 +45,99 @@
 
   // ---- one match ----
   function row(g) {
-    var fin = g.state === "final", live = g.state === "live", scored = (fin || live) && g.away.sets != null && g.home.sets != null;
-    var awayWon = fin && scored && g.away.sets > g.home.sets, homeWon = fin && scored && g.home.sets > g.away.sets;
+    // g.live is the score read from ESPN while the match is on (see "live scores" below)
+    var L = g.live, fin = L ? L.state === "post" : g.state === "final", live = L ? L.state === "in" : g.state === "live";
+    var as = L ? L.away : g.away.sets, hs = L ? L.home : g.home.sets, scored = (fin || live) && as != null && hs != null;
+    var awayWon = fin && scored && as > hs, homeWon = fin && scored && hs > as;
     var t = g.start ? new Date(g.start * 1000) : null;
-    var note = g.state === "other" ? (g.note ? g.note.charAt(0).toUpperCase() + g.note.slice(1) : "Not played") : "";
-    var when = fin ? "Final" : note ? note : t && !isNaN(t) ? t.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : "Time not set";
+    var note = !L && g.state === "other" ? (g.note ? g.note.charAt(0).toUpperCase() + g.note.slice(1) : "Not played") : "";
+    var when = fin ? "Final" : live ? (L && L.detail) || "In progress" : note ? note : t && !isNaN(t) ? t.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : "Time not set";
     function team(side, s, lost) {
       var kids = [el("span", { "class": "name", text: s.name }), rankTag(s.rank)];
       if (side === "home") kids.reverse();
       return el("span", { "class": "team " + side + (lost ? " lost" : "") }, kids);
     }
+    var pts = live && L && L.pts ? L.pts : null;      // points in the set being played: [away, home]
+    function sets(cls, n, lost, p) {
+      return el("span", { "class": cls + " " + (lost ? "l" : "w") }, [String(n), p != null ? el("small", { "class": "pt", text: String(p) }) : null]);
+    }
     var mid = scored
-      ? el("span", { "class": "mid", "aria-label": g.away.name + " " + g.away.sets + ", " + g.home.name + " " + g.home.sets }, [
-          el("span", { "class": "sa " + (homeWon ? "l" : "w"), text: String(g.away.sets) }), el("span", { "class": "dash", text: "–" }),
-          el("span", { "class": "sh " + (awayWon ? "l" : "w"), text: String(g.home.sets) })])
+      ? el("span", { "class": "mid", "aria-label": g.away.name + " " + as + ", " + g.home.name + " " + hs + " in sets" + (pts ? "; this set " + pts[0] + " to " + pts[1] : "") }, [
+          sets("sa", as, homeWon, pts && pts[0]), el("span", { "class": "dash", text: "–" }), sets("sh", hs, awayWon, pts && pts[1]),
+          pts ? el("span", { "class": "pts", text: pts[0] + "–" + pts[1] }) : null])
       : el("span", { "class": "mid at", text: "at" });
     var more = [];
-    if (live) more.push(el("span", { "class": "live", text: "In progress " }));
     if (g.round) more.push(g.round + " ");
     if (!fin && g.watch) {
       more.push(g.watch.length ? el("span", { "class": "watch" }, [el("span", { "class": "sr", text: "Watch on " }), g.watch.join(", ")])
         : el("span", { "class": "watch none", text: "No broadcast listed" }));
     }
     if (fin || live) more.push(el("a", { href: data.game_page + g.id, text: "Box score", rel: "noopener" }));
-    return el("li", { "class": "game" + (g.away.rank && g.home.rank ? " both" : "") }, [
-      el("span", { "class": "when", text: when }), team("away", g.away, homeWon), mid, team("home", g.home, awayWon),
+    return el("li", { "class": "game" + (g.away.rank && g.home.rank ? " both" : "") + (live ? " on" : ""), "data-id": g.id }, [
+      el("span", { "class": "when" + (live ? " live" : ""), text: when }), team("away", g.away, homeWon), mid, team("home", g.home, awayWon),
       el("span", { "class": "more" }, more)]);
   }
+
+  // ---- live scores ----
+  // The site is rebuilt once a night, so while a match is on, the page reads
+  // ESPN's public scoreboard itself and updates that match's row in place.
+  var liveTimer = null;
+  function ymd(g) { return g.date.replace(/-/g, ""); }
+  function dueGames(now) {       // matches that could be under way: from 15 minutes before the start until 5 hours after
+    return data.games.filter(function (g) {
+      return g.espn && g.start && g.state !== "final" && !(g.live && g.live.state === "post") && now >= g.start - 900 && now <= g.start + 5 * 3600;
+    });
+  }
+  function readLive(e) {
+    var c = (e.competitions || [{}])[0], st = (e.status || {}).type || {}, out = { state: st.state, detail: st.shortDetail || st.detail || "" };
+    (c.competitors || []).forEach(function (x) {
+      var lines = x.linescores || [];
+      out[x.homeAway] = x.score === "" || x.score == null ? null : +x.score;
+      out[x.homeAway + "Pts"] = lines.length ? Math.round(lines[lines.length - 1].value) : null;
+    });
+    return out;
+  }
+  function pollLive() {
+    clearTimeout(liveTimer);
+    if (!data.live_feed) return;
+    var now = Date.now() / 1000, due = dueGames(now), every = (data.live_seconds || 20) * 1000;
+    if (document.hidden) return;                       // picks up again when the tab is shown
+    if (!due.length) {                                 // nothing on: look again when the next match is close
+      var next = data.games.filter(function (g) { return g.espn && g.start && g.state !== "final" && g.start - 900 > now; })
+        .map(function (g) { return g.start - 900; }).sort(function (a, b) { return a - b; })[0];
+      if (next) liveTimer = setTimeout(pollLive, Math.min(Math.max((next - now) * 1000, every), 6 * 3600 * 1000));
+      showLiveNote(false);
+      return;
+    }
+    var dates = {};
+    due.forEach(function (g) { dates[ymd(g)] = 1; });
+    Promise.all(Object.keys(dates).map(function (d) {
+      return fetch(data.live_feed + d, { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : { events: [] }; }).catch(function () { return { events: [] }; });
+    })).then(function (docs) {
+      var byId = {};
+      docs.forEach(function (doc) { (doc.events || []).forEach(function (e) { byId[e.id] = e; }); });
+      var anyLive = false;
+      due.forEach(function (g) {
+        var e = byId[g.espn[0]];
+        if (!e) return;
+        var r = readLive(e), flip = g.espn[1];
+        if (r.state !== "in" && r.state !== "post") return;                // not started yet
+        var live = { state: r.state, detail: r.detail, away: flip ? r.home : r.away, home: flip ? r.away : r.home,
+          pts: r.state === "in" && r.awayPts != null && r.homePts != null ? (flip ? [r.homePts, r.awayPts] : [r.awayPts, r.homePts]) : null };
+        if (live.state === "in") anyLive = true;
+        if (JSON.stringify(live) === JSON.stringify(g.live)) return;
+        g.live = live;
+        Array.prototype.forEach.call(document.querySelectorAll('.game[data-id="' + g.id + '"]'), function (li) { li.parentNode.replaceChild(row(g), li); });
+      });
+      showLiveNote(anyLive);
+    }).then(function () { liveTimer = setTimeout(pollLive, every); });
+  }
+  function showLiveNote(on) {
+    var n = $("live-note");
+    n.hidden = !on;
+    if (on) n.textContent = "Live scores from ESPN, refreshed every " + (data.live_seconds || 20) + " seconds. Big numbers are sets won; small numbers are points in the current set.";
+  }
+  document.addEventListener("visibilitychange", function () { if (data && !document.hidden) pollLive(); });
 
   function listInto(holder, games, newestFirst) {
     var days = {}, order = [];
@@ -150,6 +216,7 @@
       ". Rankings: " + d.poll.name + " through " + day(d.poll.through).toLocaleDateString(undefined, { dateStyle: "long" }) + ".";
     window.addEventListener("hashchange", route);
     route();
+    pollLive();
   }).catch(function () {
     $("h-list").textContent = "The matches could not be loaded";
     $("list").appendChild(el("p", { "class": "empty", text: "Reload the page to try again. If this keeps happening, the nightly update may not have run yet." }));
