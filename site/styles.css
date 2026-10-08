@@ -217,3 +217,40 @@ h2 { font: 700 1.375rem/1.2 "Barlow Condensed", sans-serif; margin: 0; }
   .mid .pt { display: inline-block; min-width: 1.6em; margin-left: 10px; font: 500 .8125rem/1 Barlow, sans-serif; color: var(--ink-2); text-align: right; }
   .mid .sa { grid-area: as; } .mid .sh { grid-area: hs; }
 }
+
+/* ---- the news page ---- */
+.stories { list-style: none; margin: 0; padding: 0; max-width: 46rem; }
+.story { display: grid; grid-template-columns: 1fr; gap: 14px; background: var(--sheet); border: 1px solid var(--line); border-radius: 4px; padding: 14px 16px; margin: 0 0 10px; }
+.story.has-img { grid-template-columns: 9.5rem 1fr; }
+.story .thumb { display: block; align-self: start; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 3px; background: var(--teal-soft); }
+.story .thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.sbody { min-width: 0; }
+.steams { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: 0 0 6px; font-size: .8125rem; }
+.steam { display: inline-flex; align-items: center; gap: 2px; }
+.steam .logo.sm { margin-left: 2px; }
+.result { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; margin: 0; color: var(--ink-2); }
+.result .when { font-weight: 600; text-transform: uppercase; font-size: .6875rem; letter-spacing: .04em; margin-right: 2px; }
+.result .side { display: inline-flex; align-items: center; gap: 2px; color: var(--ink); }
+.result .side b { font-weight: 700; }
+.result .side.lost { color: var(--ink-2); }
+.result .side.lost .rk:not(.none) { background: var(--loss); color: var(--loss-ink); }
+.story h3 { font: 600 1.0625rem/1.3 Barlow, sans-serif; margin: 0 0 4px; }
+.story h3 a { color: var(--ink); text-decoration: none; }
+.story h3 a:hover { text-decoration: underline; text-decoration-color: var(--teal); }
+.smeta { color: var(--ink-2); font-size: .8125rem; margin: 0; }
+.sblurb { color: var(--ink-2); font-size: .875rem; line-height: 1.45; margin: 6px 0 0; }
+.vid { display: inline-block; vertical-align: 2px; margin-right: 6px; padding: 2px 5px; border-radius: 3px; background: var(--teal-soft); color: var(--teal);
+  font: 700 .6875rem/1 "Barlow Condensed", sans-serif; text-transform: uppercase; letter-spacing: .04em; }
+.story details { margin-top: 8px; font-size: .875rem; }
+.story summary { cursor: pointer; color: var(--teal); font-weight: 600; min-height: 28px; display: list-item; }
+.smore { margin: 6px 0 0; padding: 0 0 0 18px; }
+.smore li { margin: 0 0 6px; line-height: 1.4; }
+.smore a { color: var(--ink); }
+.stories .empty { list-style: none; }
+
+@media (max-width: 640px) {
+  .story, .story.has-img { grid-template-columns: 1fr; padding: 12px; gap: 10px; }
+  .story .thumb { max-height: 11rem; }
+  /* four pages beside the name: the name goes on two lines */
+  #brand { max-width: 4.6em; line-height: .95; white-space: normal; }
+}
