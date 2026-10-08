@@ -120,12 +120,12 @@ def _stored_media(page: str) -> list[dict]:
         v = data[i] if isinstance(i, int) and not isinstance(i, bool) and 0 <= i < len(data) else None
         return v if isinstance(v, str) else ""
 
-    out = []
-    for d in data:
+    def picture(d):
+        """{"name", "text", "url"} for one picture entry, or None."""
         if not (isinstance(d, dict) and "url" in d and ("original_name" in d or "mime_type" in d)):
-            continue
+            return None
         if "mime_type" in d and not at(d["mime_type"]).startswith("image/"):
-            continue                                 # rosters also carry sound clips of how to say a name
+            return None                              # rosters also carry sound clips of how to say a name
         url, sizes = at(d.get("url")), []
         for part in at(d.get("srcset")).split(","):
             bits = part.strip().split(" ")
@@ -134,9 +134,28 @@ def _stored_media(page: str) -> list[dict]:
         medium = sorted(w for w in sizes if w[0] >= 300)
         if medium:
             url = medium[0][1]                       # the smallest that is still sharp at card size
-        if url:
-            out.append({"name": at(d.get("original_name")) or at(d.get("title")),
-                        "text": " ".join(at(d.get(k)) for k in ("title", "alt", "caption", "description")), "url": url})
+        if not url:
+            return None
+        return {"name": at(d.get("original_name")) or at(d.get("title")),
+                "text": " ".join(at(d.get(k)) for k in ("title", "alt", "caption", "description")), "url": url}
+
+    out = []
+    for d in data:
+        if not isinstance(d, dict):
+            continue
+        # a person's entry points straight at her photo: the surest link there is
+        if "last_name" in d or "full_name" in d:
+            name = at(d.get("full_name")) or (at(d.get("first_name")) + " " + at(d.get("last_name"))).strip()
+            for key in ("photo", "master_photo"):
+                ref = d.get(key)
+                pic = picture(data[ref]) if isinstance(ref, int) and not isinstance(ref, bool) and 0 <= ref < len(data) else None
+                if name and pic:
+                    out.append({"name": "", "text": name, "url": pic["url"], "sure": True})
+                    break
+            continue
+        pic = picture(d)
+        if pic:
+            out.append(pic)
     return out
 
 
@@ -154,6 +173,11 @@ def find(page: str, base: str, names: dict) -> dict:
         return hits[0] if len(hits) == 1 else None
 
     out = {}
+    for m in media:                  # first, players the page's data ties directly to a photo
+        pid = whose(m["text"]) if m.get("sure") else None
+        url = _usable(m["url"], base)
+        if pid and pid not in out and url:
+            out[pid] = url
     for alt, urls, file_name in _images(page):
         pid = whose(alt)
         if not pid or pid in out:
@@ -182,7 +206,8 @@ def update(stored: dict, teams: dict, today: dt.date, fetch, log) -> dict:
         have = stored.get(team) or {}
         age = (today - dt.date.fromisoformat(have["checked"])).days if have.get("checked") else 10 ** 6
         missing = any(pid not in (have.get("photos") or {}) for pid in names)
-        if age < config.PHOTO_REFRESH_DAYS and not (missing and age >= 1):
+        nothing_yet = not have.get("photos")
+        if age < config.PHOTO_REFRESH_DAYS and not (missing and age >= 1) and not nothing_yet:
             continue
         try:
             found = find(fetch(listed[team]), listed[team], names)

@@ -278,3 +278,14 @@ def test_roster_pages_are_read_weekly_and_old_photos_kept():
     photos.update(stored, teams, day + dt.timedelta(days=7), fetch, lambda m: None)
     assert len(calls) == 2 and stored["nebraska"]["photos"]["nebraska~reilly~ber"].endswith("/r2.jpg")
     assert stored["nebraska"]["photos"]["nebraska~jackson~and"].endswith("/j.jpg")      # missed this time, kept
+
+
+def test_photo_tied_to_the_player_in_the_data_block():
+    # the <img> says only "head shot"; the data block says whose it is
+    data = [{"first_name": 1, "last_name": 2, "full_name": 3, "photo": 4},
+            "Andi", "Jackson", "Andi Jackson",
+            {"url": 5, "mime_type": 6, "title": 7, "original_name": 7}, "https://school.example/imgproxy/aj.jpg", "image/jpeg", "head shot",
+            {"first_name": 9, "last_name": 10, "photo": 11}, "Dani", "Coach", None]
+    page = ('<img src="data:image/gif;base64,AA" alt="head shot">'
+            '<script type="application/json" id="__NUXT_DATA__">' + json.dumps(data) + "</script>")
+    assert photos.find(page, BASE, NAMES) == {"t~jackson~and": "https://school.example/imgproxy/aj.jpg"}
