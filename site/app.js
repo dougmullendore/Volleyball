@@ -379,7 +379,7 @@
         }));
         var body = el("tbody", {}, rows.map(function (p) {
           return el("tr", {}, PCOLS.map(function (c) {
-            if (c[0] === "name") return el("td", { "class": "l nm" }, [el("a", { href: "#/player/" + encodeURIComponent(p.id) }, [face(p), el("span", { text: p.name })])]);
+            if (c[0] === "name") return el("td", { "class": "l nm" }, [el("a", { href: "#/player/" + encodeURIComponent(p.id) }, [el("span", { text: p.name })])]);
             if (c[0] === "team") return el("td", { "class": "l" }, [el("span", { "class": "tcell tm" }, [logo(p.team_id), teamA(p.team_id, p.team)])]);
             var v = c[3](p);
             return el("td", { "class": (c[0] === "impact_set" ? "strong " : "") + (pstate.sort === c[0] ? "sorted" : ""), text: v == null ? (c[0] === "rank" ? "–" : "") : c[4](v) });
