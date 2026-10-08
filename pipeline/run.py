@@ -27,7 +27,7 @@ import sys
 import traceback
 from pathlib import Path
 
-from . import box, config, goat, odds, photos, players, poll, watch, web
+from . import box, config, goat, odds, photos, players, poll, teams, watch, web
 
 SITE_SRC = Path(__file__).resolve().parents[1] / "site"
 
@@ -311,6 +311,8 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
             if url:
                 p["photo"] = url
     write_json(out / "players.json", rated)
+    team_stats = teams.compute(ranked, listed, read_json(state / "box.json", {}), rating)
+    write_json(out / "teams.json", team_stats)
     (out / ".nojekyll").write_text("")
     log(f"site: poll through {through}, {len(listed)} matches listed for {len(rank)} ranked teams, "
         f"{rated['regulars']} regulars rated of {len(rated['players'])} players"

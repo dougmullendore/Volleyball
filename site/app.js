@@ -440,15 +440,82 @@
     });
   }
 
+  // ---- the teams page: each ranked team's stats, from box scores ----
+  var teamStats = null, tstate = { sort: "rank", dir: 1 };
+  function loadTeams() {
+    if (teamStats) return Promise.resolve(teamStats);
+    return fetch("teams.json", { cache: "no-cache" }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (d) { teamStats = d; return d; });
+  }
+  function hitFmt(v) { return (v < 0 ? "-" : "") + Math.abs(v).toFixed(3).replace(/^0/, ""); }
+  var TCOLS = [   // key, heading, meaning, getter, format, sorts high to low first
+    ["rank", "AVCA", "Rank in the AVCA coaches poll", function (t) { return t.rank; }, String, 0],
+    ["name", "Team", "", function (t) { return t.name; }, null, 0],
+    ["rec", "W-L", "Matches won and lost", function (t) { return t.w + t.l ? t.w / (t.w + t.l) : null; }, null, 1],
+    ["set_pct", "Sets", "Sets won and lost", function (t) { return t.set_pct; }, null, 1],
+    ["hit", "Hit%", "Hitting efficiency: kills minus errors, divided by swings", function (t) { return t.hit; }, hitFmt, 1],
+    ["opp_hit", "Opp Hit%", "Opponents' hitting efficiency against this team. Lower is better", function (t) { return t.opp_hit; }, hitFmt, 0],
+    ["k_set", "K/S", "Kills per set", function (t) { return t.k_set; }, fmt.d2, 1],
+    ["opp_k_set", "Opp K/S", "Opponents' kills per set. Lower is better", function (t) { return t.opp_k_set; }, fmt.d2, 0],
+    ["ast_set", "A/S", "Assists per set", function (t) { return t.ast_set; }, fmt.d2, 1],
+    ["sa_set", "SA/S", "Aces per set", function (t) { return t.sa_set; }, fmt.d2, 1],
+    ["se_set", "SE/S", "Service errors per set. Lower is better", function (t) { return t.se_set; }, fmt.d2, 0],
+    ["blk_set", "B/S", "Blocks per set: solo blocks plus half of each block assist", function (t) { return t.blk_set; }, fmt.d2, 1],
+    ["d_set", "D/S", "Digs per set", function (t) { return t.d_set; }, fmt.d2, 1],
+    ["re_pct", "RE%", "Reception errors per 100 serves received. Lower is better", function (t) { return t.re_pct; }, function (v) { return v.toFixed(1); }, 0],
+    ["power", "Rating", "Where this site's rating (the one behind the odds) places the team among all Division I teams", function (t) { return t.power; }, String, 0],
+    ["sos_rank", "SOS", "Strength of schedule among the 25: 1 is the hardest, by the average rating of the teams played", function (t) { return t.sos_rank; }, String, 0]
+  ];
+  function drawTeams() {
+    var holder = $("t-list");
+    holder.innerHTML = "";
+    holder.appendChild(el("p", { "class": "empty", text: "Loading the team stats…" }));
+    loadTeams().then(function (d) {
+      function table() {
+        holder.innerHTML = "";
+        var col = TCOLS.filter(function (c) { return c[0] === tstate.sort; })[0];
+        var rows = d.teams.slice().sort(function (a, b) {
+          var x = col[3](a), y = col[3](b);
+          if (x == null && y == null) return a.rank - b.rank; if (x == null) return 1; if (y == null) return -1;
+          return (typeof x === "string" ? tstate.dir * x.localeCompare(y) : tstate.dir * (x - y)) || a.rank - b.rank;
+        });
+        var head = el("tr", {}, TCOLS.map(function (c) {
+          var on = tstate.sort === c[0];
+          return el("th", { scope: "col", "class": c[0] === "name" ? "l" : "", "aria-sort": on ? (tstate.dir > 0 ? "ascending" : "descending") : null }, [
+            el("button", { type: "button", title: c[2] || null, text: c[1] + (on ? (tstate.dir > 0 ? " ▲" : " ▼") : ""),
+              onclick: function () { if (on) tstate.dir = -tstate.dir; else { tstate.sort = c[0]; tstate.dir = c[5] ? -1 : 1; } table(); } })]);
+        }));
+        var body = el("tbody", {}, rows.map(function (t) {
+          return el("tr", {}, TCOLS.map(function (c) {
+            var cls = tstate.sort === c[0] ? "sorted" : "";
+            if (c[0] === "rank") return el("td", { "class": cls }, [rankTag(t.rank)]);
+            if (c[0] === "name") return el("td", { "class": "l " + cls }, [el("span", { "class": "tcell" }, [logo(t.id), el("span", { text: t.name })])]);
+            if (c[0] === "rec") return el("td", { "class": cls, text: t.w + "-" + t.l });
+            if (c[0] === "set_pct") return el("td", { "class": cls, text: t.sw + "-" + t.sl });
+            var v = c[3](t);
+            return el("td", { "class": cls, text: v == null ? "" : c[4](v) });
+          }));
+        }));
+        holder.appendChild(el("div", { "class": "tablewrap", tabindex: "0", role: "region", "aria-label": "Team stats table, scrolls sideways" }, [
+          el("table", { "class": "ptable ttable" }, [el("thead", {}, [head]), body])]));
+        holder.appendChild(el("p", { "class": "note", text: (d.through ? "Through matches of " + short(d.through) + ". " : "") +
+          "Per-set numbers count every set in matches with an official box score. Rating is where this site's rating of results places the team among all Division I teams; SOS ranks the 25 by how strong their opponents have been. Choose a column heading to sort; hold or hover over a heading for what it means." }));
+      }
+      table();
+    }).catch(function () {
+      holder.innerHTML = "";
+      holder.appendChild(el("p", { "class": "empty", text: "The team stats could not be loaded. Reload the page to try again." }));
+    });
+  }
+
   function route() {
     var h = location.hash, card = /^#\/?player\/(.+)$/.exec(h);
-    var page = card ? "card" : /^#\/?players/.test(h) ? "players" : /^#\/?rankings/.test(h) ? "rankings" : "matches";
-    ["matches", "rankings", "players", "card"].forEach(function (p) { $("page-" + p).hidden = p !== page; });
+    var page = card ? "card" : /^#\/?players/.test(h) ? "players" : /^#\/?rankings/.test(h) ? "rankings" : /^#\/?teams/.test(h) ? "teams" : "matches";
+    ["matches", "rankings", "teams", "players", "card"].forEach(function (p) { $("page-" + p).hidden = p !== page; });
     Array.prototype.forEach.call(document.querySelectorAll(".pages a"), function (a) {
       if (a.dataset.page === (page === "card" ? "players" : page)) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
     });
-    document.title = ({ rankings: "Top 25 rankings", players: "Top 25 players", card: "Player card" }[page] || "Top 25 matches") + " | " + data.site;
-    if (page === "rankings") drawRanks(); else if (page === "players") drawPlayers(); else if (page === "card") drawCard(decodeURIComponent(card[1])); else draw();
+    document.title = ({ rankings: "Top 25 rankings", teams: "Top 25 team stats", players: "Top 25 players", card: "Player card" }[page] || "Top 25 matches") + " | " + data.site;
+    if (page === "rankings") drawRanks(); else if (page === "teams") drawTeams(); else if (page === "players") drawPlayers(); else if (page === "card") drawCard(decodeURIComponent(card[1])); else draw();
     window.scrollTo(0, 0);
   }
 

@@ -17,6 +17,15 @@ You do not need to run anything. GitHub does it all on a schedule.
   match between two ranked teams has a green edge. Buttons step to earlier
   and later weeks, and a menu narrows the list to one team's whole season.
 
+## Teams
+
+The **Teams** page is a sortable table of each ranked team's stats from the
+official box scores (`pipeline/teams.py`): match and set record, hitting
+efficiency for and against, kills, assists, aces, service errors, blocks and
+digs per set, reception error rate, where the site's rating places the team
+among all Division I teams, and strength of schedule (the average rating of
+its opponents, ranked among the 25).
+
 ## Players
 
 The **Players** page ranks every regular on the 25 ranked teams against the

@@ -505,3 +505,13 @@ def test_photo_found_by_surname_when_the_roster_uses_a_nickname():
 def test_one_player_under_two_first_names_is_one_player():
     from pipeline import players
     assert players.player_id("t", "Antonina", "Serafinowska") != players.player_id("t", "Tosia", "Serafinowska")
+
+
+def test_team_stats_add_up_from_box_scores():
+    from pipeline import teams
+    row = lambda k, e, ta: ["A", "B", 1, "OH", 1, 3, k, e, ta, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    games = [{"id": 1, "date": "2026-10-01", "state": "final", "home": {"id": "a", "sets": 3}, "away": {"id": "b", "sets": 1}}]
+    boxes = {"1": {"date": "2026-10-01", "home": [row(40, 10, 100)], "away": [row(30, 15, 100)]}}
+    got = teams.compute([{"id": "a", "name": "A", "rank": 1}], games, boxes, {"a": 1.0, "b": 0.0})["teams"][0]
+    assert (got["w"], got["l"], got["sw"], got["sl"], got["sets"]) == (1, 0, 3, 1, 4)
+    assert got["hit"] == 0.3 and got["opp_hit"] == 0.15 and got["k_set"] == 10.0 and got["power"] == 1 and got["sos_rank"] == 1
