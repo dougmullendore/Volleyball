@@ -393,7 +393,7 @@
         return s;
       }
       bar.appendChild(pick("Position", pstate.pos, [["", "All positions"]].concat(Object.keys(POS_ONE).map(function (k) { return [k, POS_ONE[k] + "s"]; })), function (v) { pstate.pos = v; }));
-      bar.appendChild(pick("Team", pstate.team, [["", W("matches.all_teams")]].concat(roster.teams.slice().sort(function (a, b) { return (shownRank(a.id, a.rank) || 9999) - (shownRank(b.id, b.rank) || 9999) || a.name.localeCompare(b.name); })
+      bar.appendChild(pick("Team", pstate.team, [["", isD1() ? W("matches.all_teams_d1") : W("matches.all_teams")]].concat(roster.teams.slice().sort(function (a, b) { return (shownRank(a.id, a.rank) || 9999) - (shownRank(b.id, b.rank) || 9999) || a.name.localeCompare(b.name); })
         .map(function (t) { var n = shownRank(t.id, t.rank); return [t.id, (n ? n + ". " : "") + t.name]; })), function (v) { pstate.team = v; }));
       var q = el("input", { type: "search", placeholder: "Find a player", "aria-label": "Find a player", value: pstate.q, oninput: function () { pstate.q = q.value; pstate.limit = 200; table(); } });
       bar.appendChild(q);
