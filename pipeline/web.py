@@ -22,7 +22,11 @@ def get_bytes(url: str, timeout: int = 60, tries: int | None = None, headers: di
         try:
             req = urllib.request.Request(url, headers={"User-Agent": config.USER_AGENT, **(headers or {})})
             with urllib.request.urlopen(req, timeout=timeout) as resp:
-                return resp.read()
+                raw = resp.read()
+            if raw[:2] == b"\x1f\x8b":            # sent compressed though not asked to
+                import gzip
+                raw = gzip.decompress(raw)
+            return raw
         except urllib.error.HTTPError as e:
             last = e
             if e.code in (400, 403, 404):
