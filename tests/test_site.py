@@ -469,3 +469,21 @@ def test_the_page_carries_the_goat_ranking():
     top = data["goat"]["top"]
     assert [x["rank"] for x in top] == list(range(1, 26)) and top[0]["id"] == "nebraska" and top[0]["avca"] == 1
     assert data["goat"]["goat_wrong"] <= data["goat"]["poll_wrong"]
+
+
+def test_rankings_list_results_against_other_ranked_teams():
+    state, out = Path(tempfile.mkdtemp(prefix="state")), Path(tempfile.mkdtemp(prefix="site")) / "dist"
+    found = poll.parse_page(poll_page())
+    run.write_json(state / "polls.json", {found["through"]: found["rows"]})
+    games = [run.parse_contest(c) for c in contests()]
+    # add two meetings of ranked teams: Nebraska beat Stanford twice, Stanford beat Louisville once
+    extra = [_won(1, "nebraska", "stanford"), _won(2, "nebraska", "stanford", "2026-09-20"), _won(3, "stanford", "louisville")]
+    for g in extra:
+        g["home"]["name"], g["away"]["name"] = g["home"]["id"].title(), g["away"]["id"].title()
+    run.write_json(state / "scoreboard.json", {"season": 2026, "days": {"2026-10-03": games, "2026-09-01": extra}})
+    run.build_site(state, out, dt.datetime(2026, 10, 7, tzinfo=UTC))
+    by = {t["id"]: t for t in json.loads((out / "data.json").read_text())["poll"]["teams"] if t["id"]}
+    assert by["nebraska"]["beat"] == [[14, "Stanford", 2]] and by["nebraska"]["lost"] == []
+    assert by["stanford"]["beat"] == [[3, "Louisville", 1]] and by["stanford"]["lost"] == [[1, "Nebraska", 2]]
+    assert by["louisville"]["lost"] == [[14, "Stanford", 1]]
+    assert by["penn-st"]["beat"] == [] and by["penn-st"]["lost"] == []      # beat Iowa that day, but Iowa is not ranked

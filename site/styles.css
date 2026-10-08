@@ -79,6 +79,12 @@ h2 { font: 700 1.375rem/1.2 "Barlow Condensed", sans-serif; margin: 0; }
 .ranks .goat.lo { background: color-mix(in srgb, var(--lost) 22%, var(--sheet)); color: var(--ink-2); }
 .nav button[aria-pressed="true"] { background: var(--teal-soft); border-color: var(--teal); }
 .ranks li:first-child { border-top: 0; }
+.ranks .vs { grid-column: 2 / -1; min-width: 0; margin-top: -2px; font-size: .8125rem; line-height: 1.5; color: var(--ink-2); }
+.ranks .vsline { display: block; }
+.ranks .vs b { font-weight: 600; color: var(--ink); }
+.ranks .vs .opp { white-space: nowrap; }
+.ranks .vs .n { font: 700 .8125rem/1 "Barlow Condensed", sans-serif; color: var(--teal); font-variant-numeric: tabular-nums; }
+.ranks .vs.none { font-style: normal; opacity: .8; }
 .ranks .who { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .ranks .nm { font-weight: 600; color: var(--ink); text-decoration: none; }
 .ranks a.nm:hover { color: var(--teal); text-decoration: underline; }

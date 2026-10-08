@@ -74,6 +74,8 @@ belong to the schools. To remove them, set `LOGO_URL = ""` in
 The Rankings page shows the AVCA poll with a second column: the site's own
 GOAT ranking, which gives head-to-head results more say than the poll does.
 
+- Under each team the page lists who it has beaten and lost to among the
+  other 24 ranked teams this season, with their poll places.
 - It ranks every Division I team, so a poll team's GOAT number can be past 25,
   and the page lists GOAT top-25 teams the poll leaves out.
 - It starts from the team ratings behind the odds. Then it looks for the

@@ -234,12 +234,23 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
         for side in ("home", "away"):
             count[g[side]["id"]] = count.get(g[side]["id"], 0) + 1
     division = {t for t, n in count.items() if n >= config.GOAT_MIN_MATCHES and t in rating}
+    division |= {t["id"] for t in ranked if t["id"] in rating}       # a ranked team is always ranked here too
     ranking = goat.rank(sel["all_games"], rating, division)
     place = {t: i + 1 for i, t in enumerate(ranking["order"])}
     polled = [t["id"] for t in ranked if t["id"]]
     for t in ranked:
         t["goat"] = place.get(t["id"])
     in_poll = {t["id"]: t["rank"] for t in ranked if t["id"]}
+    # Each ranked team's results against the other ranked teams, best opponent first.
+    results = goat.head_to_head(sel["all_games"])
+    for t in ranked:
+        t["beat"], t["lost"] = [], []
+        for other in sorted(in_poll, key=in_poll.get):
+            wins, losses, _ = results.get((t["id"], other), (0, 0, []))
+            if wins:
+                t["beat"].append([in_poll[other], sel["names"][other], wins])
+            if losses:
+                t["lost"].append([in_poll[other], sel["names"][other], losses])
     goat_top = [{"rank": i + 1, "id": t, "name": sel["names"].get(t, t), "avca": in_poll.get(t),
                  "rating_rank": ranking["base"][t]} for i, t in enumerate(ranking["order"][:config.POLL_SIZE])]
     goat_info = {"top": goat_top, "weight": config.GOAT_HEAD_TO_HEAD,

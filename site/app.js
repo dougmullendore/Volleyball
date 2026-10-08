@@ -53,6 +53,20 @@
   // ---- the rankings page ----
   // The coaches poll beside the site's own GOAT ranking, which gives head-to-head results more say.
   var rankSort = "avca";
+  // A team's results against the other ranked teams: "Beat 9 Texas, 12 Texas A&M. Lost to 2 Pittsburgh."
+  function versus(t) {
+    function list(label, rows) {
+      var kids = [el("b", { text: label + " " })];
+      rows.forEach(function (r, i) {
+        kids.push(el("span", { "class": "opp" }, [el("span", { "class": "n", text: String(r[0]) }), "\u00a0" + r[1] + (r[2] > 1 ? " ×" + r[2] : "") + (i < rows.length - 1 ? "," : "")]));
+        kids.push(" ");
+      });
+      return el("span", { "class": "vsline" }, kids);
+    }
+    var beat = t.beat || [], lost = t.lost || [];
+    if (!beat.length && !lost.length) return el("span", { "class": "vs none", text: "Has not played a ranked team yet" });
+    return el("span", { "class": "vs" }, [beat.length ? list("Beat", beat) : null, lost.length ? list("Lost to", lost) : null]);
+  }
   function drawRanks() {
     var ol = $("ranks"), bar = $("rank-sort"), G = data.goat || {};
     ol.innerHTML = ""; bar.innerHTML = "";
@@ -71,7 +85,8 @@
         el("span", { "class": "mv " + move[1], text: move[0], "aria-label": move[2] || null }),
         el("span", { "class": "goat" + (diff >= 3 ? " hi" : diff <= -3 ? " lo" : ""), text: t.goat == null ? "–" : String(t.goat),
           "aria-label": t.goat == null ? "no GOAT ranking" : "GOAT ranking " + t.goat,
-          title: t.goat == null ? null : diff === 0 ? "Same place as the poll" : Math.abs(diff) + (Math.abs(diff) === 1 ? " place " : " places ") + (diff > 0 ? "higher" : "lower") + " than the poll" })]));
+          title: t.goat == null ? null : diff === 0 ? "Same place as the poll" : Math.abs(diff) + (Math.abs(diff) === 1 ? " place " : " places ") + (diff > 0 ? "higher" : "lower") + " than the poll" }),
+        versus(t)]));
     });
     if (G.top) {
       $("goat-note").textContent = "GOAT is this site's own ranking of every Division I team. It starts from the team ratings behind the odds, then is rearranged to agree with as many head-to-head results as it can: a team climbs over one it has beaten when the two are close, but not when the ratings say the gap is wide. " +
@@ -429,7 +444,7 @@
     $("brand").textContent = d.site;
     $("lede").textContent = "Every match played by a team in the " + d.poll.name + ", week by week.";
     $("rank-lede").textContent = "The " + d.poll.name + ", through matches of " + day(d.poll.through).toLocaleDateString(undefined, { month: "long", day: "numeric" }) + ", beside this site's GOAT ranking.";
-    $("rank-note").textContent = "Record and change are from the poll, which is checked for a new one every Monday. The GOAT ranking is redone every night. Choose a team to see its matches.";
+    $("rank-note").textContent = "Record and change are from the poll, which is checked for a new one every Monday. Under each team are its results this season against the other 24, with their poll places. The GOAT ranking is redone every night. Choose a team to see its matches.";
     var u = new Date(d.updated);
     $("foot-updated").textContent = "Scores and schedule updated " + (isNaN(u) ? d.updated : u.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })) +
       ". Rankings: " + d.poll.name + " through " + day(d.poll.through).toLocaleDateString(undefined, { dateStyle: "long" }) + ".";

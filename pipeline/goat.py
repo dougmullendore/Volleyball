@@ -93,4 +93,4 @@ def contradictions(order: list, games: list[dict], among: set) -> int:
     the wrong way round (a team ranked below one it has the better of)."""
     place = {t: i for i, t in enumerate(order)}
     return sum(1 for (a, b), (wins, losses, _) in head_to_head(games).items()
-               if a in among and b in among and wins > losses and place[a] > place[b])
+               if a in among and b in among and a in place and b in place and wins > losses and place[a] > place[b])
