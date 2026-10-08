@@ -47,10 +47,13 @@ shift a little, because the comparison is always with the current top 25.
 No feed carries player photos for college volleyball, so they come from each
 school's own public roster page.
 
-- `rosters/pages.csv` lists the roster page of each ranked school. **When a
-  new school enters the top 25, add a line for it** (team id as the NCAA
-  writes it, such as `texas-am`, then the address). Until then its players
-  show their initials, and the run's log says which school has no page listed.
+- `rosters/pages.csv` lists the roster pages already known. For a school
+  that is not in it, the job finds the page itself: it takes the school's
+  athletics website from ncaa.com, tries the usual roster addresses, and keeps
+  the one that shows the players it knows from the box scores. If that fails,
+  the log says `NO ROSTER PAGE FOUND` and the players show their initials
+  until a line is added to the file (team id as the NCAA writes it, such as
+  `texas-am`, then the address).
 - The job reads each page about once a week, finds the picture described with
   a player's name, and keeps only the picture's address. The photos are not
   copied into this repository: the site shows them from the school's site.
@@ -110,6 +113,31 @@ finds the new one. In between, the page keeps showing the last poll it has.
 The stored scores are refreshed once a night. In between, matches in
 progress are followed live as described above; a reader who opens the page
 after a match has ended still sees its final score that evening.
+
+## When a new school enters the top 25
+
+Nothing needs doing. On the run that picks up the new poll:
+
+| Part | What happens |
+| --- | --- |
+| Rankings | The new poll replaces the old one |
+| Matches | The school's whole season is listed; a school that dropped out is removed |
+| Where to watch, live scores | Looked up for its matches in the next two weeks, like everyone else's |
+| Players | Its box scores for the season so far are downloaded, and every player is re-rated against the new 25 |
+| Photos | Its roster page is found and read |
+| Logo | Shown from ncaa.com under the school's id |
+
+This was rehearsed against a made-up poll with ten new schools (Creighton,
+Baylor, Dayton, Utah, USC, Western Kentucky, Miami, Cal Poly, Iowa State,
+Northern Iowa): all ten came through with matches, channels, players and
+photos.
+
+The one thing that can go wrong is the poll spelling a school in a way the
+job cannot match to the scoreboard. The site is still published with the
+other 24, but **the run is marked failed**, so it shows red on the Actions
+tab and GitHub emails you. The message names the school; the fix is one line
+in `ALIASES` in `pipeline/poll.py`. A run also fails if the poll page, the
+scoreboard or the box scores cannot be read at all.
 
 ## Where things are
 

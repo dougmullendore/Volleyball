@@ -193,32 +193,65 @@ def find(page: str, base: str, names: dict) -> dict:
     return out
 
 
+_WEBSITE = re.compile(r'''<a\b[^>]*href="(https?://[^"]+)"[^>]*>\s*<span[^>]*class="icon-web"''', re.I)
+
+
+def discover(team: str, names: dict, fetch) -> tuple[str | None, dict]:
+    """Find a school's roster page without being told where it is: take its
+    athletics website from ncaa.com, try the usual roster addresses, and keep
+    the first one that shows photos for a fair share of the players we know.
+    Returns (address or None, photos found there)."""
+    m = _WEBSITE.search(fetch(config.SCHOOL_PAGE.format(team=team)))
+    if not m:
+        return None, {}
+    site = m.group(1).rstrip("/")
+    need = max(3, len(names) // 3)
+    best = (None, {})
+    for path in config.ROSTER_PATHS:
+        try:
+            found = find(fetch(site + path), site + path, names)
+        except Exception:
+            continue                       # no such page on this site: try the next
+        if len(found) >= need:
+            return site + path, found
+        if len(found) > len(best[1]):
+            best = (site + path, found)
+    return best if len(best[1]) >= 3 else (None, {})
+
+
 def update(stored: dict, teams: dict, today: dt.date, fetch, log) -> dict:
     """Refresh the photos of each team in `teams` ({team id: {player id: name}}).
     A roster page is read again after PHOTO_REFRESH_DAYS, or the next day if
     some of the team's players still have no photo. `fetch(url)` returns the
     page's text. Changes `stored` ({team: {"checked": date, "photos": {...}}})."""
-    listed, no_page, failed, read = pages(), [], [], 0
+    listed, no_page, failed, read, discovered = pages(), [], [], 0, []
     for team, names in teams.items():
-        if team not in listed:
-            no_page.append(team)
-            continue
         have = stored.get(team) or {}
         age = (today - dt.date.fromisoformat(have["checked"])).days if have.get("checked") else 10 ** 6
         missing = any(pid not in (have.get("photos") or {}) for pid in names)
         nothing_yet = not have.get("photos")
-        if age < config.PHOTO_REFRESH_DAYS and not (missing and age >= 1) and not nothing_yet:
+        if age < config.PHOTO_REFRESH_DAYS and not (missing and age >= 1) and not (nothing_yet and age >= 1):
             continue
+        page = listed.get(team) or have.get("page")
         try:
-            found = find(fetch(listed[team]), listed[team], names)
+            if page:
+                found = find(fetch(page), page, names)
+            else:                                    # a school new to the top 25: find its roster page
+                page, found = discover(team, names, fetch)
+                if page:
+                    discovered.append(team)
         except Exception as e:
             failed.append(f"{team}: {e!r}"[:120])
             continue
         read += 1
         # keep what was found before for anyone this reading missed
-        stored[team] = {"checked": today.isoformat(), "photos": {**(have.get("photos") or {}), **found}}
+        stored[team] = {"checked": today.isoformat(), "page": page, "photos": {**(have.get("photos") or {}), **found}}
+    no_page = [t for t in teams if not (listed.get(t) or (stored.get(t) or {}).get("page"))]
     total = sum(len(n) for n in teams.values())
     with_photo = sum(1 for t, names in teams.items() for pid in names if pid in ((stored.get(t) or {}).get("photos") or {}))
     log(f"photos: {read} roster pages read; {with_photo} of {total} players have a photo"
-        + (f"; no roster page listed for {no_page}" if no_page else "") + (f"; could not read {failed}" if failed else ""))
-    return {"pages_read": read, "players": total, "with_photo": with_photo, "no_page": no_page, "failed": failed}
+        + (f"; found the roster page of {discovered}" if discovered else "")
+        + (f"; NO ROSTER PAGE FOUND for {no_page} (add it to rosters/pages.csv)" if no_page else "")
+        + (f"; could not read {failed}" if failed else ""))
+    return {"pages_read": read, "players": total, "with_photo": with_photo, "found_page_for": discovered,
+            "no_page": no_page, "failed": failed}

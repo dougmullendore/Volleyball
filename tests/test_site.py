@@ -261,7 +261,7 @@ def test_photo_kept_in_the_pages_data_block():
 
 
 def test_roster_pages_are_read_weekly_and_old_photos_kept():
-    teams = {"nebraska": {"nebraska~reilly~ber": "Bergen Reilly", "nebraska~jackson~and": "Andi Jackson"}, "nowhere-st": {"x": "A B"}}
+    teams = {"nebraska": {"nebraska~reilly~ber": "Bergen Reilly", "nebraska~jackson~and": "Andi Jackson"}}
     calls = []
 
     def fetch(url):
@@ -272,12 +272,73 @@ def test_roster_pages_are_read_weekly_and_old_photos_kept():
 
     stored, day = {}, dt.date(2026, 10, 7)
     res = photos.update(stored, teams, day, fetch, lambda m: None)
-    assert res["with_photo"] == 2 and res["no_page"] == ["nowhere-st"] and calls == ["https://huskers.com/sports/volleyball/roster"]
+    assert res["with_photo"] == 2 and res["no_page"] == [] and calls == ["https://huskers.com/sports/volleyball/roster"]
     photos.update(stored, teams, day + dt.timedelta(days=3), fetch, lambda m: None)
     assert len(calls) == 1                                    # everyone has a photo: wait for the weekly look
     photos.update(stored, teams, day + dt.timedelta(days=7), fetch, lambda m: None)
     assert len(calls) == 2 and stored["nebraska"]["photos"]["nebraska~reilly~ber"].endswith("/r2.jpg")
     assert stored["nebraska"]["photos"]["nebraska~jackson~and"].endswith("/j.jpg")      # missed this time, kept
+
+
+def test_a_new_schools_roster_page_is_found_by_itself():
+    # a school that is not in rosters/pages.csv: its site comes from ncaa.com, and the
+    # roster address is the one that shows photos of the players we already know
+    names = {f"newcomer-st~p{i}~a": f"Ann Player{chr(97 + i)}" for i in range(9)}
+    roster = "".join(f'<img alt="{n}" src="/photos/{i}.jpg">' for i, n in enumerate(names.values()))
+    web_pages = {
+        "https://www.ncaa.com/schools/newcomer-st":
+            '<div class="school-links"><ul><li><a href="https://gonewcomers.example" target="_blank"> <span class="icon-web">&nbsp;</span></a></li></ul></div>',
+        "https://gonewcomers.example/sports/volleyball/roster": roster,
+        "https://gonewcomers.example/sports/wvball/roster/": "<p>men's roster</p>",
+    }
+    calls = []
+
+    def fetch(url):
+        calls.append(url)
+        if url not in web_pages:
+            raise RuntimeError("404")
+        return web_pages[url]
+
+    stored, day = {}, dt.date(2026, 10, 12)
+    res = photos.update(stored, {"newcomer-st": names}, day, fetch, lambda m: None)
+    assert res["found_page_for"] == ["newcomer-st"] and res["with_photo"] == 9 and res["no_page"] == []
+    assert stored["newcomer-st"]["page"] == "https://gonewcomers.example/sports/volleyball/roster"
+    assert calls[0] == "https://www.ncaa.com/schools/newcomer-st"
+    calls.clear()                                             # next week it goes straight to the page it found
+    photos.update(stored, {"newcomer-st": names}, day + dt.timedelta(days=7), fetch, lambda m: None)
+    assert calls == ["https://gonewcomers.example/sports/volleyball/roster"]
+    # a school whose site cannot be found is reported, and looked for again the next day, not every run
+    stored2, calls2 = {}, []
+    look = lambda url: calls2.append(url) or "<html></html>"
+    res = photos.update(stored2, {"nowhere-st": {"x": "A B"}}, day, look, lambda m: None)
+    assert res["no_page"] == ["nowhere-st"] and len(calls2) == 1
+    photos.update(stored2, {"nowhere-st": {"x": "A B"}}, day, look, lambda m: None)
+    assert len(calls2) == 1
+    photos.update(stored2, {"nowhere-st": {"x": "A B"}}, day + dt.timedelta(days=1), look, lambda m: None)
+    assert len(calls2) == 2
+
+
+def test_an_unmatched_ranked_school_fails_the_run():
+    status = {"stages": {"site": {"ok": True, "result": {"unmatched": [], "teams_matched": 25}}}}
+    assert run.check_teams(status) == {"teams_matched": 25}
+    status["stages"]["site"]["result"]["unmatched"] = ["Atlantis Tech"]
+    try:
+        run.check_teams(status)
+        raise AssertionError("should have failed")
+    except RuntimeError as e:
+        assert "Atlantis Tech" in str(e)
+
+
+def test_poll_spellings_of_shortened_names():
+    teams = {"south-fla": "South Fla.", "northern-colo": "Northern Colo.", "western-mich": "Western Mich.", "ga-southern": "Ga. Southern",
+             "middle-tenn": "Middle Tenn.", "uni": "UNI", "georgia": "Georgia", "florida": "Florida", "michigan": "Michigan",
+             "la-lafayette": "Louisiana", "california": "California", "st-johns-ny": "St. John's (NY)", "eastern-ky": "Eastern Ky."}
+    want = {"South Florida": "south-fla", "Northern Colorado": "northern-colo", "Western Michigan": "western-mich",
+            "Georgia Southern": "ga-southern", "Middle Tennessee": "middle-tenn", "Northern Iowa": "uni", "Georgia": "georgia",
+            "Florida": "florida", "Michigan": "michigan", "Louisiana": "la-lafayette", "Cal": "california",
+            "St. John's": "st-johns-ny", "Eastern Kentucky": "eastern-ky"}
+    for school, team in want.items():
+        assert poll.match_school(school, teams) == team, school
 
 
 def test_photo_tied_to_the_player_in_the_data_block():

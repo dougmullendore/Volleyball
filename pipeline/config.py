@@ -39,6 +39,14 @@ LOGO_URL = "https://www.ncaa.com/sites/default/files/images/logos/schools/{theme
 # this many days. Set SHOW_PHOTOS = False to show none.
 SHOW_PHOTOS = True
 PHOTO_REFRESH_DAYS = 7
+# For a school not in rosters/pages.csv the job finds the roster page itself:
+# ncaa.com's page for the school gives its athletics website, and these are
+# the places schools keep a volleyball roster. The one that names the players
+# we know from the box scores is the right one.
+SCHOOL_PAGE = "https://www.ncaa.com/schools/{team}"
+ROSTER_PATHS = ["/sports/womens-volleyball/roster", "/sports/volleyball/roster", "/sports/wvball/roster/",
+                "/sports/w-volley/roster", "/sports/wvb/roster", "/sports/womens-volleyball/roster/",
+                "/sports/volleyball/roster/"]
 
 # Where to watch. Channels are looked up for matches in the next WATCH_DAYS
 # days; further out, networks have usually not been announced.

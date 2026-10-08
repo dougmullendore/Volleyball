@@ -19,8 +19,25 @@ ALIASES = {
     "floridagulfcoast": "fgcu", "southernmethodist": "smu", "texaschristian": "tcu",
     "brighamyoung": "byu", "ncstate": "north-carolina-st", "louisianastate": "lsu",
     "nevadalasvegas": "unlv", "texasrgv": "utrgv", "utriograndevalley": "utrgv", "utsanantonio": "utsa",
-    "stmarys": "st-marys-ca", "saintmarys": "st-marys-ca",
+    "stmarys": "st-marys-ca", "saintmarys": "st-marys-ca", "northerniowa": "uni", "ucsb": "uc-santa-barbara",
+    "cal": "california", "stjohns": "st-johns-ny", "texasaandmcorpuschristi": "am-corpus-chris",
+    "louisiana": "la-lafayette", "ull": "la-lafayette", "sfa": "stephen-f-austin", "etsu": "east-tenn-st",
+    "uconn": "uconn", "connecticut": "uconn", "umass": "massachusetts", "unc": "north-carolina",
 }
+
+# The scoreboard shortens state names ("South Fla.", "Northern Colo.", id `western-mich`);
+# the poll spells them out. Each short form is tried spelled out as well.
+SHORT = {"fla": "florida", "mich": "michigan", "colo": "colorado", "ky": "kentucky", "ill": "illinois", "ariz": "arizona",
+         "tenn": "tennessee", "caro": "carolina", "ga": "georgia", "la": "louisiana", "ala": "alabama", "miss": "mississippi",
+         "wash": "washington", "ark": "arkansas", "conn": "connecticut", "ind": "indiana", "tex": "texas", "okla": "oklahoma",
+         "ore": "oregon", "neb": "nebraska", "minn": "minnesota", "wis": "wisconsin", "mo": "missouri", "kan": "kansas",
+         "val": "valley", "ky.": "kentucky", "so": "southern", "caro.": "carolina", "u": "university", "dak": "dakota",
+         "mex": "mexico", "nev": "nevada", "ia": "iowa", "va": "virginia", "pa": "pennsylvania", "st": "state"}
+
+
+def _spelled_out(s: str) -> str:
+    words = re.sub(r"[^a-z0-9 ]+", " ", (s or "").lower().replace("&", " and ")).split()
+    return "".join(SHORT.get(w, w) for w in words)
 
 _ROW = re.compile(r"<tr[^>]*>\s*" + r"\s*".join([r"<td[^>]*>(.*?)</td>"] * 5) + r"\s*</tr>", re.S | re.I)
 _THROUGH = re.compile(r"Through Games\s+([A-Za-z]{3})[a-z]*\.?\s+(\d{1,2}),?\s+(\d{4})", re.I)
@@ -79,11 +96,11 @@ def match_school(name: str, teams: dict) -> str | None:
     index = {}
     for tid, short in teams.items():
         for k in (_letters(tid), _letters(short), _letters(tid.replace("-st", "-state")),
-                  _letters(re.sub(r"\bSt\.", "State", short))):
+                  _letters(re.sub(r"\bSt\.", "State", short)), _spelled_out(short), _spelled_out(tid.replace("-", " "))):
             if k:
                 index.setdefault(k, set()).add(tid)
     name = re.sub(r"\s*\(\d+\)\s*$", "", name or "").strip()
-    for k in dict.fromkeys([_letters(name), _letters(re.sub(r"\bState\b", "St", name))]):
+    for k in dict.fromkeys([_letters(name), _letters(re.sub(r"\bState\b", "St", name)), _spelled_out(name)]):
         if ALIASES.get(k) in teams:
             return ALIASES[k]
         hit = index.get(k)

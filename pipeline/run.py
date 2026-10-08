@@ -257,6 +257,18 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
             "players": len(rated["players"]), "regulars": rated["regulars"]}
 
 
+def check_teams(status: dict) -> dict:
+    """Make the run fail, so GitHub sends an email, if a ranked school could
+    not be matched to a scoreboard team. The site is still published, but
+    without that school's matches and players until its name is added to
+    ALIASES in pipeline/poll.py."""
+    site = (status["stages"].get("site") or {}).get("result") or {}
+    if site.get("unmatched"):
+        raise RuntimeError(f"ranked but not found on the scoreboard: {site['unmatched']}. "
+                           "Add the poll's spelling to ALIASES in pipeline/poll.py.")
+    return {"teams_matched": site.get("teams_matched")}
+
+
 def main(state_dir: str, out_dir: str) -> int:
     state, out = Path(state_dir), Path(out_dir)
     state.mkdir(parents=True, exist_ok=True)
@@ -283,6 +295,7 @@ def main(state_dir: str, out_dir: str) -> int:
         if config.SHOW_PHOTOS:
             stage("photos", lambda: update_photos(state, now))
     stage("site", lambda: build_site(state, out, now))
+    stage("every ranked team found", lambda: check_teams(status))
     status["finished_utc"] = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
     status["ok"] = all(s["ok"] for s in status["stages"].values())
     write_json(state / "status.json", status, indent=1)
