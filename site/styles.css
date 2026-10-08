@@ -240,9 +240,10 @@ h2 { font: 700 1.375rem/1.2 "Barlow Condensed", sans-serif; margin: 0; }
 .mtitle { font-size: clamp(1.75rem, 5.5vw, 2.5rem); margin-bottom: 6px; }
 .mtitle .mv { color: var(--ink-2); font-weight: 600; }
 .mstatus { margin: 0 0 18px; color: var(--ink-2); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.msets { margin: 16px 0 0; max-width: 34rem; }
-.msets .tablewrap { display: inline-block; max-width: 100%; }
-.stable { width: auto; }
+.msets { margin: 16px 0 0; }
+/* the set scores fill the width: the team column is as narrow as its names, the sets share the rest */
+.stable { width: 100%; }
+.stable thead th.l, .stable tbody th { width: 1%; }
 .stable thead th { padding: 8px 0; border-bottom: 2px solid var(--ink); font: 600 .8125rem/1 Barlow, sans-serif; color: var(--ink-2); text-align: center; min-width: 2.75rem; }
 .stable thead th.l { text-align: left; padding-left: 12px; padding-right: 16px; }
 .stable th, .stable td { text-align: center; padding: 8px 0; }
