@@ -197,19 +197,35 @@ def standings(games: list[dict], names: dict, through: str | None = None, points
     """Every team by wins, then win share, then set ratio, from finals up to `through`.
     With `points` (MLV's table): by points first, 3 for a win in three or four sets,
     2 for a win in five, 1 for a loss in five."""
-    rec = {t: {"w": 0, "l": 0, "sw": 0, "sl": 0, "pts": 0} for t in names}
+    rec = {t: {"w": 0, "l": 0, "sw": 0, "sl": 0, "pts": 0, "hw": 0, "hl": 0, "aw": 0, "al": 0, "pf": 0, "pa": 0, "form": []} for t in names}
     for g in games:
         if g["state"] != "final" or (through and g["date"] > through) or g.get("round"):   # the regular season only
             continue
         for s, o in (("home", "away"), ("away", "home")):
             x = rec[g[s]["id"]]
-            x["w" if g[s]["sets"] > g[o]["sets"] else "l"] += 1
+            won = g[s]["sets"] > g[o]["sets"]
+            x["w" if won else "l"] += 1
+            x[("h" if s == "home" else "a") + ("w" if won else "l")] += 1
+            x["form"].append("W" if won else "L")
+            if g.get("setpts"):                       # rally points, from the set scores
+                mine, theirs = (g["setpts"][1], g["setpts"][0]) if s == "home" else (g["setpts"][0], g["setpts"][1])
+                x["pf"] += sum(mine); x["pa"] += sum(theirs)
             x["sw"] += g[s]["sets"]; x["sl"] += g[o]["sets"]
             five = g[s]["sets"] + g[o]["sets"] >= 5
             x["pts"] += (2 if five else 3) if g[s]["sets"] > g[o]["sets"] else (1 if five else 0)
     order = sorted(names, key=lambda t: (-(rec[t]["pts"] if points else 0), -rec[t]["w"], -(rec[t]["w"] / max(1, rec[t]["w"] + rec[t]["l"])),
                                          -(rec[t]["sw"] / max(1, rec[t]["sl"])), names[t]))
-    return [{"rank": i + 1, "id": t, "name": names[t], "record": f"{rec[t]['w']}-{rec[t]['l']}", "pts": rec[t]["pts"]} for i, t in enumerate(order)]
+    out = []
+    for i, t in enumerate(order):
+        x = rec[t]
+        streak = ""
+        if x["form"]:
+            n = len(x["form"]) - len("".join(x["form"]).rstrip(x["form"][-1]))
+            streak = f"{x['form'][-1]}{n}"
+        out.append({"rank": i + 1, "id": t, "name": names[t], "record": f"{x['w']}-{x['l']}", "pts": x["pts"],
+                    "w": x["w"], "l": x["l"], "sw": x["sw"], "sl": x["sl"], "home": f"{x['hw']}-{x['hl']}", "away": f"{x['aw']}-{x['al']}",
+                    "pf": x["pf"], "pa": x["pa"], "last5": "".join(x["form"][-5:]), "streak": streak})
+    return out
 
 
 def build(state: Path, out: Path, site: str, now: dt.datetime, words: dict, write_json, match_files, log) -> dict:
@@ -220,6 +236,10 @@ def build(state: Path, out: Path, site: str, now: dt.datetime, words: dict, writ
         log(f"{league}: no data yet")
         return {"teams": 0}
     games, boxes, names = s["games"], s["boxes"], s["names"]
+    for g in games:                 # set by set, for the standings and the match page
+        b = boxes.get(str(g["id"])) or {}
+        if b.get("setpts"):
+            g["setpts"] = [b["setpts"]["away"], b["setpts"]["home"]]
     finals = [g for g in games if g["state"] == "final"]
     through = max((g["date"] for g in finals if not g.get("round")), default=None)
     table = standings(games, names, through, points=site == "mlv")

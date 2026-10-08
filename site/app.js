@@ -132,6 +132,29 @@
     head.appendChild(el("span", { "class": "wide beat", text: W("rankings.beat") }));
     head.appendChild(el("span", { "class": "wide lostto", text: W("rankings.lost_to") }));
     function teamLink(id, name) { return teamA(id, name, "nm"); }
+    var proBox = $("pro-standings");
+    if (proBox) proBox.parentNode.removeChild(proBox);
+    if (PRO()) {             // a pro league: a full standings table in place of the poll's list
+      ol.hidden = true; head.hidden = true;
+      var mlv = data.league === "mlv";
+      var cols = [["#", ""], ["Team", "l"], ["W", ""], ["L", ""]].concat(mlv ? [["Pts", "", "3 for a win in three or four sets, 2 for a win in five, 1 for a loss in five"]] : [])
+        .concat([["Sets", "", "Sets won and lost"], ["Points", "", "Rally points won and lost"], ["Home", ""], ["Away", ""], ["Last 5", "", "Most recent on the right"], ["Streak", ""], ["Change", "", "Places moved in the last week"]]);
+      var thead = el("thead", {}, [el("tr", {}, cols.map(function (c) { return el("th", { scope: "col", "class": c[1], title: c[2] || null, text: c[0] }); }))]);
+      var body = el("tbody", {}, data.poll.teams.map(function (t) {
+        var mv = t.prev == null || t.prev === t.rank ? el("span", { "class": "mv", text: "–" }) :
+          el("span", { "class": "mv " + (t.prev > t.rank ? "up" : ""), text: (t.prev > t.rank ? "▲" : "▼") + Math.abs(t.prev - t.rank) });
+        var cells = [el("td", {}, [rankTag(t.rank, t.id)]), el("td", { "class": "l" }, [el("span", { "class": "tcell" }, [logo(t.id), teamA(t.id, t.name)])]),
+          el("td", { "class": "strong", text: String(t.w) }), el("td", { text: String(t.l) })];
+        if (mlv) cells.push(el("td", { "class": "strong", text: String(t.pts) }));
+        cells.push(el("td", { text: t.sw + "-" + t.sl }), el("td", { text: t.pf || t.pa ? t.pf + "-" + t.pa : "–" }),
+          el("td", { text: t.home }), el("td", { text: t.away }),
+          el("td", {}, [el("span", { "class": "form" }, (t.last5 || "").split("").map(function (r) { return el("i", { "class": r === "W" ? "w" : "l", title: r === "W" ? "Won" : "Lost", text: r }); }))]),
+          el("td", { text: t.streak || "–" }), el("td", {}, [mv]));
+        return el("tr", {}, cells);
+      }));
+      var wrap = el("div", { "class": "tablewrap", id: "pro-standings", tabindex: "0", role: "region", "aria-label": "Standings, scrolls sideways" }, [el("table", { "class": "ptable stand" }, [thead, body])]);
+      ol.parentNode.insertBefore(wrap, ol);
+    } else { ol.hidden = false; head.hidden = false; }
     var polled = {};
     data.poll.teams.forEach(function (t) { if (t.id) polled[t.id] = 1; });
     if (goatView) {
@@ -142,7 +165,7 @@
           versus(t)]));
       });
     } else {
-      data.poll.teams.forEach(function (t) {
+      if (!PRO()) data.poll.teams.forEach(function (t) {
         var move = t.prev == null ? ["new", "up", "not ranked last week"] : t.prev > t.rank ? ["▲" + (t.prev - t.rank), "up", "up " + (t.prev - t.rank) + " from last week"]
           : t.prev < t.rank ? ["▼" + (t.rank - t.prev), "", "down " + (t.rank - t.prev) + " from last week"] : ["", "", ""];
         ol.appendChild(el("li", {}, [rankTag(t.rank), el("span", { "class": "who" }, [logo(t.id), teamLink(t.id, t.name)]), el("span", { "class": "rec", text: t.record || "" }),

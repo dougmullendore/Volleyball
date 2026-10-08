@@ -58,6 +58,14 @@ a { color: var(--teal); }
 .logo.gc.badge { font-size: .875rem; }
 .logo.pro img { width: 78%; height: 78%; object-fit: contain; }
 .noscope { display: none; }
+.ptable.stand td, .ptable.stand th { text-align: center; white-space: nowrap; }
+.ptable.stand .l { text-align: left; }
+.ptable.stand .tcell { display: inline-flex; align-items: center; gap: 8px; }
+.ptable.stand td.strong { font-weight: 700; }
+.form { display: inline-flex; gap: 3px; }
+.form i { font-style: normal; font: 700 .6875rem/1 "Barlow Condensed", sans-serif; width: 18px; height: 18px; display: inline-grid; place-items: center; border-radius: 3px; color: #fff; }
+.form i.w { background: var(--win, #15803d); }
+.form i.l { background: var(--loss, #b91c1c); }
 body.pro .ranks-head .wide { display: none; }
 .pages { display: flex; gap: 4px; flex: 0 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none; }
 .pages a { white-space: nowrap; }
