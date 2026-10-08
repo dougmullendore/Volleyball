@@ -75,7 +75,8 @@ def update(stored: dict, finals: list[dict], today: dt.date, log) -> dict:
     for g in finals:
         have = stored.get(str(g["id"]))
         empty = have is not None and not (have["home"] or have["away"])
-        if have is None or g["date"] >= recent or (empty and g["date"] >= (today - dt.timedelta(days=10)).isoformat()):
+        older_format = have is not None and "tsets" not in have      # stored before hitting by set was kept
+        if have is None or older_format or g["date"] >= recent or (empty and g["date"] >= (today - dt.timedelta(days=10)).isoformat()):
             want.append(g)
 
     def one(g):
