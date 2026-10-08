@@ -133,10 +133,10 @@
     var t = g.start ? new Date(g.start * 1000) : null;
     var note = !L && g.state === "other" ? (g.note ? g.note.charAt(0).toUpperCase() + g.note.slice(1) : "Not played") : "";
     var when = fin ? "Final" : live ? (L && L.detail) || "In progress" : note ? note : t && !isNaN(t) ? t.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : "Time not set";
-    function team(side, s, lost) {
+    function team(side, s, lost, won) {
       var kids = [logo(s.id), teamA(s.id, s.name, "name"), rankTag(s.rank)];
       if (side === "home") kids.reverse();
-      return el("span", { "class": "team " + side + (lost ? " lost" : "") }, kids);
+      return el("span", { "class": "team " + side + (lost ? " lost" : "") + (won ? " won" : "") }, kids);
     }
     var pts = live && L && L.pts ? L.pts : null;      // points in the set being played: [away, home]
     function sets(cls, n, lost, p) {
@@ -162,7 +162,7 @@
     var unplayed = !fin && !live && !note;
     return el("li", { "class": "game" + (g.away.rank && g.home.rank ? " both" : "") + (live ? " on" : "") + (unplayed ? " ahead" : ""), "data-id": g.id }, [
       live ? el("span", { "class": "when live" }, [liveTag(), " " + (when === "In progress" ? "" : when)]) : el("span", { "class": "when", text: when }),
-      team("away", g.away, homeWon), mid, team("home", g.home, awayWon),
+      team("away", g.away, homeWon, awayWon), mid, team("home", g.home, awayWon, homeWon),
       el("span", { "class": "more" }, more)]);
   }
 

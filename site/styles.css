@@ -11,6 +11,8 @@
   --ball: #0b6a6e;      /* the accent: the same green as the logo mark */
   --ball-ink: #ffffff;
   --ball-home: #064346; /* a darker green: the home team's rank before a match */
+  --win: #1f5fd6;       /* blue, for a match's winner and for "Beat" */
+  --win-ink: #ffffff;
   --loss: #b3261e;      /* red, for "Lost to" and for the rank of a match's loser */
   --loss-ink: #ffffff;
   --lost: #7a8b8e;
@@ -19,13 +21,13 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --floor: #0c1b1e; --sheet: #13272b; --ink: #e6f0ee; --ink-2: #9db3b4; --line: #27444a;
-    --teal: #5cc7c4; --teal-soft: #173a3d; --ball: #5cc7c4; --ball-ink: #0c1b1e; --ball-home: #3a9a97; --loss: #ff8a80; --loss-ink: #3b0d0a; --lost: #7f9697;
+    --teal: #5cc7c4; --teal-soft: #173a3d; --ball: #5cc7c4; --ball-ink: #0c1b1e; --ball-home: #3a9a97; --win: #7fb0ff; --win-ink: #0b1a33; --loss: #ff8a80; --loss-ink: #3b0d0a; --lost: #7f9697;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --floor: #0c1b1e; --sheet: #13272b; --ink: #e6f0ee; --ink-2: #9db3b4; --line: #27444a;
-  --teal: #5cc7c4; --teal-soft: #173a3d; --ball: #5cc7c4; --ball-ink: #0c1b1e; --ball-home: #3a9a97; --loss: #ff8a80; --loss-ink: #3b0d0a; --lost: #7f9697;
+  --teal: #5cc7c4; --teal-soft: #173a3d; --ball: #5cc7c4; --ball-ink: #0c1b1e; --ball-home: #3a9a97; --win: #7fb0ff; --win-ink: #0b1a33; --loss: #ff8a80; --loss-ink: #3b0d0a; --lost: #7f9697;
   color-scheme: dark;
 }
 
@@ -88,7 +90,7 @@ h2 { font: 700 1.375rem/1.2 "Barlow Condensed", sans-serif; margin: 0; }
 .ranks .vs { grid-column: 2 / -1; }
 .vs { min-width: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 2px 0 2px; font-size: .8125rem; line-height: 1.4; color: var(--ink-2); }
 .vsbox { display: block; min-width: 0; border: 1px solid var(--line); border-radius: 4px; padding: 5px 8px 6px; }
-.vsbox b { display: block; margin-bottom: 3px; font-size: .6875rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--teal); }   /* "Beat" in green */
+.vsbox b { display: block; margin-bottom: 3px; font-size: .6875rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--win); }   /* "Beat" in blue */
 .vsbox.lostto b { color: var(--loss); }               /* "Lost to" in red */
 .vs .opps { display: flex; flex-wrap: wrap; gap: 2px 10px; }
 .vs .opp { white-space: nowrap; display: inline-flex; align-items: center; }
@@ -129,6 +131,7 @@ h2 { font: 700 1.375rem/1.2 "Barlow Condensed", sans-serif; margin: 0; }
 .team .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .team.lost { color: var(--lost); font-weight: 400; }
 .team.lost .rk { background: var(--loss); color: var(--loss-ink); }   /* the loser's rank (or NR) in red */
+.team.won .rk { background: var(--win); color: var(--win-ink); }      /* the winner's in blue */
 /* before a match, the home team's rank (or NR) is a slightly darker green */
 .game.ahead .team.home .rk { background: var(--ball-home); }
 .mid { text-align: center; font: 700 1.125rem/1 "Barlow Condensed", sans-serif; font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -309,7 +312,7 @@ a.opp:hover .n { color: var(--teal); }
   .ranks .vsbox { align-self: stretch; display: flex; align-items: center; padding: 4px 10px; min-height: 34px; }
   .ranks .vsbox b { display: none; }                  /* the column headings say Beat and Lost to */
   .ranks-head span.wide { display: block; text-align: left; text-transform: uppercase; letter-spacing: .05em; font-size: .6875rem; padding-left: 11px; }
-  .ranks-head .wide.beat { color: var(--teal); }
+  .ranks-head .wide.beat { color: var(--win); }
   .ranks-head .wide.lostto { color: var(--loss); }
 }
 
