@@ -13,6 +13,7 @@ import datetime as dt
 import html as _html
 import json
 import re
+import time
 import unicodedata
 import urllib.parse
 from pathlib import Path
@@ -269,7 +270,11 @@ def update(stored: dict, teams: dict, today: dt.date, fetch, log, ranked: set | 
             due.append((team not in ranked, have.get("checked") is not None, -age, team))
     due.sort()
     left = len(due) - config.PHOTO_PAGES_PER_RUN
-    for *_, team in due[:config.PHOTO_PAGES_PER_RUN]:
+    stop_at = time.monotonic() + config.PHOTO_SECONDS
+    for n_done, (*_, team) in enumerate(due[:config.PHOTO_PAGES_PER_RUN]):
+        if time.monotonic() > stop_at:          # out of time: the rest wait for the next run
+            left = len(due) - n_done
+            break
         names, have = teams[team], stored.get(team) or {}
         page = listed.get(team) or have.get("page")
         try:

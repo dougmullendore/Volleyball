@@ -16,9 +16,9 @@ class FetchError(RuntimeError):
     pass
 
 
-def get_bytes(url: str, timeout: int = 60) -> bytes:
+def get_bytes(url: str, timeout: int = 60, tries: int | None = None) -> bytes:
     last = None
-    for attempt in range(config.FETCH_RETRIES):
+    for attempt in range(tries or config.FETCH_RETRIES):
         try:
             req = urllib.request.Request(url, headers={"User-Agent": config.USER_AGENT})
             with urllib.request.urlopen(req, timeout=timeout) as resp:

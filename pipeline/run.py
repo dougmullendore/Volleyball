@@ -233,7 +233,10 @@ def update_photos(state: Path, now: dt.datetime) -> dict:
     for p in rated["players"]:
         teams.setdefault(p["team_id"], {})[p["id"]] = p["name"]
     stored = read_json(state / "photos.json", {})
-    res = photos.update(stored, teams, now.date(), lambda url: web.get_bytes(url).decode("utf-8", "replace"), log,
+    # School sites can be slow or broken: a short wait and one retry per page, and a
+    # time limit for the whole step, so the rest of the update is never held up.
+    res = photos.update(stored, teams, now.date(),
+                        lambda url: web.get_bytes(url, timeout=20, tries=2).decode("utf-8", "replace"), log,
                         ranked={t["id"] for t in sel["teams"] if t["id"]})
     write_json(state / "photos.json", stored, indent=0)
     return res
