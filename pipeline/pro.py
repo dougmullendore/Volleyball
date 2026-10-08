@@ -394,7 +394,8 @@ def mlv_media(fetch, names: list[str], log) -> dict:
     """Team logos and colours from provolleyball.com, and each player's headshot,
     height, hometown, college and social links from her page there."""
     teams = {}
-    for t in json.loads(fetch(MLV_SITE + "/api/teams")).get("data", []):
+    api = web.get_bytes(MLV_SITE + "/api/teams", timeout=20, tries=2, headers={"Accept": "application/json"})
+    for t in json.loads(api).get("data", []):
         if not t.get("current_roster_id"):
             continue
         logo = None
