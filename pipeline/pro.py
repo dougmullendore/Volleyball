@@ -330,6 +330,23 @@ def _inertia(page: str) -> dict:
     return json.loads(_html.unescape(m.group(1))).get("props", {}) if m else {}
 
 
+def _plain(src: str | None) -> str | None:
+    """The original picture behind a provolleyball.com image-service address (its
+    last part is the original address in base64). The service's own addresses are
+    signed, so they cannot be resized."""
+    if not src:
+        return None
+    import base64
+    tail = src.rsplit("/", 1)[-1].split(".")[0]
+    try:
+        url = base64.urlsafe_b64decode(tail + "=" * (-len(tail) % 4)).decode()
+        if url.startswith("https://"):
+            return url
+    except Exception:
+        pass
+    return src
+
+
 def _height(v) -> str | None:
     m = re.match(r"\s*(\d)\s*[-' ]\s*(\d{1,2})", str(v or ""))
     return f"{m.group(1)}-{m.group(2)}" if m else None
@@ -401,9 +418,7 @@ def mlv_media(fetch, names: list[str], log) -> dict:
         logo = None
         try:
             team = _inertia(fetch(MLV_SITE + t["permalink"] + "/roster")).get("team") or {}
-            logo = ((team.get("logo") or {}).get("src")) or None
-            if logo:
-                logo = logo.replace("rs:fit:2000:0:0", "rs:fit:200:0:0")
+            logo = _plain((team.get("logo") or {}).get("src"))
         except Exception:
             pass
         teams[slug(t["name"])] = {"logo": logo, "color": t.get("color"), "abbr": t.get("abbreviation")}
@@ -434,9 +449,7 @@ def mlv_media(fetch, names: list[str], log) -> dict:
                 links[net] = s.get("account")
         if _social(links):
             bio["social"] = _social(links)
-        photo = (p.get("headshot_image") or {}).get("src")
-        if photo:
-            photo = photo.replace("rs:fit:2000:0:0", "rs:fit:400:0:0")
+        photo = _plain((p.get("headshot_image") or {}).get("src"))
         people[name_key(full)] = {"photo": photo, "bio": bio}
     return {"teams": teams, "players": people}
 
@@ -448,6 +461,8 @@ def update_media(state: Path, today: dt.date, log) -> dict:
     for site in LEAGUES:
         path = state / "pro" / f"{site}_media.json"
         have = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+        if "imgproxy/" in json.dumps(have) and "rs:fit:2" in json.dumps(have):   # stored before _plain(): read again
+            have = {}
         no_logos = not any(v.get("logo") for v in (have.get("teams") or {}).values())
         if have.get("checked") and (today - dt.date.fromisoformat(have["checked"])).days < MEDIA_DAYS and not no_logos:
             res[site] = "up to date"
