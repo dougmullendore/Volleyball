@@ -545,3 +545,10 @@ def test_poll_beat_and_lost_wait_for_the_next_poll():
     from pipeline import run
     src = inspect.getsource(run.build_site)
     assert 'g["date"] <= through' in src
+
+
+def test_goat_view_uses_every_result():
+    import inspect
+    from pipeline import run
+    src = inspect.getsource(run.build_site)
+    assert src.count("goat.head_to_head(") == 2 and 'head_to_head(sel["all_games"])' in src
