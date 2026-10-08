@@ -4,7 +4,6 @@
   2. the season's scoreboard: every match, played or still to come
   3. where to watch each of the ranked teams' matches in the next two weeks
   4. the box scores behind the player ratings
-  5. the week's news about the ranked teams
 
 Usage:  python -m pipeline.run <state_dir> <site_output_dir>
 
@@ -14,7 +13,6 @@ Usage:  python -m pipeline.run <state_dir> <site_output_dir>
   watch.json        the TV channel or stream found for each upcoming match
   box.json          the box score of every finished match involving a ranked team
   photos.json       the address of each player's photo on her school's roster page
-  news.json         articles and videos about ranked teams from the past ten days
   ratings.json      every team's rating, this season and last (behind the odds)
   status.json       what happened on the last run
 """
@@ -29,7 +27,7 @@ import sys
 import traceback
 from pathlib import Path
 
-from . import box, config, goat, news, odds, photos, players, poll, watch, web
+from . import box, config, goat, odds, photos, players, poll, watch, web
 
 SITE_SRC = Path(__file__).resolve().parents[1] / "site"
 
@@ -216,20 +214,6 @@ def update_photos(state: Path, now: dt.datetime) -> dict:
     return res
 
 
-def update_news(state: Path, now: dt.datetime) -> dict:
-    """Read the news feeds and keep the items about ranked teams."""
-    sel = ranked_matches(state)
-    items, failed, read = news.fetch(web.get_bytes, sel["teams"])
-    stored = read_json(state / "news.json", {})
-    res = news.update(stored, items, sel["teams"], now)
-    write_json(state / "news.json", stored, indent=0)
-    log(f"news: {len(items)} items read from {read} feeds, {res['added']} new about ranked teams, {res['items']} kept"
-        + (f"; could not read: {failed}" if failed else ""))
-    if not items:
-        raise RuntimeError("no news feed could be read: " + "; ".join(failed)[:300])
-    return {**res, "feeds_read": read, "failed": failed}
-
-
 def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
     sel = ranked_matches(state)
     through, ranked, listed, unmatched = sel["through"], sel["teams"], sel["games"], sel["unmatched"]
@@ -327,15 +311,13 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
             if url:
                 p["photo"] = url
     write_json(out / "players.json", rated)
-    told = news.stories(read_json(state / "news.json", {}), ranked, sel["all_games"], sel["names"], now)
-    write_json(out / "news.json", {"updated": now.isoformat(timespec="seconds"), "stories": told})
     (out / ".nojekyll").write_text("")
     log(f"site: poll through {through}, {len(listed)} matches listed for {len(rank)} ranked teams, "
         f"{rated['regulars']} regulars rated of {len(rated['players'])} players"
         + (f"; NOT MATCHED to a scoreboard team: {unmatched}" if unmatched else ""))
     return {"poll_through": through, "matches_listed": len(listed), "teams_matched": len(rank), "unmatched": unmatched,
             "with_channel": sum(1 for g in listed if g.get("watch")),
-            "players": len(rated["players"]), "regulars": rated["regulars"], "news_stories": len(told),
+            "players": len(rated["players"]), "regulars": rated["regulars"],
             "with_odds": sum(1 for g in listed if "p" in g), "teams_rated": len(rating)}
 
 
@@ -376,7 +358,7 @@ def main(state_dir: str, out_dir: str) -> int:
         stage("boxes", lambda: update_boxes(state, now))
         if config.SHOW_PHOTOS:
             stage("photos", lambda: update_photos(state, now))
-        stage("news", lambda: update_news(state, now))
+        (state / "news.json").unlink(missing_ok=True)      # left from the News page, since removed
     stage("site", lambda: build_site(state, out, now))
     stage("every ranked team found", lambda: check_teams(status))
     status["finished_utc"] = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")

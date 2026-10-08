@@ -143,12 +143,6 @@ the tab is in the background, and covers every match the nightly job managed
 to find in ESPN's schedule (nearly all of them). If ESPN cannot be reached,
 the row simply stays as it was.
 
-## News
-
-The News page lists the week's most widely covered stories about the ranked teams: recaps, highlights and interviews from ESPN, NCAA.com, Volleyball Magazine and a Google News search for each ranked team (settings in `pipeline/config.py`, code in `pipeline/news.py`). Items about the same match are grouped into one story using the schedule, and stories are ordered by how many different outlets covered them, with a little extra for higher-ranked teams. None of these sources reports how many people read an item, so coverage stands in for popularity. The feeds are read on every run and items are kept for ten days in `news.json` on the `state` branch.
-
-Posts from X, Instagram and TikTok aren't included: none offers a free way to find a week's most popular posts. X's paid API could be added later.
-
 ## When it updates
 
 The file `.github/workflows/update.yml` tells GitHub when to run:

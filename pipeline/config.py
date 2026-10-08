@@ -83,15 +83,3 @@ BIGTEN_SCHEDULE = "https://bigten.org/services/responsive-calendar.ashx?start={s
 FETCH_THREADS = 6
 FETCH_RETRIES = 4
 USER_AGENT = "Mozilla/5.0 (compatible; volleyball-stats-site/2.0)"
-
-# ---- news: the week's most widely covered stories about the ranked teams (pipeline/news.py) ----
-# (name, kind, address). kind "espn" is ESPN's news feed, anything else plain RSS.
-NEWS_FEEDS = [
-    ("ESPN", "espn", "https://site.api.espn.com/apis/site/v2/sports/volleyball/womens-college-volleyball/news?limit=50"),
-    ("NCAA.com", "rss", "https://www.ncaa.com/news/volleyball-women/d1/rss.xml"),
-    ("Volleyball Magazine", "rss", "https://volleyballmag.com/feed/"),
-]
-# A Google News search run for each ranked team: "{team}" is the school's name.
-NEWS_TEAM_SEARCH = "https://news.google.com/rss/search?hl=en-US&gl=US&ceid=US:en&q=%22{team}%22+volleyball+when:7d"
-NEWS_KEEP_DAYS = 10      # items are kept this long between runs
-NEWS_STORIES = 30        # stories shown on the News page

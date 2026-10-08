@@ -49,7 +49,7 @@
     return box;
   }
   function rankTag(rank) {
-    // an unranked team gets a quiet "NR" in the same spot, so the names line up
+    // an unranked team gets "NR" in the same spot, coloured like a rank
     return el("span", { "class": "rk" + (rank ? "" : " nr"), text: rank ? String(rank) : "NR", "aria-label": rank ? "ranked " + rank : "unranked" });
   }
 
@@ -126,10 +126,10 @@
     var t = g.start ? new Date(g.start * 1000) : null;
     var note = !L && g.state === "other" ? (g.note ? g.note.charAt(0).toUpperCase() + g.note.slice(1) : "Not played") : "";
     var when = fin ? "Final" : live ? (L && L.detail) || "In progress" : note ? note : t && !isNaN(t) ? t.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : "Time not set";
-    function team(side, s, lost, won) {
+    function team(side, s, lost) {
       var kids = [logo(s.id), el("span", { "class": "name", text: s.name }), rankTag(s.rank)];
       if (side === "home") kids.reverse();
-      return el("span", { "class": "team " + side + (lost ? " lost" : "") + (won ? " won" : "") }, kids);
+      return el("span", { "class": "team " + side + (lost ? " lost" : "") }, kids);
     }
     var pts = live && L && L.pts ? L.pts : null;      // points in the set being played: [away, home]
     function sets(cls, n, lost, p) {
@@ -154,7 +154,7 @@
     if (fin || live) more.push(el("a", { href: data.game_page + g.id, text: "Box score", rel: "noopener" }));
     var unplayed = !fin && !live && !note;
     return el("li", { "class": "game" + (g.away.rank && g.home.rank ? " both" : "") + (live ? " on" : "") + (unplayed ? " ahead" : ""), "data-id": g.id }, [
-      el("span", { "class": "when" + (live ? " live" : ""), text: when }), team("away", g.away, homeWon, awayWon), mid, team("home", g.home, awayWon, homeWon),
+      el("span", { "class": "when" + (live ? " live" : ""), text: when }), team("away", g.away, homeWon), mid, team("home", g.home, awayWon),
       el("span", { "class": "more" }, more)]);
   }
 
@@ -442,90 +442,15 @@
     });
   }
 
-  // ---- the news page: the week's most widely covered stories ----
-  var stories = null, nstate = { team: "" };
-  function loadNews() {
-    if (stories) return Promise.resolve(stories);
-    return fetch("news.json", { cache: "no-cache" }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (d) { stories = d; return d; });
-  }
-  function ago(t) {
-    var d = new Date(t), h = (Date.now() - d) / 36e5;
-    if (isNaN(d)) return "";
-    if (h < 1) return "just now";
-    if (h < 24) return Math.round(h) + (Math.round(h) === 1 ? " hour ago" : " hours ago");
-    var n = Math.round(h / 24);
-    return n === 1 ? "yesterday" : n < 7 ? n + " days ago" : short(iso(d));
-  }
-  function teamName(id) { var t = rankOf(id); return t ? t.name : id; }
-  function rankOf(id) { for (var i = 0; i < data.poll.teams.length; i++) if (data.poll.teams[i].id === id) return data.poll.teams[i]; return null; }
-  function result(m) {
-    // "Florida 3, Kentucky 2" for a finished match; the winner first
-    var a = m.away, h = m.home, won = (a.sets || 0) > (h.sets || 0) ? [a, h] : [h, a];
-    var live = m.state === "live";
-    function side(s, lost) {
-      var t = rankOf(s.id);
-      return el("span", { "class": "side" + (lost ? " lost" : "") }, [rankTag(t && t.rank), logo(s.id, "sm"), " " + s.name + " ", el("b", { text: s.sets == null ? "" : String(s.sets) })]);
-    }
-    if (m.state !== "final" && !live) return null;
-    return el("p", { "class": "result" }, [el("span", { "class": "when", text: live ? "Live" : short(m.date) }),
-      side(won[0], false), el("span", { "class": "dash", text: "–", "aria-hidden": "true" }), side(won[1], !live)]);
-  }
-  function story(s, i) {
-    var L = s.lead, more = s.more || [];
-    var kids = [];
-    if (L.img) kids.push(el("a", { "class": "thumb", href: L.url, target: "_blank", rel: "noopener", tabindex: "-1", "aria-hidden": "true" },
-      [el("img", { src: L.img, alt: "", loading: "lazy", decoding: "async", referrerpolicy: "no-referrer", onerror: function () { this.parentNode.remove(); } })]));
-    var body = el("div", { "class": "sbody" });
-    // a match's result when the story is about one; otherwise the ranked teams it is about
-    var r = s.match && result(s.match);
-    body.appendChild(el("p", { "class": "steams" }, r ? [r] : s.teams.map(function (id) {
-      var t = rankOf(id); return el("span", { "class": "steam" }, [rankTag(t && t.rank), logo(id, "sm", teamName(id))]);
-    })));
-    body.appendChild(el("h3", null, [el("a", { href: L.url, target: "_blank", rel: "noopener" }, [L.video ? el("span", { "class": "vid", text: "Video" }) : null, L.title])]));
-    body.appendChild(el("p", { "class": "smeta", text: L.source + " · " + ago(L.t) + (s.sources > 1 ? " · covered by " + s.sources + " outlets" : "") }));
-    if (L.blurb && L.blurb !== L.title) body.appendChild(el("p", { "class": "sblurb", text: L.blurb }));
-    if (more.length) {
-      var list = el("ul", { "class": "smore" }, more.map(function (m) {
-        return el("li", null, [el("a", { href: m.url, target: "_blank", rel: "noopener" }, [m.video ? el("span", { "class": "vid", text: "Video" }) : null, m.title]),
-          el("span", { "class": "smeta", text: " " + m.source + " · " + ago(m.t) })]);
-      }));
-      body.appendChild(el("details", null, [el("summary", { text: more.length === 1 ? "1 more article or video" : more.length + " more articles and videos" }), list]));
-    }
-    kids.push(body);
-    return el("li", { "class": "story" + (L.img ? " has-img" : "") }, kids);
-  }
-  function drawNews() {
-    var bar = $("n-filters"), holder = $("n-list");
-    bar.innerHTML = ""; holder.innerHTML = "";
-    holder.appendChild(el("li", { "class": "empty", text: "Loading the news…" }));
-    loadNews().then(function (d) {
-      var s = el("select", { "aria-label": "Team", onchange: function () { nstate.team = s.value; list(); } },
-        [el("option", { value: "", text: "All 25 teams" })].concat(data.poll.teams.filter(function (t) { return t.id; }).map(function (t) {
-          return el("option", { value: t.id, text: t.rank + ". " + t.name, selected: t.id === nstate.team });
-        })));
-      bar.appendChild(s);
-      function list() {
-        holder.innerHTML = "";
-        var shown = d.stories.filter(function (x) { return !nstate.team || x.teams.indexOf(nstate.team) >= 0; });
-        if (!shown.length) holder.appendChild(el("li", { "class": "empty", text: nstate.team ? "No stories about " + teamName(nstate.team) + " this week yet." : "No stories this week yet." }));
-        shown.forEach(function (x, i) { holder.appendChild(story(x, i)); });
-      }
-      list();
-    }).catch(function () {
-      holder.innerHTML = "";
-      holder.appendChild(el("li", { "class": "empty", text: "The news could not be loaded. Reload the page to try again." }));
-    });
-  }
-
   function route() {
     var h = location.hash, card = /^#\/?player\/(.+)$/.exec(h);
-    var page = card ? "card" : /^#\/?players/.test(h) ? "players" : /^#\/?rankings/.test(h) ? "rankings" : /^#\/?news/.test(h) ? "news" : "matches";
-    ["matches", "rankings", "players", "news", "card"].forEach(function (p) { $("page-" + p).hidden = p !== page; });
+    var page = card ? "card" : /^#\/?players/.test(h) ? "players" : /^#\/?rankings/.test(h) ? "rankings" : "matches";
+    ["matches", "rankings", "players", "card"].forEach(function (p) { $("page-" + p).hidden = p !== page; });
     Array.prototype.forEach.call(document.querySelectorAll(".pages a"), function (a) {
       if (a.dataset.page === (page === "card" ? "players" : page)) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
     });
-    document.title = ({ rankings: "Top 25 rankings", players: "Top 25 players", news: "This week's top stories", card: "Player card" }[page] || "Top 25 matches") + " | " + data.site;
-    if (page === "rankings") drawRanks(); else if (page === "players") drawPlayers(); else if (page === "news") drawNews(); else if (page === "card") drawCard(decodeURIComponent(card[1])); else draw();
+    document.title = ({ rankings: "Top 25 rankings", players: "Top 25 players", card: "Player card" }[page] || "Top 25 matches") + " | " + data.site;
+    if (page === "rankings") drawRanks(); else if (page === "players") drawPlayers(); else if (page === "card") drawCard(decodeURIComponent(card[1])); else draw();
     window.scrollTo(0, 0);
   }
 
