@@ -17,6 +17,14 @@ You do not need to run anything. GitHub does it all on a schedule.
   match between two ranked teams has a green edge. Buttons step to earlier
   and later weeks, and a menu narrows the list to one team's whole season.
 
+## Team pages
+
+Every team name on the site links to that team's page (`#/team/<id>`): its
+poll and GOAT ranks, Beat / Lost to boxes, the next five matches and latest
+five results, its team stats (each with its place among the 25), and its
+players with their per-set stats. Teams outside the top 25 get a page with
+their matches against ranked teams.
+
 ## Match pages and live box scores
 
 Every match on the Matches page links to its own page (`#/match/<id>`) with
