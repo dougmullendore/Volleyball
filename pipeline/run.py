@@ -474,7 +474,7 @@ def build_pro(state: Path, out: Path, now: dt.datetime) -> dict:
         if dest.exists():
             shutil.rmtree(dest)
         dest.mkdir(parents=True)
-        for name in ("index.html", "app.js", "styles.css"):
+        for name in ("index.html", "app.js", "styles.css", "icon.svg", "icon-32.png", "icon-180.png", "icon-192.png", "icon-512.png", "manifest.json"):
             shutil.copy(out / name, dest / name)
         res[site] = pro.build(state, out, site, now, words, write_json, match_files, log)
     return res
