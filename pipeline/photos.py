@@ -39,7 +39,7 @@ def pages() -> dict:
 
 # Raised whenever find() learns something new, so teams with players still
 # missing a photo are read again straight away rather than the next day.
-FINDER = 3
+FINDER = 4
 
 
 def _words(s: str) -> list[str]:
@@ -217,6 +217,95 @@ def find(page: str, base: str, names: dict) -> dict:
     return out
 
 
+_SOCIAL = {"instagram": "https://www.instagram.com/{}", "twitter": "https://x.com/{}", "tiktok": "https://www.tiktok.com/@{}"}
+_PLAYERS_LIST = re.compile(r'"players"\s*:\s*\[')
+
+
+def _bio(d: dict) -> dict:
+    """Height, weight, class, hometown, birth date and social links from one
+    roster entry, whichever of the two usual spellings the site uses."""
+    def g(*keys):
+        for k in keys:
+            v = d.get(k)
+            if v not in (None, "", -1):
+                return v
+        return None
+    out = {}
+    ft, inch = g("heightFeet", "height_feet"), g("heightInches", "height_inches")
+    if isinstance(ft, int) and 4 <= ft <= 7:
+        out["ht"] = f"{ft}-{inch if isinstance(inch, int) else 0}"
+    w = g("weight")
+    if isinstance(w, (int, str)) and str(w).strip().isdigit() and 80 < int(w) < 350:
+        out["wt"] = int(w)
+    for key, k2 in (("yr", ("academicYearLong", "academic_year_long")), ("home", ("hometown",)), ("hs", ("highSchool", "highschool")),
+                    ("prev", ("previousSchool", "previous_school")), ("born", ("birthDate", "birthdate"))):
+        v = g(*k2)
+        if isinstance(v, str) and v.strip():
+            out[key] = _html.unescape(v.strip())[:80]
+    if "born" in out and not re.match(r"\d{4}-\d\d-\d\d", out["born"]):
+        del out["born"]
+    elif "born" in out:
+        out["born"] = out["born"][:10]
+    socials = d.get("socials") if isinstance(d.get("socials"), dict) else {}
+    links = {}
+    for net, url in _SOCIAL.items():
+        h = g(net + "Username", net + "_username")
+        if not h:
+            h = next((v.get("handle") for k, v in socials.items() if k.lower() == net and isinstance(v, dict)), None)
+        if isinstance(h, str) and h.strip():
+            h = h.strip()
+            if h.startswith("http"):
+                links[net] = h if urllib.parse.urlsplit(h).hostname and net[:5] in h.replace("x.com", "twitter") else None
+            else:
+                h = re.sub(r"[^\w.]", "", h.lstrip("@").split("/")[-1])
+                links[net] = url.format(h) if h else None
+            if not links[net]:
+                links.pop(net)
+    if links:
+        out["social"] = links
+    return out
+
+
+def bios(page: str, names: dict) -> dict:
+    """{player id: her height, class, hometown, social links...} for the
+    players in `names` whose entry is in the roster page's data."""
+    want = {pid: _words(n) for pid, n in names.items()}
+    entries = []
+    m = _PAYLOAD.search(page)
+    if m:
+        try:
+            data = json.loads(m.group(1))
+        except ValueError:
+            data = None
+        if isinstance(data, list):
+            def at(i):
+                return data[i] if isinstance(i, int) and not isinstance(i, bool) and 0 <= i < len(data) else None
+            for d in data:
+                if isinstance(d, dict) and ("lastName" in d or "last_name" in d):
+                    r = {k: (at(v) if not isinstance(at(v), (dict, list)) else None) for k, v in d.items()}
+                    soc = at(d.get("socials"))
+                    if isinstance(soc, dict):
+                        r["socials"] = {k: {kk: at(vv) for kk, vv in (at(v) or {}).items()} for k, v in soc.items() if isinstance(at(v), dict)}
+                    entries.append(r)
+    dec = json.JSONDecoder()
+    for m in _PLAYERS_LIST.finditer(page):
+        try:
+            lst, _ = dec.raw_decode(page, m.end() - 1)
+        except ValueError:
+            continue
+        entries += [d for d in lst if isinstance(d, dict)]
+    out = {}
+    for d in entries:
+        full = " ".join(str(d.get(k) or "") for k in ("firstName", "first_name", "lastName", "last_name"))
+        words = set(_words(full))
+        hits = [pid for pid, w in want.items() if w and w[0] in words and w[-1] in words]
+        if len(hits) == 1 and hits[0] not in out:
+            b = _bio(d)
+            if b:
+                out[hits[0]] = b
+    return out
+
+
 def _image_key(url: str) -> str:
     """The picture behind an address, so two sizes of one photo count once:
     its file name, from inside an image service's address if need be."""
@@ -266,7 +355,7 @@ def update(stored: dict, teams: dict, today: dt.date, fetch, log, ranked: set | 
     for team, names in teams.items():
         have = stored.get(team) or {}
         age = (today - dt.date.fromisoformat(have["checked"])).days if have.get("checked") else 10 ** 6
-        missing = any(pid not in (have.get("photos") or {}) for pid in names)
+        missing = any(pid not in (have.get("photos") or {}) for pid in names) or "bios" not in have
         improved = have.get("finder") != FINDER     # this file has learned a new way to find photos since
         again = 1 if team in ranked else 3
         moved = bool(listed.get(team)) and listed[team] != have.get("page")   # a page just added to rosters/pages.csv
@@ -283,9 +372,11 @@ def update(stored: dict, teams: dict, today: dt.date, fetch, log, ranked: set | 
         page = listed.get(team) or have.get("page")
         try:
             if page:
-                found = find(fetch(page), page, names)
+                text = fetch(page)
+                found = find(text, page, names)
             else:                                    # a school not read before: find its roster page
                 page, found = discover(team, names, fetch)
+                text = fetch(page) if page else ""
                 if page:
                     discovered.append(team)
         except Exception as e:
@@ -293,7 +384,8 @@ def update(stored: dict, teams: dict, today: dt.date, fetch, log, ranked: set | 
             continue
         read += 1
         # keep what was found before for anyone this reading missed
-        stored[team] = {"checked": today.isoformat(), "finder": FINDER, "page": page, "photos": {**(have.get("photos") or {}), **found}}
+        stored[team] = {"checked": today.isoformat(), "finder": FINDER, "page": page, "photos": {**(have.get("photos") or {}), **found},
+                       "bios": {**(have.get("bios") or {}), **bios(text, names)}}
     for team in [t for t, v in stored.items() if t not in teams]:   # a school no longer listed, for a month
         if not v.get("checked") or (today - dt.date.fromisoformat(v["checked"])).days > 30:
             del stored[team]

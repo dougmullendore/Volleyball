@@ -561,3 +561,13 @@ def test_goat_view_uses_every_result():
     from pipeline import run
     src = inspect.getsource(run.build_site)
     assert src.count("goat.head_to_head(") == 2 and 'head_to_head(sel["all_games"])' in src
+
+
+def test_player_bios_are_read_from_roster_data():
+    from pipeline.photos import bios
+    page = ('<script>var x={"players":[{"first_name":"Solia","last_name":"Angilau","hometown":"South Jordan, Utah",'
+            '"weight":null,"height_feet":6,"height_inches":1,"academic_year_long":"Junior","birthdate":"2005-03-04T00:00:00",'
+            '"twitter_username":"@solia","socials":{"Instagram":{"handle":"solia.angilau"}}}]};</script>')
+    b = bios(page, {"x": "Solia Angilau", "y": "Someone Else"})
+    assert b == {"x": {"ht": "6-1", "yr": "Junior", "home": "South Jordan, Utah", "born": "2005-03-04",
+                       "social": {"instagram": "https://www.instagram.com/solia.angilau", "twitter": "https://x.com/solia"}}}

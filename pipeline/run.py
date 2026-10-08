@@ -439,6 +439,9 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
             url = ((found.get(p["team_id"]) or {}).get("photos") or {}).get(p["id"])
             if url:
                 p["photo"] = url
+            bio = ((found.get(p["team_id"]) or {}).get("bios") or {}).get(p["id"])
+            if bio:
+                p["bio"] = bio
     with_box = match_files(out, every, boxes, rated_d1)
     write_json(out / "data.json", {
         "site": config.SITE_NAME, "updated": now.isoformat(timespec="seconds"), "season": sel["season"],

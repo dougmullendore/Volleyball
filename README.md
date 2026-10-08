@@ -310,6 +310,13 @@ A minute or two later the page is live at
 
 Not affiliated with or endorsed by the NCAA, the AVCA or any school.
 
+## Player details
+
+Each player card also shows her height, class, hometown and links to her
+Instagram, X and TikTok, read from the same roster page as her photo. Weight
+and age appear only when the school lists them, which few volleyball rosters
+do.
+
 ## Schools without player photos
 
 Arkansas's roster page shows no photos, and Tennessee Tech's and Central

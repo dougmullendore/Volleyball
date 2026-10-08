@@ -443,6 +443,34 @@
     });
   }
 
+  // Her height, class, age, weight and hometown, from her school's roster page.
+  function bioLine(b) {
+    if (!b) return null;
+    var bits = [];
+    if (b.ht) { var h = b.ht.split("-"); bits.push(h[0] + "\u2032" + h[1] + "\u2033"); }
+    if (b.wt) bits.push(b.wt + " lb");
+    if (b.yr) bits.push(b.yr);
+    if (b.born) {
+      var d = new Date(b.born + "T12:00:00"), now = new Date(), age = now.getFullYear() - d.getFullYear();
+      if (now.getMonth() < d.getMonth() || (now.getMonth() === d.getMonth() && now.getDate() < d.getDate())) age--;
+      if (age > 14 && age < 40) bits.push("Age " + age);
+    }
+    if (b.home) bits.push(b.home + (b.prev ? " (from " + b.prev + ")" : ""));
+    return bits.length ? el("p", { "class": "pc-bio", text: bits.join(" \u00b7 ") }) : null;
+  }
+  var SOCIAL = { instagram: ["Instagram", "M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 8.2a3.2 3.2 0 1 1 0-6.4 3.2 3.2 0 0 1 0 6.4zM17.3 5.5a1.2 1.2 0 1 0 0 2.4 1.2 1.2 0 0 0 0-2.4zM7.5 2h9A5.5 5.5 0 0 1 22 7.5v9a5.5 5.5 0 0 1-5.5 5.5h-9A5.5 5.5 0 0 1 2 16.5v-9A5.5 5.5 0 0 1 7.5 2zm0 1.8A3.7 3.7 0 0 0 3.8 7.5v9a3.7 3.7 0 0 0 3.7 3.7h9a3.7 3.7 0 0 0 3.7-3.7v-9a3.7 3.7 0 0 0-3.7-3.7z"],
+    twitter: ["X", "M17.8 3h3.1l-6.8 7.7L22 21h-6.2l-4.9-6.4L5.3 21H2.2l7.2-8.3L1.8 3h6.4l4.4 5.8L17.8 3zm-1.1 16.2h1.7L7.4 4.7H5.6l11.1 14.5z"],
+    tiktok: ["TikTok", "M16.6 2h-3.3v13.4a2.9 2.9 0 1 1-2.9-2.9c.3 0 .6 0 .9.1V9.2a6.3 6.3 0 1 0 5.3 6.2V8.6a7.9 7.9 0 0 0 4.4 1.4V6.7a4.6 4.6 0 0 1-4.4-4.7z"] };
+  function socialLinks(b, name) {
+    if (!b || !b.social) return null;
+    var out = Object.keys(SOCIAL).filter(function (k) { return b.social[k]; }).map(function (k) {
+      var a = el("a", { href: b.social[k], target: "_blank", rel: "noopener noreferrer", title: name + " on " + SOCIAL[k][0], "aria-label": name + " on " + SOCIAL[k][0] });
+      a.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="' + SOCIAL[k][1] + '"/></svg>';
+      return a;
+    });
+    return out.length ? el("p", { "class": "pc-social" }, out) : null;
+  }
+
   function drawCard(id) {
     var holder = $("card");
     holder.innerHTML = "";
@@ -461,7 +489,9 @@
           el("h1", { text: p.name }),
           el("p", { "class": "pc-team" }, [logo(p.team_id), teamA(p.team_id, p.team), p.team_rank ? el("span", { text: " (ranked " + p.team_rank + ")" }) : null]),
           el("p", { text: (p.num != null ? "No. " + p.num + ", " : "") + POS_ONE[p.pos].toLowerCase() }),
-          el("p", { "class": "pc-sub", text: p.sp + " sets in " + p.mp + " matches, " + p.starts + " starts" })]),
+          bioLine(p.bio),
+          el("p", { "class": "pc-sub", text: p.sp + " sets in " + p.mp + " matches, " + p.starts + " starts" }),
+          socialLinks(p.bio, p.name)]),
         el("div", { "class": "pc-rank" }, p.regular ? [
           el("b", { text: ordinal(p.rank) }), el("span", { text: "of " + roster.regulars + " regulars" }),
           el("span", { text: ordinal(p.pos_rank) + " of " + nPos + " " + many })] : [
