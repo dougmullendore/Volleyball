@@ -334,3 +334,14 @@ a.opp:hover .n { color: var(--teal); }
   .hahead .home::after { content: " below"; text-transform: none; font-weight: 600; letter-spacing: 0; }
 }
 
+/* the Top 25 / All D1 switch: two joined buttons */
+.scope { display: inline-flex; }
+.scope button { border-radius: 0; }
+.scope button:first-child { border-radius: 4px 0 0 4px; }
+.scope button:last-child { border-radius: 0 4px 4px 0; margin-left: -1px; }
+.scope button[aria-pressed="true"] { position: relative; z-index: 1; }
+.scope button:disabled { opacity: .45; cursor: default; }
+.more { margin: 12px 0 0; }
+.morebtn { font: 600 .875rem/1 Barlow, sans-serif; color: var(--ink); background: var(--sheet); border: 1px solid var(--line); border-radius: 4px; padding: 10px 14px; cursor: pointer; }
+.morebtn:hover { border-color: var(--teal); }
+

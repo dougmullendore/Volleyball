@@ -84,7 +84,8 @@ def _r(v, nd=2):
 
 
 def compute(ranked: list[dict], games: list[dict], boxes: dict) -> dict:
-    """Every player on a ranked team, with totals, rates, impact and percentiles."""
+    """Every player on the given teams (the ranked 25, or all of Division I), with totals,
+    rates, impact and percentiles, each measured against the players of those teams."""
     rank = {t["id"]: t for t in ranked if t["id"]}
     players, team_sets, team_matches = {}, {t: 0 for t in rank}, {t: 0 for t in rank}
     same_player = {}
@@ -237,6 +238,6 @@ def compute(ranked: list[dict], games: list[dict], boxes: dict) -> dict:
                      "v": [_r(q["_v"][k], 3) for k in keys], "pct": [q.get("_pct", {}).get(k) for k in keys]})
     return {"metrics": keys, "players": rows, "regulars": len(regulars), "pos_regulars": {POS_LABEL[k]: n for k, n in seen.items()},
             "teams": [{"id": t, "name": rank[t]["name"], "rank": rank[t]["rank"], "matches": team_matches[t], "sets": team_sets[t]}
-                      for t in sorted(rank, key=lambda t: rank[t]["rank"])],
+                      for t in sorted(rank, key=lambda t: (rank[t]["rank"] is None, rank[t]["rank"] or 0, rank[t]["name"]))],
             "baseline": {"serve": _r(base["srv"], 4), **{POS_LABEL[k]: {a: _r(b, 4) for a, b in base[k].items()} for k in POS_LABEL}},
             "weights": {"dig": DIG_WEIGHT, "setter_share": SETTER_SHARE, "regular_share": REGULAR_SHARE}}

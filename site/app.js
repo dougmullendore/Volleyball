@@ -59,6 +59,24 @@
     if (s == null) return "";
     return s.replace(/\{(\w+)\}/g, function (m, k) { return vars && vars[k] != null ? String(vars[k]) : m; });
   }
+  // ---- Top 25 or all of Division I: one switch, remembered, used by every page that has it ----
+  var scope = "top25";
+  try { if (localStorage.getItem("scope") === "d1") scope = "d1"; } catch (e) {}
+  function isD1() { return scope === "d1"; }
+  function rankOf(id) { for (var i = 0; i < data.poll.teams.length; i++) if (data.poll.teams[i].id === id) return data.poll.teams[i]; return null; }
+  function setScope(s) { scope = s; try { localStorage.setItem("scope", s); } catch (e) {} }
+  function scopeSwitch(redraw, lockTop) {
+    return el("div", { "class": "scope", role: "group", "aria-label": "Which teams" }, [["top25", W("scope.top25")], ["d1", W("scope.d1")]].map(function (o) {
+      var on = lockTop ? o[0] === "d1" : scope === o[0];      // a team outside the top 25 is always shown against all of D1
+      return el("button", { type: "button", "aria-pressed": String(on), disabled: lockTop && o[0] === "top25",
+        text: o[1], onclick: function () { if (!on) { setScope(o[0]); redraw(); } } });
+    }));
+  }
+  function setHead(page, key) {      // a page's title and intro for the current switch
+    var sec = $("page-" + page), h = sec && sec.querySelector("h1"), l = sec && sec.querySelector(".lede");
+    if (h) h.textContent = W(key + ".title" + (isD1() ? "_d1" : ""));
+    if (l && W(key + ".lede" + (isD1() ? "_d1" : ""))) l.textContent = W(key + ".lede" + (isD1() ? "_d1" : ""), { poll: data.poll.name });
+  }
   function rankTag(rank) {
     // an unranked team gets "NR" in the same spot, coloured like a rank
     return el("span", { "class": "rk" + (rank ? "" : " nr"), text: rank ? String(rank) : "NR", "aria-label": rank ? "ranked " + rank : "unranked" });
@@ -241,24 +259,30 @@
   function draw() {
     var holder = $("list"), nav = $("nav"), head = $("h-list");
     holder.innerHTML = ""; nav.innerHTML = "";
+    setHead("matches", "matches");
+    var shown = isD1() ? data.games : data.games.filter(function (g) { return g.away.rank || g.home.rank; });
+    var teamsHere = isD1() ? data.d1.map(function (x) { var r = rankOf(x[0]); return { id: x[0], name: x[1], rank: r && r.rank }; }).sort(function (a, b) { return a.name.localeCompare(b.name); })
+      : data.poll.teams.filter(function (x) { return x.id; });
+    if (state.team && !teamsHere.some(function (x) { return x.id === state.team; })) state.team = null;
+    nav.appendChild(scopeSwitch(draw));
     // which side is which: over the columns on a wide screen, beside the two lines on a phone
     holder.appendChild(el("div", { "class": "hahead", "aria-hidden": "true" }, [el("span"), el("span", { "class": "ha away", text: W("matches.away") }),
       el("span"), el("span", { "class": "ha home", text: W("matches.home") }), el("span")]));
     var weeks = {};
-    data.games.forEach(function (g) { weeks[monday(g.date)] = 1; });
+    shown.forEach(function (g) { weeks[monday(g.date)] = 1; });
     var first = Object.keys(weeks).sort()[0], last = Object.keys(weeks).sort().pop();
     var pick = el("select", { id: "f-team", "aria-label": "Show one team", onchange: function () { state.team = pick.value || null; draw(); } },
-      [el("option", { value: "", text: W("matches.all_teams") })].concat(data.poll.teams.filter(function (x) { return x.id; }).map(function (x) {
-        return el("option", { value: x.id, text: x.rank + ". " + x.name, selected: x.id === state.team });
+      [el("option", { value: "", text: isD1() ? W("matches.all_teams_d1") : W("matches.all_teams") })].concat(teamsHere.map(function (x) {
+        return el("option", { value: x.id, text: (x.rank ? x.rank + ". " : "") + x.name, selected: x.id === state.team });
       })));
     nav.appendChild(pick);
 
     if (state.team) {
-      var t = data.poll.teams.filter(function (x) { return x.id === state.team; })[0];
+      var t = teamsHere.filter(function (x) { return x.id === state.team; })[0];
       var mine = data.games.filter(function (g) { return g.away.id === t.id || g.home.id === t.id; });
       head.innerHTML = "";
       head.appendChild(logo(t.id));
-      head.appendChild(document.createTextNode(" No. " + t.rank + " " + t.name + ", whole season"));
+      head.appendChild(document.createTextNode(" " + (t.rank ? "No. " + t.rank + " " : "") + t.name + ", whole season"));
       var next = mine.filter(function (g) { return g.state !== "final" && g.date >= today; }), done = mine.filter(function (g) { return g.state === "final" || g.date < today; });
       if (next.length) { holder.appendChild(el("p", { "class": "note", text: next.length + " still to play, " + done.length + " played." + oddsNote() })); listInto(holder, next); }
       if (done.length) { holder.appendChild(el("h3", { "class": "day", text: "Already played, newest first" })); listInto(holder, done, true); }
@@ -271,7 +295,7 @@
       state.week = !first ? now : now < first ? first : now > last ? last : now;
     }
     var w = state.week, end = addDays(w, 6), thisWeek = monday(today);
-    var games = data.games.filter(function (g) { return g.date >= w && g.date <= end; });
+    var games = shown.filter(function (g) { return g.date >= w && g.date <= end; });
     head.textContent = (w === thisWeek ? "This week, " : "Week of ") + short(w) + " to " + short(end);
     nav.appendChild(el("button", { type: "button", text: W("matches.earlier"), disabled: !first || w <= first, onclick: function () { state.week = addDays(w, -7); draw(); } }));
     if (w !== thisWeek && first && thisWeek >= first && thisWeek <= last) nav.appendChild(el("button", { type: "button", text: W("matches.this_week"), onclick: function () { state.week = thisWeek; draw(); } }));
@@ -325,9 +349,12 @@
   function val(p, key) { return p.v[roster.metrics.indexOf(key)]; }
   function pctOf(p, key) { return p.pct[roster.metrics.indexOf(key)]; }
   function ordinal(n) { var s = ["th", "st", "nd", "rd"], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
-  function loadRoster() {
-    if (roster) return Promise.resolve(roster);
-    return fetch("players.json", { cache: "no-cache" }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (d) { roster = d; return d; });
+  var rosters = {};
+  function loadRoster(which) {     // players rated against the top 25, or against all of Division I
+    which = which || scope;
+    if (rosters[which]) { roster = rosters[which]; return Promise.resolve(roster); }
+    return fetch(which === "d1" ? "players_d1.json" : "players.json", { cache: "no-cache" }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (d) { rosters[which] = d; roster = d; return d; });
   }
 
   var PCOLS = [   // key, heading, meaning, getter, format, sorts high to low first
@@ -348,16 +375,19 @@
   function drawPlayers() {
     var bar = $("p-filters"), holder = $("p-list");
     bar.innerHTML = ""; holder.innerHTML = "";
+    setHead("players", "players");
     holder.appendChild(el("p", { "class": "empty", text: "Loading the players…" }));
     loadRoster().then(function () {
+      bar.appendChild(scopeSwitch(function () { pstate.team = ""; pstate.limit = 200; drawPlayers(); }));
       function pick(label, value, options, set) {
-        var s = el("select", { "aria-label": label, onchange: function () { set(s.value); table(); } },
+        var s = el("select", { "aria-label": label, onchange: function () { set(s.value); pstate.limit = 200; table(); } },
           options.map(function (o) { return el("option", { value: o[0], text: o[1], selected: o[0] === value }); }));
         return s;
       }
       bar.appendChild(pick("Position", pstate.pos, [["", "All positions"]].concat(Object.keys(POS_ONE).map(function (k) { return [k, POS_ONE[k] + "s"]; })), function (v) { pstate.pos = v; }));
-      bar.appendChild(pick("Team", pstate.team, [["", W("matches.all_teams")]].concat(roster.teams.map(function (t) { return [t.id, t.rank + ". " + t.name]; })), function (v) { pstate.team = v; }));
-      var q = el("input", { type: "search", placeholder: "Find a player", "aria-label": "Find a player", value: pstate.q, oninput: function () { pstate.q = q.value; table(); } });
+      bar.appendChild(pick("Team", pstate.team, [["", W("matches.all_teams")]].concat(roster.teams.slice().sort(function (a, b) { return isD1() ? a.name.localeCompare(b.name) : a.rank - b.rank; })
+        .map(function (t) { return [t.id, (t.rank ? t.rank + ". " : "") + t.name]; })), function (v) { pstate.team = v; }));
+      var q = el("input", { type: "search", placeholder: "Find a player", "aria-label": "Find a player", value: pstate.q, oninput: function () { pstate.q = q.value; pstate.limit = 200; table(); } });
       bar.appendChild(q);
       var chk = el("input", { type: "checkbox", id: "p-all", checked: pstate.all, onchange: function () { pstate.all = chk.checked; table(); } });
       bar.appendChild(el("label", { "class": "check", "for": "p-all" }, [chk, " Include part-time players"]));
@@ -380,6 +410,8 @@
             el("button", { type: "button", title: c[2] || null, text: c[1] + (on ? (pstate.dir > 0 ? " ▲" : " ▼") : ""),
               onclick: function () { if (on) pstate.dir = -pstate.dir; else { pstate.sort = c[0]; pstate.dir = c[5] ? -1 : 1; } table(); } })]);
         }));
+        var total = rows.length, limit = pstate.limit || 200;
+        rows = rows.slice(0, limit);
         var body = el("tbody", {}, rows.map(function (p) {
           return el("tr", {}, PCOLS.map(function (c) {
             if (c[0] === "name") return el("td", { "class": "l nm" }, [el("a", { href: "#/player/" + encodeURIComponent(p.id) }, [el("span", { text: p.name })])]);
@@ -390,9 +422,11 @@
         }));
         holder.appendChild(el("div", { "class": "tablewrap", tabindex: "0", role: "region", "aria-label": "Players table, scrolls sideways" }, [
           el("table", { "class": "ptable pltable" }, [el("thead", {}, [head]), body])]));
-        holder.appendChild(el("p", { "class": "note", text: rows.length + " players" + (roster.through ? ", through matches of " + short(roster.through) : "") +
+        if (total > rows.length) holder.appendChild(el("p", { "class": "more" }, [el("button", { type: "button", "class": "morebtn", text: "Show " + Math.min(400, total - rows.length) + " more of " + total,
+          onclick: function () { pstate.limit = limit + 400; table(); } })]));
+        holder.appendChild(el("p", { "class": "note", text: total + " players" + (roster.through ? ", through matches of " + short(roster.through) : "") +
           ". A regular has played at least " + Math.round(100 * roster.weights.regular_share) + "% of her team's sets; only regulars are ranked. Choose a name for her card, or a column heading to sort." }));
-        holder.appendChild(el("p", { "class": "note", text: W("players.note") }));
+        holder.appendChild(el("p", { "class": "note", text: W(isD1() ? "players.note_d1" : "players.note") }));
       }
       table();
     }).catch(function () {
@@ -404,9 +438,12 @@
   function drawCard(id) {
     var holder = $("card");
     holder.innerHTML = "";
-    loadRoster().then(function () {
+    var team = id.split("~")[0], ranked = !!rankOf(team);
+    loadRoster(ranked ? scope : "d1").then(function () {
       var p = roster.players.filter(function (x) { return x.id === id; })[0];
-      if (!p) { holder.appendChild(el("p", { "class": "empty", text: "There is no card for that player. Her team may have dropped out of the top 25." })); return; }
+      if (!p) { holder.appendChild(el("p", { "class": "empty", text: "There is no card for that player. She may not have played a set yet this season." })); return; }
+      holder.appendChild(el("div", { "class": "nav filters" }, [scopeSwitch(function () { drawCard(id); }, !ranked)]));
+      if (!ranked) holder.appendChild(el("p", { "class": "note", text: "Her team is not in the top 25, so she is measured against all of Division I." }));
       document.title = p.name + " | " + data.site;
       var many = POS_MANY[p.pos], nPos = roster.pos_regulars[p.pos] || 0;
       var art = el("article", { "class": "pcard" });
@@ -414,7 +451,7 @@
         face(p, "big"),
         el("div", { "class": "pc-id" }, [
           el("h1", { text: p.name }),
-          el("p", { "class": "pc-team" }, [logo(p.team_id), teamA(p.team_id, p.team), el("span", { text: " (ranked " + p.team_rank + ")" })]),
+          el("p", { "class": "pc-team" }, [logo(p.team_id), teamA(p.team_id, p.team), p.team_rank ? el("span", { text: " (ranked " + p.team_rank + ")" }) : null]),
           el("p", { text: (p.num != null ? "No. " + p.num + ", " : "") + POS_ONE[p.pos].toLowerCase() }),
           el("p", { "class": "pc-sub", text: p.sp + " sets in " + p.mp + " matches, " + p.starts + " starts" })]),
         el("div", { "class": "pc-rank" }, p.regular ? [
@@ -457,9 +494,12 @@
 
   // ---- the teams page: each ranked team's stats, from box scores ----
   var teamStats = null, tstate = { sort: "rank", dir: 1 };
-  function loadTeams() {
-    if (teamStats) return Promise.resolve(teamStats);
-    return fetch("teams.json", { cache: "no-cache" }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (d) { teamStats = d; return d; });
+  var teamSets = {};
+  function loadTeams(which) {      // the ranked 25, or all of Division I
+    which = which || scope;
+    if (teamSets[which]) return Promise.resolve(teamSets[which]);
+    return fetch(which === "d1" ? "teams_d1.json" : "teams.json", { cache: "no-cache" }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (d) { teamSets[which] = d; return d; });
   }
   function hitFmt(v) { return (v < 0 ? "-" : "") + Math.abs(v).toFixed(3).replace(/^0/, ""); }
   var TCOLS = [   // key, heading, meaning, getter, format, sorts high to low first
@@ -478,20 +518,22 @@
     ["d_set", "D/S", "Digs per set", function (t) { return t.d_set; }, fmt.d2, 1],
     ["re_pct", "RE%", "Reception errors per 100 serves received. Lower is better", function (t) { return t.re_pct; }, function (v) { return v.toFixed(1); }, 0],
     ["power", "Rating", "Where this site's rating (the one behind the odds) places the team among all Division I teams", function (t) { return t.power; }, String, 0],
-    ["sos_rank", "SOS", "Strength of schedule among the 25: 1 is the hardest, by the average rating of the teams played", function (t) { return t.sos_rank; }, String, 0]
+    ["sos_rank", "SOS", "Strength of schedule among the teams shown: 1 is the hardest, by the average rating of the teams played", function (t) { return t.sos_rank; }, String, 0]
   ];
   function drawTeams() {
     var holder = $("t-list");
     holder.innerHTML = "";
+    setHead("teams", "teams");
     holder.appendChild(el("p", { "class": "empty", text: "Loading the team stats…" }));
     loadTeams().then(function (d) {
       function table() {
         holder.innerHTML = "";
+        holder.appendChild(el("div", { "class": "nav filters" }, [scopeSwitch(drawTeams)]));
         var col = TCOLS.filter(function (c) { return c[0] === tstate.sort; })[0];
         var rows = d.teams.slice().sort(function (a, b) {
           var x = col[3](a), y = col[3](b);
-          if (x == null && y == null) return a.rank - b.rank; if (x == null) return 1; if (y == null) return -1;
-          return (typeof x === "string" ? tstate.dir * x.localeCompare(y) : tstate.dir * (x - y)) || a.rank - b.rank;
+          if (x == null && y == null) return (a.power || 999) - (b.power || 999); if (x == null) return 1; if (y == null) return -1;
+          return (typeof x === "string" ? tstate.dir * x.localeCompare(y) : tstate.dir * (x - y)) || (a.power || 999) - (b.power || 999);
         });
         var head = el("tr", {}, TCOLS.map(function (c) {
           var on = tstate.sort === c[0];
@@ -513,7 +555,7 @@
         holder.appendChild(el("div", { "class": "tablewrap", tabindex: "0", role: "region", "aria-label": "Team stats table, scrolls sideways" }, [
           el("table", { "class": "ptable ttable" }, [el("thead", {}, [head]), body])]));
         holder.appendChild(el("p", { "class": "note", text: (d.through ? "Through matches of " + short(d.through) + ". " : "") +
-          W("teams.note") }));
+          W(isD1() ? "teams.note_d1" : "teams.note") }));
       }
       table();
     }).catch(function () {
@@ -634,8 +676,9 @@
   function drawTeam(id) {
     var box = $("team");
     box.innerHTML = "";
-    var t = data.poll.teams.filter(function (x) { return x.id === id; })[0];
+    var t = rankOf(id);
     var mine = data.games.filter(function (g) { return g.away.id === id || g.home.id === id; });
+    var which = t ? scope : "d1";            // an unranked team is measured against all of Division I
     var name = t ? t.name : (mine.length ? (mine[0].away.id === id ? mine[0].away.name : mine[0].home.name) : id);
     var goat = ((data.goat || {}).top || []).filter(function (x) { return x.id === id; })[0];
     var bits = [];
@@ -643,6 +686,7 @@
     bits.push(t ? "No. " + t.rank + " in the " + data.poll.name : "Not ranked in the " + data.poll.name);
     if (goat) bits.push("No. " + goat.rank + " in the GOAT ranking");
     box.appendChild(el("div", { "class": "thead" }, [logo(id, "big"), el("div", {}, [el("h1", { text: name }), el("p", { "class": "tsub", text: bits.join(" · ") })])]));
+    box.appendChild(el("div", { "class": "nav filters" }, [scopeSwitch(function () { drawTeam(id); }, !t)]));
     if (t) box.appendChild(el("div", { "class": "tvs" }, [versus(t)]));
 
     // matches: the latest results and what is next
@@ -651,16 +695,14 @@
     var m = el("section", { "class": "tsec" }, [el("h2", { text: W("team.matches") })]);
     if (next.length) { m.appendChild(el("h3", { "class": "day", text: W("team.coming_up") })); m.appendChild(el("ol", { "class": "games" }, next.map(row))); }
     if (done.length) { m.appendChild(el("h3", { "class": "day", text: W("team.latest_results") })); m.appendChild(el("ol", { "class": "games" }, done.slice().reverse().map(row))); }
-    if (!mine.length) m.appendChild(el("p", { "class": "empty", text: "No matches against ranked teams are listed for " + name + "." }));
-    if (t && mine.length) m.appendChild(el("p", { "class": "note" }, [el("a", { href: "#/", onclick: function () { state.team = id; }, text: "All of " + name + "'s matches this season" })]));
-    if (!t && mine.length) m.appendChild(el("p", { "class": "note", text: "Only matches against ranked teams are listed for teams outside the top 25." }));
+    if (!mine.length) m.appendChild(el("p", { "class": "empty", text: "No matches are listed for " + name + "." }));
+    if (mine.length) m.appendChild(el("p", { "class": "note" }, [el("a", { href: "#/", onclick: function () { if (!t) setScope("d1"); state.team = id; }, text: "All of " + name + "'s matches this season" })]));
     box.appendChild(m);
-    if (!t) return;
 
     var stats = el("section", { "class": "tsec" }, [el("h2", { text: W("team.stats") }), el("p", { "class": "empty", text: "Loading…" })]);
     var people = el("section", { "class": "tsec" }, [el("h2", { text: W("team.players") }), el("p", { "class": "empty", text: "Loading…" })]);
     box.appendChild(stats); box.appendChild(people);
-    loadTeams().then(function (d) {
+    loadTeams(which).then(function (d) {
       var row1 = d.teams.filter(function (x) { return x.id === id; })[0];
       stats.removeChild(stats.lastChild);
       if (!row1) { stats.appendChild(el("p", { "class": "empty", text: "No box scores yet." })); return; }
@@ -672,12 +714,12 @@
           el("b", { text: v == null ? "–" : c[2](v) }), el("span", { "class": "plc", text: place ? ordinal(place) + " of " + vals.length : "" })]);
       });
       tiles.push(el("div", { "class": "tile" }, [el("span", { "class": "lab", text: "Rating" }), el("b", { text: row1.power ? ordinal(row1.power) : "–" }), el("span", { "class": "plc", text: "in Division I, by this site's rating" })]));
-      tiles.push(el("div", { "class": "tile" }, [el("span", { "class": "lab", text: "Schedule strength" }), el("b", { text: row1.sos_rank ? ordinal(row1.sos_rank) : "–" }), el("span", { "class": "plc", text: "hardest of the 25" })]));
+      tiles.push(el("div", { "class": "tile" }, [el("span", { "class": "lab", text: "Schedule strength" }), el("b", { text: row1.sos_rank ? ordinal(row1.sos_rank) : "–" }), el("span", { "class": "plc", text: "hardest of " + d.teams.length })]));
       stats.appendChild(el("div", { "class": "tiles" }, tiles));
-      stats.appendChild(el("p", { "class": "note", text: row1.w + "-" + row1.l + " in matches, " + row1.sw + "-" + row1.sl + " in sets. Per-set stats from " + row1.matches + " box scores; places are among the 25 ranked teams. " }));
+      stats.appendChild(el("p", { "class": "note", text: row1.w + "-" + row1.l + " in matches, " + row1.sw + "-" + row1.sl + " in sets. Per-set stats from " + row1.matches + " box scores; places are among " + (which === "d1" ? "all " + d.teams.length + " Division I teams" : "the 25 ranked teams") + ". " }));
       stats.lastChild.appendChild(el("a", { href: "#/teams", text: "All team stats" }));
     }).catch(function () {});
-    loadRoster().then(function () {
+    loadRoster(which).then(function () {
       var list = roster.players.filter(function (p) { return p.team_id === id; }).sort(function (a, b) {
         return (a.rank || 1e6) - (b.rank || 1e6) || (val(b, "impact_set") || 0) - (val(a, "impact_set") || 0);
       });
@@ -694,7 +736,7 @@
       }));
       people.appendChild(el("div", { "class": "tablewrap", tabindex: "0", role: "region", "aria-label": name + " players, scrolls sideways" }, [
         el("table", { "class": "ptable tptable" }, [el("thead", {}, [head]), body])]));
-      people.appendChild(el("p", { "class": "note", text: W("team.players_note") }));
+      people.appendChild(el("p", { "class": "note", text: W(which === "d1" ? "team.players_note_d1" : "team.players_note") }));
     }).catch(function () {});
   }
 

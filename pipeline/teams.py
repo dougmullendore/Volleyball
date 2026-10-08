@@ -70,10 +70,10 @@ def compute(ranked: list[dict], games: list[dict], boxes: dict, rating: dict) ->
             "re_pct": round(100 * o["re"] / o["ra"], 1) if o["ra"] else None,
             "power": power.get(t), "sos": round(sum(a["opp_r"]) / len(a["opp_r"]), 3) if a["opp_r"] else None,
         })
-    # strength of schedule as a rank among the ranked teams: 1 is the hardest
+    # strength of schedule as a rank among the teams given: 1 is the hardest
     for i, r in enumerate(sorted((r for r in out if r["sos"] is not None), key=lambda r: -r["sos"])):
         r["sos_rank"] = i + 1
     for r in out:
         r.pop("sos")
-    out.sort(key=lambda r: r["rank"])
+    out.sort(key=lambda r: (r["rank"] is None, r["rank"] or 0, r["name"]))
     return {"teams": out, "through": through}

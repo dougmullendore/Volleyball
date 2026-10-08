@@ -42,6 +42,7 @@ LOGO_URL = "https://www.ncaa.com/sites/default/files/images/logos/schools/bgl/{t
 # this many days. Set SHOW_PHOTOS = False to show none.
 SHOW_PHOTOS = True
 PHOTO_REFRESH_DAYS = 7
+PHOTO_PAGES_PER_RUN = 90  # roster pages read in one run at most: all of Division I fills in over a few nights
 # For a school not in rosters/pages.csv the job finds the roster page itself:
 # ncaa.com's page for the school gives its athletics website, and these are
 # the places schools keep a volleyball roster. The one that names the players

@@ -14,10 +14,17 @@ nav.rankings = Rankings
 nav.teams = Teams
 nav.players = Players
 
+# ---- the Top 25 / All D1 switch (Matches, Teams, Players, team pages, player cards) ----
+scope.top25 = Top 25
+scope.d1 = All D1
+
 # ---- Matches page ----
 matches.title = Ranked Matches
 matches.lede = Every match played by a team in the {poll}, week by week.
+matches.title_d1 = Division I Matches
+matches.lede_d1 = Every Division I match, week by week.
 matches.all_teams = All 25 teams
+matches.all_teams_d1 = All Division I teams
 matches.earlier = Earlier week
 matches.this_week = This week
 matches.later = Later week
@@ -43,7 +50,10 @@ rankings.note_goat = Beside each team are its results this season against the re
 # ---- Teams page ----
 teams.title = Top 25 Team Stats
 teams.lede = How each ranked team attacks, serves, blocks and defends, per set, and what its opponents manage against it. From official box scores.
+teams.title_d1 = Division I Team Stats
+teams.lede_d1 = How every Division I team attacks, serves, blocks and defends, per set, and what its opponents manage against it. From official box scores.
 teams.note = Per-set numbers count every set in matches with an official box score. Rating is where this site's rating of results places the team among all Division I teams; SOS ranks the 25 by how strong their opponents have been. Choose a column heading to sort; hold or hover over a heading for what it means.
+teams.note_d1 = Per-set numbers count every set in matches with an official box score. Rating is where this site's rating of results places the team among all Division I teams; SOS ranks every team by how strong its opponents have been. Choose a column heading to sort; hold or hover over a heading for what it means.
 
 # ---- a team's own page ----
 team.matches = Matches
@@ -52,11 +62,15 @@ team.latest_results = Latest results
 team.stats = Team Stats
 team.players = Players
 team.players_note = # is her rank by Impact per set among all regulars on the 25 ranked teams; part-time players are greyed and not ranked. Choose a name for her card.
+team.players_note_d1 = # is her rank by Impact per set among all regulars in Division I; part-time players are greyed and not ranked. Choose a name for her card.
 
 # ---- Players page ----
 players.title = Top Players
 players.lede = Every regular on a ranked team, ranked against the rest by Impact per set: the points she adds per set over an average top-25 player at her position.
+players.title_d1 = Division I Players
+players.lede_d1 = Every regular in Division I, ranked against the rest by Impact per set: the points she adds per set over an average Division I player at her position.
 players.note = Impact compares each player only with players on this week's top 25 teams, from official box scores. It cannot see pass quality or who was on the court, and it does not adjust for the opponent. A transfer counts as a new player at her new school.
+players.note_d1 = Impact compares each player with every regular in Division I, from official box scores. It cannot see pass quality or who was on the court, and it does not adjust for the opponent, so players on weaker schedules can rate higher here than in the Top 25 view.
 players.back = All players
 
 # ---- a match's own page ----

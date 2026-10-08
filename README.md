@@ -60,6 +60,22 @@ digs per set, reception error rate, where the site's rating places the team
 among all Division I teams, and strength of schedule (the average rating of
 its opponents, ranked among the 25).
 
+## Top 25 or all of Division I
+
+The Matches, Teams and Players pages, each team's page and each player card
+have a **Top 25 / All D1** switch. The site remembers the choice. With Top 25,
+matches are those of ranked teams and players and teams are measured against
+the ranked 25 only (`players.json`, `teams.json`); with All D1, every Division I
+match is listed and every player and team is measured against all of Division I
+(`players_d1.json`, `teams_d1.json`). A team outside the top 25, and its
+players, are always shown against all of Division I. The Rankings page is the
+top 25 either way.
+
+Box scores, channels and live scores are collected for every Division I match.
+Player photos are looked up for every school, at most `PHOTO_PAGES_PER_RUN`
+roster pages a night (ranked teams first), so they fill in over the first few
+nights.
+
 ## Players
 
 The **Players** page ranks every regular on the 25 ranked teams against the

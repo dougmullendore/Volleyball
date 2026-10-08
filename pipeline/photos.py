@@ -248,25 +248,34 @@ def discover(team: str, names: dict, fetch) -> tuple[str | None, dict]:
     return best if len(best[1]) >= 3 else (None, {})
 
 
-def update(stored: dict, teams: dict, today: dt.date, fetch, log) -> dict:
+def update(stored: dict, teams: dict, today: dt.date, fetch, log, ranked: set | None = None) -> dict:
     """Refresh the photos of each team in `teams` ({team id: {player id: name}}).
-    A roster page is read again after PHOTO_REFRESH_DAYS, or the next day if
-    some of the team's players still have no photo. `fetch(url)` returns the
+    A roster page is read again after PHOTO_REFRESH_DAYS; sooner if some of the
+    team's players still have no photo (the next day for a ranked team, every
+    few days for the rest). At most PHOTO_PAGES_PER_RUN schools are read in one
+    run, ranked teams first, then schools never read, then the longest unread,
+    so all of Division I fills in over a few nights. `fetch(url)` returns the
     page's text. Changes `stored` ({team: {"checked": date, "photos": {...}}})."""
+    ranked = ranked or set()
     listed, no_page, failed, read, discovered = pages(), [], [], 0, []
+    due = []
     for team, names in teams.items():
         have = stored.get(team) or {}
         age = (today - dt.date.fromisoformat(have["checked"])).days if have.get("checked") else 10 ** 6
         missing = any(pid not in (have.get("photos") or {}) for pid in names)
-        nothing_yet = not have.get("photos")
         improved = have.get("finder") != FINDER     # this file has learned a new way to find photos since
-        if age < config.PHOTO_REFRESH_DAYS and not (missing and (age >= 1 or improved)) and not (nothing_yet and age >= 1):
-            continue
+        again = 1 if team in ranked else 3
+        if age >= config.PHOTO_REFRESH_DAYS or (missing and (age >= again or improved)):
+            due.append((team not in ranked, have.get("checked") is not None, -age, team))
+    due.sort()
+    left = len(due) - config.PHOTO_PAGES_PER_RUN
+    for *_, team in due[:config.PHOTO_PAGES_PER_RUN]:
+        names, have = teams[team], stored.get(team) or {}
         page = listed.get(team) or have.get("page")
         try:
             if page:
                 found = find(fetch(page), page, names)
-            else:                                    # a school new to the top 25: find its roster page
+            else:                                    # a school not read before: find its roster page
                 page, found = discover(team, names, fetch)
                 if page:
                     discovered.append(team)
@@ -276,15 +285,16 @@ def update(stored: dict, teams: dict, today: dt.date, fetch, log) -> dict:
         read += 1
         # keep what was found before for anyone this reading missed
         stored[team] = {"checked": today.isoformat(), "finder": FINDER, "page": page, "photos": {**(have.get("photos") or {}), **found}}
-    for team in [t for t, v in stored.items() if t not in teams]:   # a school out of the poll for a month
+    for team in [t for t, v in stored.items() if t not in teams]:   # a school no longer listed, for a month
         if not v.get("checked") or (today - dt.date.fromisoformat(v["checked"])).days > 30:
             del stored[team]
     no_page = [t for t in teams if not (listed.get(t) or (stored.get(t) or {}).get("page"))]
     total = sum(len(n) for n in teams.values())
     with_photo = sum(1 for t, names in teams.items() for pid in names if pid in ((stored.get(t) or {}).get("photos") or {}))
     log(f"photos: {read} roster pages read; {with_photo} of {total} players have a photo"
-        + (f"; found the roster page of {discovered}" if discovered else "")
-        + (f"; NO ROSTER PAGE FOUND for {no_page} (add it to rosters/pages.csv)" if no_page else "")
-        + (f"; could not read {failed}" if failed else ""))
-    return {"pages_read": read, "players": total, "with_photo": with_photo, "found_page_for": discovered,
-            "no_page": no_page, "failed": failed}
+        + (f"; {left} more schools wait for the next run" if left > 0 else "")
+        + (f"; found the roster page of {len(discovered)} schools" if discovered else "")
+        + (f"; no roster page found yet for {len(no_page)} schools, e.g. {no_page[:8]} (add them to rosters/pages.csv)" if no_page else "")
+        + (f"; could not read {failed[:8]}" if failed else ""))
+    return {"pages_read": read, "players": total, "with_photo": with_photo, "found_page_for": discovered[:50],
+            "no_page": no_page[:50], "no_page_count": len(no_page), "waiting": max(0, left), "failed": failed[:20]}

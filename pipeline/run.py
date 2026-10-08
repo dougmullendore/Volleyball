@@ -148,30 +148,41 @@ def ranked_matches(state: Path) -> dict:
         ranked.append({"rank": r["rank"], "id": tid, "name": names.get(tid, r["school"]), "record": r.get("record"),
                        "prev": r.get("prev"), "points": r.get("points"), "votes": r.get("votes") or 0})
     rank = {t["id"]: t["rank"] for t in ranked if t["id"]}
-    listed = sorted((g for g in games.values() if g["away"]["id"] in rank or g["home"]["id"] in rank),
-                    key=lambda g: (g["date"], g["start"] or 0, g["id"]))
-    for g in listed:
+    every = sorted(games.values(), key=lambda g: (g["date"], g["start"] or 0, g["id"]))
+    for g in every:
         for s in (g["away"], g["home"]):
             s["rank"] = rank.get(s["id"])
+    listed = [g for g in every if g["away"]["id"] in rank or g["home"]["id"] in rank]
+    # Division I: the scoreboard also lists the odd match against a school from
+    # another division; those schools play only a match or two, so a team counts
+    # once it has played a fair share of what a typical team has.
+    count = {}
+    for g in every:
+        for s in (g["away"], g["home"]):
+            count[s["id"]] = count.get(s["id"], 0) + 1
+    typical = sorted(n for n in count.values() if n >= 3)
+    need = max(2, 0.4 * typical[len(typical) // 2]) if typical else 1
+    d1 = sorted(({"id": t, "name": names[t], "rank": rank.get(t)} for t, n in count.items() if n >= need or t in rank),
+                key=lambda t: (t["rank"] is None, t["rank"] or 0, t["name"]))
     return {"through": through, "polls_seen": len(polls), "season": board["season"], "teams": ranked,
-            "games": listed, "all_games": list(games.values()), "names": names, "unmatched": unmatched}
+            "games": listed, "all_games": every, "d1_teams": d1, "names": names, "unmatched": unmatched}
 
 
 def update_watch(state: Path, now: dt.datetime) -> dict:
-    """Look up the channel for each ranked team's match in the next two weeks.
+    """Look up the channel for each match in the next two weeks.
     A channel found on an earlier night is kept if tonight's look finds nothing."""
     sel = ranked_matches(state)
     lo = (now - dt.timedelta(days=1)).timestamp()
     hi = (now + dt.timedelta(days=config.WATCH_DAYS)).timestamp()
-    soon = [g for g in sel["games"] if g["state"] != "final" and g["start"] and lo <= g["start"] <= hi]
+    soon = [g for g in sel["all_games"] if g["state"] != "final" and g["start"] and lo <= g["start"] <= hi]
     listings, failed = watch.fetch_listings(now.date(), log)
     found = watch.assign(soon, listings, sel["names"])
     stored = read_json(state / "watch.json", {})
-    keep = {str(g["id"]) for g in sel["games"]}
+    keep = {str(g["id"]) for g in sel["all_games"]}
     stored = {k: v for k, v in stored.items() if k in keep}           # matches no longer listed are dropped
     # Finished matches keep ESPN's id: the match page reads the set scores with it.
     # Matches played before ESPN's id was kept are looked up once, a day's listings at a time.
-    past = [g for g in sel["games"] if g["state"] == "final" and not (stored.get(str(g["id"])) or {}).get("espn")
+    past = [g for g in sel["all_games"] if g["state"] == "final" and not (stored.get(str(g["id"])) or {}).get("espn")
             and str(g["id"]) not in stored]
     if past:
         days = sorted({dt.date.fromisoformat(g["date"]) for g in past})
@@ -205,7 +216,7 @@ def update_boxes(state: Path, now: dt.datetime) -> dict:
     the poll, its earlier matches are fetched on the next run."""
     sel = ranked_matches(state)
     stored = read_json(state / "box.json", {})
-    finals = [g for g in sel["games"] if g["state"] == "final"]
+    finals = [g for g in sel["all_games"] if g["state"] == "final"]
     res = box.update(stored, finals, now.date(), log)
     start = dt.date(sel["season"], *config.SEASON_START).isoformat()
     for gid in [k for k, v in stored.items() if v.get("date", "") < start]:
@@ -217,19 +228,20 @@ def update_boxes(state: Path, now: dt.datetime) -> dict:
 def update_photos(state: Path, now: dt.datetime) -> dict:
     """Find each player's photo on her school's roster page."""
     sel = ranked_matches(state)
-    rated = players.compute(sel["teams"], sel["games"], read_json(state / "box.json", {}))
+    rated = players.compute(sel["d1_teams"], sel["all_games"], read_json(state / "box.json", {}))
     teams = {}
     for p in rated["players"]:
         teams.setdefault(p["team_id"], {})[p["id"]] = p["name"]
     stored = read_json(state / "photos.json", {})
-    res = photos.update(stored, teams, now.date(), lambda url: web.get_bytes(url).decode("utf-8", "replace"), log)
+    res = photos.update(stored, teams, now.date(), lambda url: web.get_bytes(url).decode("utf-8", "replace"), log,
+                        ranked={t["id"] for t in sel["teams"] if t["id"]})
     write_json(state / "photos.json", stored, indent=0)
     return res
 
 
 def live_now(state: Path, now: dt.datetime) -> list[str]:
     """The scoreboard days to read again on a match-night run: those with a
-    ranked team's match that has started in the last five hours, or starts in
+    Division I match that has started in the last five hours, or starts in
     the next twenty minutes, and is not known to be over with its box score in.
     Empty when there is nothing to do."""
     try:
@@ -239,7 +251,7 @@ def live_now(state: Path, now: dt.datetime) -> list[str]:
     boxes = read_json(state / "box.json", {})
     t = now.timestamp()
     days = set()
-    for g in sel["games"]:
+    for g in sel["all_games"]:
         if not g.get("start") or not (t - 5 * 3600 <= g["start"] <= t + 20 * 60):
             continue
         done = g["state"] == "final" and (boxes.get(str(g["id"])) or {}).get("status") == "F"
@@ -249,12 +261,12 @@ def live_now(state: Path, now: dt.datetime) -> list[str]:
 
 
 def update_live_boxes(state: Path, now: dt.datetime) -> dict:
-    """Box scores of ranked teams' matches under way, or finished in the last
+    """Box scores of matches under way, or finished in the last
     five hours without a final box score yet."""
     sel = ranked_matches(state)
     stored = read_json(state / "box.json", {})
     t = now.timestamp()
-    games = [g for g in sel["games"] if g.get("start") and t - 5 * 3600 <= g["start"] <= t
+    games = [g for g in sel["all_games"] if g.get("start") and t - 5 * 3600 <= g["start"] <= t
              and (g["state"] == "live" or (g["state"] == "final" and (stored.get(str(g["id"])) or {}).get("status") != "F"))]
     res = box.update_live(stored, games, log)
     write_json(state / "box.json", stored)
@@ -381,8 +393,9 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
                  "poll_wrong": goat.contradictions(polled, sel["all_games"], set(polled)),
                  "goat_wrong": goat.contradictions(ranking["order"], sel["all_games"], set(polled))}
 
+    every, d1 = sel["all_games"], sel["d1_teams"]
     where = read_json(state / "watch.json", {})
-    for g in listed:
+    for g in every:
         w = where.get(str(g["id"]))
         if g["state"] in ("upcoming", "live") and g["home"]["id"] in rating and g["away"]["id"] in rating:
             neutral = isinstance(w, dict) and bool(w.get("neutral"))
@@ -406,31 +419,37 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
         assert f'"{name}"' in page, f"index.html no longer refers to {name}"
         page = page.replace(f'"{name}"', f'"{name}?v={stamp}"')
     (out / "index.html").write_text(page)
-    rated = players.compute(ranked, listed, read_json(state / "box.json", {}))
-    rated["through"] = max((g["date"] for g in listed if g["state"] == "final"), default=None)
-    if config.SHOW_PHOTOS:
-        found = read_json(state / "photos.json", {})
-        for p in rated["players"]:
+    # Players and team stats twice: against the ranked 25 only, and against all of
+    # Division I. The site's "Top 25 / All D1" switch chooses which file it reads.
+    boxes = read_json(state / "box.json", {})
+    rated = players.compute(ranked, listed, boxes)
+    rated_d1 = players.compute(d1, every, boxes)
+    found = read_json(state / "photos.json", {}) if config.SHOW_PHOTOS else {}
+    for r, games in ((rated, listed), (rated_d1, every)):
+        r["through"] = max((g["date"] for g in games if g["state"] == "final"), default=None)
+        for p in r["players"]:
             url = ((found.get(p["team_id"]) or {}).get("photos") or {}).get(p["id"])
             if url:
                 p["photo"] = url
-    boxes = read_json(state / "box.json", {})
-    with_box = match_files(out, listed, boxes, rated)
+    with_box = match_files(out, every, boxes, rated_d1)
     write_json(out / "data.json", {
         "site": config.SITE_NAME, "updated": now.isoformat(timespec="seconds"), "season": sel["season"],
         "poll": {"name": config.POLL_NAME, "through": through, "teams": ranked, "polls_seen": sel["polls_seen"]},
         "game_page": config.GAME_PAGE, "live_feed": config.ESPN_SCOREBOARD, "live_seconds": config.LIVE_SECONDS,
-        "logo": config.LOGO_URL, "odds_tested": config.ODDS_TESTED, "goat": goat_info, "words": words, "games": listed})
+        "logo": config.LOGO_URL, "odds_tested": config.ODDS_TESTED, "goat": goat_info, "words": words,
+        "d1": [[t["id"], t["name"]] for t in d1], "games": every})
     write_json(out / "players.json", rated)
-    team_stats = teams.compute(ranked, listed, boxes, rating)
-    write_json(out / "teams.json", team_stats)
+    write_json(out / "players_d1.json", rated_d1)
+    write_json(out / "teams.json", teams.compute(ranked, listed, boxes, rating))
+    write_json(out / "teams_d1.json", teams.compute(d1, every, boxes, rating))
     (out / ".nojekyll").write_text("")
-    log(f"site: poll through {through}, {len(listed)} matches listed for {len(rank)} ranked teams, "
-        f"{rated['regulars']} regulars rated of {len(rated['players'])} players"
+    log(f"site: poll through {through}, {len(listed)} matches of {len(rank)} ranked teams and {len(every)} in all of Division I "
+        f"({len(d1)} teams); {rated['regulars']} top-25 regulars rated, {rated_d1['regulars']} in Division I"
         + (f"; NOT MATCHED to a scoreboard team: {unmatched}" if unmatched else ""))
     return {"poll_through": through, "matches_listed": len(listed), "teams_matched": len(rank), "unmatched": unmatched,
             "with_channel": sum(1 for g in listed if g.get("watch")),
-            "players": len(rated["players"]), "regulars": rated["regulars"],
+            "players": len(rated["players"]), "regulars": rated["regulars"], "d1_teams": len(d1),
+            "d1_matches": len(every), "d1_players": len(rated_d1["players"]), "d1_regulars": rated_d1["regulars"],
             "with_odds": sum(1 for g in listed if "p" in g), "teams_rated": len(rating), "match_pages": with_box}
 
 

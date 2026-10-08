@@ -71,7 +71,7 @@ def test_scoreboard_matches_are_read():
     assert sum(max(g["home"]["sets"], g["away"]["sets"]) == 3 for g in finals) >= len(finals) - 1 > 50
 
 
-def test_the_page_lists_only_ranked_teams_matches():
+def test_the_page_lists_every_match_with_the_ranked_teams_marked():
     state, out = Path(tempfile.mkdtemp(prefix="state")), Path(tempfile.mkdtemp(prefix="site")) / "dist"
     found = poll.parse_page(poll_page())
     older = [dict(r, rank=26 - r["rank"]) for r in found["rows"]]              # an older poll must be ignored
@@ -86,14 +86,14 @@ def test_the_page_lists_only_ranked_teams_matches():
     assert data["poll"]["through"] == "2026-10-04" and len(data["poll"]["teams"]) == 25
     ranked = {t["id"]: t["rank"] for t in data["poll"]["teams"] if t["id"]}
     assert ranked["nebraska"] == 1 and ranked["penn-st"] == 18
-    assert data["games"] and res["matches_listed"] == len(data["games"]) < len(games)
+    # every Division I match is listed; the page's "Top 25" switch shows those with a ranked team
+    assert len(data["games"]) == len(games)
+    top = [g for g in data["games"] if g["home"]["rank"] or g["away"]["rank"]]
+    assert top and res["matches_listed"] == len(top) < len(games)
     for g in data["games"]:
-        assert g["home"]["id"] in ranked or g["away"]["id"] in ranked
         for side in (g["home"], g["away"]):
             assert side["rank"] == ranked.get(side["id"])
-    listed = {g["id"] for g in data["games"]}
-    for g in games:      # and none was left out
-        assert (g["id"] in listed) == (g["home"]["id"] in ranked or g["away"]["id"] in ranked)
+    assert {t[0] for t in data["d1"]} >= set(ranked)
 
 
 # ------------------------------------------------------------ where to watch --
@@ -307,7 +307,8 @@ def test_a_new_schools_roster_page_is_found_by_itself():
     calls.clear()                                             # next week it goes straight to the page it found
     photos.update(stored, {"newcomer-st": names}, day + dt.timedelta(days=7), fetch, lambda m: None)
     assert calls == ["https://gonewcomers.example/sports/volleyball/roster"]
-    # a school whose site cannot be found is reported, and looked for again the next day, not every run
+    # a school whose site cannot be found is reported, and looked for again a few days later
+    # (the next day if it is ranked), not every run
     stored2, calls2 = {}, []
     look = lambda url: calls2.append(url) or "<html></html>"
     res = photos.update(stored2, {"nowhere-st": {"x": "A B"}}, day, look, lambda m: None)
@@ -315,7 +316,11 @@ def test_a_new_schools_roster_page_is_found_by_itself():
     photos.update(stored2, {"nowhere-st": {"x": "A B"}}, day, look, lambda m: None)
     assert len(calls2) == 1
     photos.update(stored2, {"nowhere-st": {"x": "A B"}}, day + dt.timedelta(days=1), look, lambda m: None)
+    assert len(calls2) == 1
+    photos.update(stored2, {"nowhere-st": {"x": "A B"}}, day + dt.timedelta(days=3), look, lambda m: None)
     assert len(calls2) == 2
+    photos.update(stored2, {"nowhere-st": {"x": "A B"}}, day + dt.timedelta(days=4), look, lambda m: None, ranked={"nowhere-st"})
+    assert len(calls2) == 3
 
 
 def test_an_unmatched_ranked_school_fails_the_run():
