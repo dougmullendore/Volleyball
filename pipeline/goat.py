@@ -101,6 +101,9 @@ def rank(games: list[dict], rating: dict, teams: set, avca: dict) -> dict:
                 order.pop(src)
                 order.insert(best[1], x)
                 moved = True
+    # The top 25 are always the poll's 25 teams, in this ranking's order among
+    # themselves; every other team follows from 26, in its order here.
+    order = [t for t in order if t in avca] + [t for t in order if t not in avca]
     return {"order": order, "base": base, "score": score,
             "factors": {t: [round(sos[t], 3), round(poll[t], 3), round(rec[t], 3)] for t in teams}}
 

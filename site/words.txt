@@ -38,7 +38,7 @@ matches.home = Home
 # ---- Rankings page ----
 rankings.title = Top 25 Rankings
 rankings.lede = The {poll}, through matches of {date}.
-rankings.lede_goat = This site's own ranking of every Division I team: head to head first, then strength of schedule, the AVCA poll and record.
+rankings.lede_goat = This site's own ranking of every Division I team. The top 25 are the same 25 teams as the AVCA poll, put in order by head to head first, then strength of schedule, the poll and record; every other team follows from 26 the same way.
 rankings.button_poll = AVCA Poll
 rankings.button_goat = GOAT Ranking
 rankings.beat = Beat
