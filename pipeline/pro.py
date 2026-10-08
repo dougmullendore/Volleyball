@@ -630,6 +630,8 @@ def lovb_schedule(fetch) -> dict:
              "home": {"id": slug(home.get("name", "")), "name": short_name(home.get("name", ""))},
              "away": {"id": slug(away.get("name", "")), "name": short_name(away.get("name", ""))},
              "watch": [w.get("label") for w in x.get("watch_platforms") or [] if w.get("label")]}
+        if x.get("gamePageSlug") and x.get("directusGameId"):     # the match's own page, which carries its box score
+            g["page"] = f"/{season or ''}/schedule/{x['gamePageSlug']}/{x['directusGameId']}".replace("//", "/")
         if st:
             hs, as_ = st.get("won_set_host"), st.get("won_set_guest")
             sets_h = [st.get(f"set{n}_host") for n in range(1, 6)]
@@ -814,3 +816,68 @@ def mlv_live_boxes(state: Path, now: dt.datetime, log) -> dict:
     out_f.write_text(json.dumps(stored), encoding="utf-8")
     log(f"MLV live box scores: {done} matches")
     return {"matches": done}
+
+
+# ---- LOVB box scores during a match, from the match's own page on lovb.com ----
+def lovb_box(page: str, home_slug: str) -> dict | None:
+    """{"home": rows, "away": rows, "vs": volleystation id} from a LOVB match page."""
+    t = _next_data(page)
+    i = t.find('"boxScore":[{')
+    if i < 0:
+        return None
+    rows, _ = json.JSONDecoder().raw_decode(t, i + len('"boxScore":'))
+    names = {}
+    j = t.find('"boxScoreAthleteDisplayByDirectusId":{')
+    if j >= 0:
+        names, _ = json.JSONDecoder().raw_decode(t, j + len('"boxScoreAthleteDisplayByDirectusId":'))
+    out, vs = {"home": [], "away": []}, None
+    for r in rows:
+        a = r.get("athlete") or {}
+        full = (names.get(a.get("id")) or {}).get("fullName") or a.get("slug", "").replace("-", " ").title()
+        first, _, last = full.partition(" ")
+        side = "home" if (a.get("pro_team") or {}).get("slug") == home_slug else "away"
+        vs = vs or r.get("volley_station_match_id")
+        out[side].append([first, last or first, None, "", 1 if _f(r.get("sets_started")) else 0, _f(r.get("sets_played")),
+                          _f(r.get("attack_kills")), _f(r.get("attack_e")), _f(r.get("attack_att")), _f(r.get("setting_assist")),
+                          _f(r.get("serving_ace")), _f(r.get("serving_e")), _f(r.get("serving_att")), _f(r.get("defense_digs")),
+                          _f(r.get("reception_att")), _f(r.get("reception_error")), _f(r.get("block_blks")), 0, 0, 0])
+    out["vs"] = vs
+    return out
+
+
+def lovb_live_boxes(state: Path, now: dt.datetime, log) -> dict:
+    """Box scores of LOVB matches under way or finished in the last day that
+    volleydata does not have yet, into <state>/pro/lovb_live_boxes.json."""
+    f = state / "pro" / "lovb_schedule.json"
+    if not f.exists():
+        return {"matches": 0}
+    t = now.timestamp()
+    sched = json.loads(f.read_text(encoding="utf-8"))
+    games = [g for g in sched.get("games", []) if g.get("page") and g["state"] in ("live", "final") and t - 30 * 3600 <= g["start"] <= t + 600]
+    if not games:
+        return {"matches": 0}
+    have_vd = {r["match_id"] for r in _rows(state / "pro" / "lovb_schedule.csv")}
+    out_f = state / "pro" / "lovb_live_boxes.json"
+    stored = json.loads(out_f.read_text(encoding="utf-8")) if out_f.exists() else {}
+    done = 0
+    for g in games:
+        try:
+            b = lovb_box(web.get_bytes(LOVB_SITE + g["page"], timeout=30, tries=2).decode("utf-8", "replace"),
+                         "lovb-" + g["home"]["id"] + "-volleyball")
+        except Exception as e:
+            log(f"LOVB live box {g['page']}: {e!r}"[:140])
+            continue
+        if not b or not (b["home"] or b["away"]) or str(b.get("vs")) in have_vd:
+            continue
+        box = {"home": b["home"], "away": b["away"], "status": "F" if g["state"] == "final" else "L", "tsets": {}}
+        stored[str(_game_id("lovb" + g["key"]))] = box          # the id the match has while only the league lists it
+        if b.get("vs"):
+            stored[str(b["vs"])] = box                          # and the one volleydata will give it
+        done += 1
+    out_f.write_text(json.dumps(stored), encoding="utf-8")
+    log(f"LOVB live box scores: {done} matches")
+    return {"matches": done}
+
+
+def live_boxes(state: Path, now: dt.datetime, log) -> dict:
+    return {"lovb": lovb_live_boxes(state, now, log), "mlv": mlv_live_boxes(state, now, log)}
