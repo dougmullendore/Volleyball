@@ -18,6 +18,7 @@
     <nav class="pages" aria-label="Pages">
       <a href="#/" data-page="matches">Matches</a>
       <a href="#/rankings" data-page="rankings">Rankings</a>
+      <a href="#/players" data-page="players">Players</a>
     </nav>
   </div>
 </header>
@@ -41,10 +42,22 @@
     <ol class="ranks" id="ranks"></ol>
     <p class="note" id="rank-note"></p>
   </section>
+
+  <section id="page-players" hidden>
+    <h1>Top 25 players</h1>
+    <p class="lede">Every regular on a ranked team, ranked against the rest by Impact: the points she has added over an average top-25 player at her position.</p>
+    <div class="nav filters" id="p-filters"></div>
+    <div id="p-list"></div>
+  </section>
+
+  <section id="page-card" hidden>
+    <p class="back"><a href="#/players">All players</a></p>
+    <div id="card"></div>
+  </section>
 </main>
 <footer class="wrap foot">
   <p id="foot-updated"></p>
-  <p>Match times are shown in your own time zone. Scores and schedules come from the NCAA's public scoreboard, and scores of matches in progress from ESPN's; rankings are the AVCA coaches poll as published on ncaa.com. Channels come from ESPN's and the Big Ten's schedules and can change, so check before you tune in; streaming services need their own subscription. Not affiliated with or endorsed by the NCAA, the AVCA or any school.</p>
+  <p>Match times are shown in your own time zone. Scores and schedules come from the NCAA's public scoreboard, and scores of matches in progress from ESPN's; rankings are the AVCA coaches poll as published on ncaa.com. Channels come from ESPN's and the Big Ten's schedules and can change, so check before you tune in; streaming services need their own subscription. Player ratings are worked out by this site from official box scores. Team logos belong to their schools and are shown from ncaa.com. Not affiliated with or endorsed by the NCAA, the AVCA or any school.</p>
 </footer>
 <script src="app.js"></script>
 </body>

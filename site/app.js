@@ -25,6 +25,15 @@
   function long(s) { return day(s).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }); }
   var today = iso(new Date());
 
+  // A team's logo, served by ncaa.com: one drawing for light pages, one for dark.
+  function logo(teamId, cls) {
+    if (!data.logo || !teamId) return null;
+    var url = function (theme) { return data.logo.replace("{theme}", theme).replace("{team}", encodeURIComponent(teamId)); };
+    var img = el("img", { src: url("bgl"), alt: "", loading: "lazy", decoding: "async" });
+    var pic = el("picture", { "class": "logo " + (cls || "") }, [el("source", { srcset: url("bgd"), media: "(prefers-color-scheme: dark)" }), img]);
+    img.addEventListener("error", function () { pic.style.visibility = "hidden"; });   // no logo for this school: leave the space
+    return pic;
+  }
   function rankTag(rank) {
     return el("span", { "class": "rk" + (rank ? "" : " none"), text: rank ? String(rank) : "", "aria-label": rank ? "ranked " + rank : null });
   }
@@ -38,7 +47,7 @@
         : t.prev < t.rank ? ["▼" + (t.rank - t.prev), "", "down " + (t.rank - t.prev) + " from last week"] : ["", "", ""];
       var name = t.id ? el("a", { "class": "nm", href: "#/", text: t.name, title: "Show " + t.name + "'s matches",
         onclick: function () { state.team = t.id; } }) : el("span", { "class": "nm", text: t.name });
-      ol.appendChild(el("li", {}, [rankTag(t.rank), name, el("span", { "class": "rec", text: t.record || "" }),
+      ol.appendChild(el("li", {}, [rankTag(t.rank), el("span", { "class": "who" }, [logo(t.id), name]), el("span", { "class": "rec", text: t.record || "" }),
         el("span", { "class": "mv " + move[1], text: move[0], "aria-label": move[2] || null })]));
     });
   }
@@ -53,7 +62,7 @@
     var note = !L && g.state === "other" ? (g.note ? g.note.charAt(0).toUpperCase() + g.note.slice(1) : "Not played") : "";
     var when = fin ? "Final" : live ? (L && L.detail) || "In progress" : note ? note : t && !isNaN(t) ? t.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : "Time not set";
     function team(side, s, lost) {
-      var kids = [el("span", { "class": "name", text: s.name }), rankTag(s.rank)];
+      var kids = [logo(s.id), el("span", { "class": "name", text: s.name }), rankTag(s.rank)];
       if (side === "home") kids.reverse();
       return el("span", { "class": "team " + side + (lost ? " lost" : "") }, kids);
     }
@@ -193,15 +202,182 @@
       ". The visiting team is on the left, and the channel or streaming service is on the right for matches in the next two weeks. Numbers are this week's rankings, also for earlier weeks. Choose a team to see its whole season." }));
   }
 
-  function route() {
-    var page = /^#\/?rankings/.test(location.hash) ? "rankings" : "matches";
-    $("page-matches").hidden = page !== "matches";
-    $("page-rankings").hidden = page !== "rankings";
-    Array.prototype.forEach.call(document.querySelectorAll(".pages a"), function (a) {
-      if (a.dataset.page === page) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
+  // ---- players ----
+  var roster = null, pstate = { pos: "", team: "", q: "", all: false, sort: "rank", dir: 1 };
+  var POS_ONE = { OH: "Outside or opposite hitter", MB: "Middle blocker", S: "Setter", L: "Libero", DS: "Defensive specialist" };
+  var POS_MANY = { OH: "outside and opposite hitters", MB: "middle blockers", S: "setters", L: "liberos", DS: "defensive specialists" };
+  var fmt = {
+    d1: function (v) { return v.toFixed(1); }, d2: function (v) { return v.toFixed(2); },
+    s1: function (v) { return (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(1); },
+    s2: function (v) { return (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(2); },
+    hit: function (v) { return (v < 0 ? "−" : "") + Math.abs(v).toFixed(3).replace(/^0/, ""); },
+    pct: function (v) { return v.toFixed(1) + "%"; }
+  };
+  // key, label, what it means, format
+  var CARD = [
+    ["Impact, in points added per set", "Against an average top-25 player at her position.", [
+      ["impact_set", "All of it", "Everything below added together", fmt.s2],
+      ["att", "Attack", "Kills minus errors, against the position's average on the same number of swings. She keeps three quarters; her setters get the rest", fmt.s2],
+      ["srv", "Serve", "Aces minus service errors, against the average on the same number of serves", fmt.s2],
+      ["rec", "Serve receive", "Reception errors avoided, against the position's average on the same number of receptions", fmt.s2],
+      ["blk", "Block", "Blocks beyond the position's average per set", fmt.s2],
+      ["dig", "Dig", "Digs beyond the position's average per set, at 0.3 of a point each", fmt.s2],
+      ["set", "Setting", "A quarter of what her team's hitters added, shared among its setters by assists", fmt.s2]]],
+    ["Attacking", "", [
+      ["k_set", "Kills per set", "", fmt.d2], ["hit", "Hitting efficiency", "Kills minus errors, divided by swings", fmt.hit],
+      ["kill_pct", "Kill rate", "Share of her swings that were kills", fmt.pct],
+      ["err_pct", "Error rate", "Share of her swings that were errors. Fewer is better, so a long bar means few errors", fmt.pct],
+      ["load", "Attack load", "Her share of the team's swings in the matches she played", fmt.pct],
+      ["pts_set", "Points per set", "Kills, aces and blocks (half for each block assist) per set", fmt.d2]]],
+    ["Serving", "", [
+      ["ace_set", "Aces per set", "", fmt.d2], ["ace_pct", "Ace rate", "Aces per 100 serves", fmt.pct],
+      ["se_pct", "Service error rate", "Errors per 100 serves. Fewer is better, so a long bar means few errors", fmt.pct]]],
+    ["Passing, defense and setting", "", [
+      ["re_pct", "Reception error rate", "Errors per 100 serve receptions. Fewer is better, so a long bar means few errors", fmt.pct],
+      ["d_set", "Digs per set", "", fmt.d2], ["blk_set", "Blocks per set", "Solo blocks plus half of each block assist", fmt.d2],
+      ["ast_set", "Assists per set", "", fmt.d2]]]
+  ];
+  function val(p, key) { return p.v[roster.metrics.indexOf(key)]; }
+  function pctOf(p, key) { return p.pct[roster.metrics.indexOf(key)]; }
+  function ordinal(n) { var s = ["th", "st", "nd", "rd"], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
+  function loadRoster() {
+    if (roster) return Promise.resolve(roster);
+    return fetch("players.json", { cache: "no-cache" }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (d) { roster = d; return d; });
+  }
+
+  var PCOLS = [   // key, heading, meaning, getter, format, sorts high to low first
+    ["rank", "#", "Rank by Impact among regulars", function (p) { return p.rank; }, function (v) { return String(v); }, 0],
+    ["name", "Player", "", function (p) { return p.name; }, null, 0],
+    ["team", "Team", "", function (p) { return p.team_rank; }, null, 0],
+    ["pos", "Pos", "OH outside or opposite hitter, MB middle blocker, S setter, L libero, DS defensive specialist", function (p) { return p.pos; }, function (v) { return v; }, 0],
+    ["sp", "Sets", "Sets played", function (p) { return p.sp; }, function (v) { return String(v); }, 1],
+    ["impact", "Impact", "Points added this season over an average top-25 player at her position", function (p) { return p.impact; }, fmt.s1, 1],
+    ["impact_set", "Per set", "Impact per set played", function (p) { return val(p, "impact_set"); }, fmt.s2, 1],
+    ["k_set", "K/S", "Kills per set", function (p) { return val(p, "k_set"); }, fmt.d2, 1],
+    ["hit", "Hit%", "Hitting efficiency: kills minus errors, divided by swings", function (p) { return p.tot.ta >= 10 ? val(p, "hit") : null; }, fmt.hit, 1],
+    ["ast_set", "A/S", "Assists per set", function (p) { return val(p, "ast_set"); }, fmt.d2, 1],
+    ["ace_set", "SA/S", "Aces per set", function (p) { return val(p, "ace_set"); }, fmt.d2, 1],
+    ["d_set", "D/S", "Digs per set", function (p) { return val(p, "d_set"); }, fmt.d2, 1],
+    ["blk_set", "B/S", "Blocks per set", function (p) { return val(p, "blk_set"); }, fmt.d2, 1]
+  ];
+  function drawPlayers() {
+    var bar = $("p-filters"), holder = $("p-list");
+    bar.innerHTML = ""; holder.innerHTML = "";
+    holder.appendChild(el("p", { "class": "empty", text: "Loading the players…" }));
+    loadRoster().then(function () {
+      function pick(label, value, options, set) {
+        var s = el("select", { "aria-label": label, onchange: function () { set(s.value); table(); } },
+          options.map(function (o) { return el("option", { value: o[0], text: o[1], selected: o[0] === value }); }));
+        return s;
+      }
+      bar.appendChild(pick("Position", pstate.pos, [["", "All positions"]].concat(Object.keys(POS_ONE).map(function (k) { return [k, POS_ONE[k] + "s"]; })), function (v) { pstate.pos = v; }));
+      bar.appendChild(pick("Team", pstate.team, [["", "All 25 teams"]].concat(roster.teams.map(function (t) { return [t.id, t.rank + ". " + t.name]; })), function (v) { pstate.team = v; }));
+      var q = el("input", { type: "search", placeholder: "Find a player", "aria-label": "Find a player", value: pstate.q, oninput: function () { pstate.q = q.value; table(); } });
+      bar.appendChild(q);
+      var chk = el("input", { type: "checkbox", id: "p-all", checked: pstate.all, onchange: function () { pstate.all = chk.checked; table(); } });
+      bar.appendChild(el("label", { "class": "check", "for": "p-all" }, [chk, " Include part-time players"]));
+
+      function table() {
+        holder.innerHTML = "";
+        var needle = pstate.q.trim().toLowerCase(), col = PCOLS.filter(function (c) { return c[0] === pstate.sort; })[0];
+        var rows = roster.players.filter(function (p) {
+          return (pstate.all || p.regular) && (!pstate.pos || p.pos === pstate.pos) && (!pstate.team || p.team_id === pstate.team) &&
+            (!needle || p.name.toLowerCase().indexOf(needle) >= 0);
+        }).sort(function (a, b) {
+          var x = col[3](a), y = col[3](b);
+          if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1;
+          return typeof x === "string" ? pstate.dir * x.localeCompare(y) : pstate.dir * (x - y);
+        });
+        if (!rows.length) { holder.appendChild(el("p", { "class": "empty", text: "No player matches. Clear the search or choose all positions." })); return; }
+        var head = el("tr", {}, PCOLS.map(function (c) {
+          var on = pstate.sort === c[0];
+          return el("th", { scope: "col", "class": c[0] === "name" || c[0] === "team" ? "l" : "", "aria-sort": on ? (pstate.dir > 0 ? "ascending" : "descending") : null }, [
+            el("button", { type: "button", title: c[2] || null, text: c[1] + (on ? (pstate.dir > 0 ? " ▲" : " ▼") : ""),
+              onclick: function () { if (on) pstate.dir = -pstate.dir; else { pstate.sort = c[0]; pstate.dir = c[5] ? -1 : 1; } table(); } })]);
+        }));
+        var body = el("tbody", {}, rows.map(function (p) {
+          return el("tr", {}, PCOLS.map(function (c) {
+            if (c[0] === "name") return el("td", { "class": "l nm" }, [el("a", { href: "#/player/" + encodeURIComponent(p.id), text: p.name })]);
+            if (c[0] === "team") return el("td", { "class": "l tm" }, [logo(p.team_id), el("span", { text: p.team })]);
+            var v = c[3](p);
+            return el("td", { "class": (c[0] === "impact" ? "strong " : "") + (pstate.sort === c[0] ? "sorted" : ""), text: v == null ? (c[0] === "rank" ? "–" : "") : c[4](v) });
+          }));
+        }));
+        holder.appendChild(el("div", { "class": "tablewrap", tabindex: "0", role: "region", "aria-label": "Players table, scrolls sideways" }, [
+          el("table", { "class": "ptable" }, [el("thead", {}, [head]), body])]));
+        holder.appendChild(el("p", { "class": "note", text: rows.length + " players" + (roster.through ? ", through matches of " + short(roster.through) : "") +
+          ". A regular has played at least " + Math.round(100 * roster.weights.regular_share) + "% of her team's sets; only regulars are ranked. Choose a name for her card, or a column heading to sort." }));
+        holder.appendChild(el("p", { "class": "note", text: "Impact compares each player only with players on this week's top 25 teams, from official box scores. It cannot see pass quality or who was on the court, and it does not adjust for the opponent. A transfer counts as a new player at her new school." }));
+      }
+      table();
+    }).catch(function () {
+      holder.innerHTML = "";
+      holder.appendChild(el("p", { "class": "empty", text: "The players could not be loaded. Reload the page to try again." }));
     });
-    document.title = (page === "rankings" ? "Top 25 rankings" : "Top 25 matches") + " | " + data.site;
-    if (page === "rankings") drawRanks(); else draw();
+  }
+
+  function drawCard(id) {
+    var holder = $("card");
+    holder.innerHTML = "";
+    loadRoster().then(function () {
+      var p = roster.players.filter(function (x) { return x.id === id; })[0];
+      if (!p) { holder.appendChild(el("p", { "class": "empty", text: "There is no card for that player. Her team may have dropped out of the top 25." })); return; }
+      document.title = p.name + " | " + data.site;
+      var many = POS_MANY[p.pos], nPos = roster.pos_regulars[p.pos] || 0;
+      var art = el("article", { "class": "pcard" });
+      art.appendChild(el("header", { "class": "pc-head" }, [
+        logo(p.team_id, "big"),
+        el("div", { "class": "pc-id" }, [
+          el("h1", { text: p.name }),
+          el("p", { text: (p.num != null ? "No. " + p.num + ", " : "") + POS_ONE[p.pos].toLowerCase() + ", " + p.team + " (ranked " + p.team_rank + ")" }),
+          el("p", { "class": "pc-sub", text: p.sp + " sets in " + p.mp + " matches, " + p.starts + " starts" })]),
+        el("div", { "class": "pc-rank" }, p.regular ? [
+          el("b", { text: ordinal(p.rank) }), el("span", { text: "of " + roster.regulars + " regulars" }),
+          el("span", { text: ordinal(p.pos_rank) + " of " + nPos + " " + many })] : [
+          el("b", { text: "–" }), el("span", { text: "Not ranked: too few sets" })])
+      ]));
+      art.appendChild(el("p", { "class": "pc-impact" }, [el("b", { text: fmt.s1(p.impact) }), " points added this season, ", el("b", { text: fmt.s2(val(p, "impact_set")) }), " per set."]));
+      CARD.forEach(function (sec) {
+        var rows = sec[2].filter(function (m) { return pctOf(p, m[0]) != null; });
+        if (!rows.length) return;
+        var box = el("section", { "class": "pc-sec" }, [el("h2", { text: sec[0] })]);
+        if (sec[1]) box.appendChild(el("p", { "class": "pc-secnote", text: sec[1] }));
+        rows.forEach(function (m) {
+          var pc = pctOf(p, m[0]), v = val(p, m[0]);
+          box.appendChild(el("div", { "class": "prow", title: m[2] || null }, [
+            el("span", { "class": "plabel", text: m[1] }),
+            el("span", { "class": "ptrack", role: "img", "aria-label": m[1] + ": " + ordinal(pc) + " percentile" }, [
+              el("i", { "class": pc >= 67 ? "hi" : pc >= 34 ? "mid" : "lo", style: "width:" + Math.max(pc, 2) + "%" })]),
+            el("b", { "class": "ppct", text: String(pc) }),
+            el("span", { "class": "pval", text: v == null ? "" : m[3](v) })]));
+        });
+        art.appendChild(box);
+      });
+      if (!p.regular) art.appendChild(el("p", { "class": "note", text: "Percentiles are given only to regulars: players with at least " + Math.round(100 * roster.weights.regular_share) + "% of their team's sets." }));
+      var t = p.tot, totals = [["Kills", t.k], ["Errors", t.e], ["Swings", t.ta], ["Assists", t.ast], ["Aces", t.sa], ["Service errors", t.se], ["Serves", t.sv],
+        ["Digs", t.d], ["Receptions", t.ra], ["Reception errors", t.re], ["Solo blocks", t.bs], ["Block assists", t.ba], ["Points", t.pts]];
+      art.appendChild(el("section", { "class": "pc-sec" }, [el("h2", { text: "Season totals" }),
+        el("dl", { "class": "totals" }, totals.reduce(function (a, x) { return a.concat([el("div", {}, [el("dt", { text: x[0] }), el("dd", { text: String(x[1]) })])]); }, []))]));
+      art.appendChild(el("p", { "class": "note", text: "The number beside each bar is her percentile among " + many + " who play regularly for a top-25 team and do that job: 90 means better than 90% of them. The tick marks the middle." +
+        (roster.through ? " Through matches of " + short(roster.through) + "." : "") }));
+      var defs = [];
+      CARD.forEach(function (sec) { sec[2].forEach(function (m) { if (m[2] && pctOf(p, m[0]) != null) defs.push(el("div", {}, [el("dt", { text: m[1] }), el("dd", { text: m[2] + "." })])); }); });
+      art.appendChild(el("details", { "class": "defs" }, [el("summary", { text: "What each line measures" }), el("dl", {}, defs)]));
+      holder.appendChild(art);
+    }).catch(function () {
+      holder.appendChild(el("p", { "class": "empty", text: "The card could not be loaded. Reload the page to try again." }));
+    });
+  }
+
+  function route() {
+    var h = location.hash, card = /^#\/?player\/(.+)$/.exec(h);
+    var page = card ? "card" : /^#\/?players/.test(h) ? "players" : /^#\/?rankings/.test(h) ? "rankings" : "matches";
+    ["matches", "rankings", "players", "card"].forEach(function (p) { $("page-" + p).hidden = p !== page; });
+    Array.prototype.forEach.call(document.querySelectorAll(".pages a"), function (a) {
+      if (a.dataset.page === (page === "card" ? "players" : page)) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
+    });
+    document.title = ({ rankings: "Top 25 rankings", players: "Top 25 players", card: "Player card" }[page] || "Top 25 matches") + " | " + data.site;
+    if (page === "rankings") drawRanks(); else if (page === "players") drawPlayers(); else if (page === "card") drawCard(decodeURIComponent(card[1])); else draw();
     window.scrollTo(0, 0);
   }
 

@@ -3,6 +3,7 @@
   1. the coaches poll (looked for on Mondays; see poll.why_check)
   2. the season's scoreboard: every match, played or still to come
   3. where to watch each of the ranked teams' matches in the next two weeks
+  4. the box scores behind the player ratings
 
 Usage:  python -m pipeline.run <state_dir> <site_output_dir>
 
@@ -10,6 +11,7 @@ Usage:  python -m pipeline.run <state_dir> <site_output_dir>
   polls.json        every poll seen, by the date it runs through
   scoreboard.json   the latest copy of each day's matches
   watch.json        the TV channel or stream found for each upcoming match
+  box.json          the box score of every finished match involving a ranked team
   status.json       what happened on the last run
 """
 from __future__ import annotations
@@ -23,7 +25,7 @@ import sys
 import traceback
 from pathlib import Path
 
-from . import config, poll, watch, web
+from . import box, config, players, poll, watch, web
 
 SITE_SRC = Path(__file__).resolve().parents[1] / "site"
 
@@ -182,6 +184,17 @@ def update_watch(state: Path, now: dt.datetime) -> dict:
     return {"matches_soon": len(soon), "with_channel": have, "with_live_score": followable, "listings": len(listings), "failed": failed}
 
 
+def update_boxes(state: Path, now: dt.datetime) -> dict:
+    """Fetch the box scores the player ratings need. When a new team enters
+    the poll, its earlier matches are fetched on the next run."""
+    sel = ranked_matches(state)
+    stored = read_json(state / "box.json", {})
+    finals = [g for g in sel["games"] if g["state"] == "final"]
+    res = box.update(stored, finals, now.date(), log)
+    write_json(state / "box.json", stored)
+    return res
+
+
 def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
     sel = ranked_matches(state)
     through, ranked, listed, unmatched = sel["through"], sel["teams"], sel["games"], sel["unmatched"]
@@ -211,12 +224,17 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
         "site": config.SITE_NAME, "updated": now.isoformat(timespec="seconds"), "season": sel["season"],
         "poll": {"name": config.POLL_NAME, "through": through, "teams": ranked, "polls_seen": sel["polls_seen"]},
         "game_page": config.GAME_PAGE, "live_feed": config.ESPN_SCOREBOARD, "live_seconds": config.LIVE_SECONDS,
-        "games": listed})
+        "logo": config.LOGO_URL, "games": listed})
+    rated = players.compute(ranked, listed, read_json(state / "box.json", {}))
+    rated["through"] = max((g["date"] for g in listed if g["state"] == "final"), default=None)
+    write_json(out / "players.json", rated)
     (out / ".nojekyll").write_text("")
-    log(f"site: poll through {through}, {len(listed)} matches listed for {len(rank)} ranked teams"
+    log(f"site: poll through {through}, {len(listed)} matches listed for {len(rank)} ranked teams, "
+        f"{rated['regulars']} regulars rated of {len(rated['players'])} players"
         + (f"; NOT MATCHED to a scoreboard team: {unmatched}" if unmatched else ""))
     return {"poll_through": through, "matches_listed": len(listed), "teams_matched": len(rank), "unmatched": unmatched,
-            "with_channel": sum(1 for g in listed if g.get("watch"))}
+            "with_channel": sum(1 for g in listed if g.get("watch")),
+            "players": len(rated["players"]), "regulars": rated["regulars"]}
 
 
 def main(state_dir: str, out_dir: str) -> int:
@@ -241,6 +259,7 @@ def main(state_dir: str, out_dir: str) -> int:
         stage("poll", lambda: update_poll(state, now, os.environ.get("CHECK_POLL") == "1"))
         stage("scoreboard", lambda: update_scoreboard(state, season_for(now.date())))
         stage("watch", lambda: update_watch(state, now))
+        stage("boxes", lambda: update_boxes(state, now))
     stage("site", lambda: build_site(state, out, now))
     status["finished_utc"] = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
     status["ok"] = all(s["ok"] for s in status["stages"].values())

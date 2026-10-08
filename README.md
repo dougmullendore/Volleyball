@@ -7,6 +7,7 @@ You do not need to run anything. GitHub does it all on a schedule.
 
 ## What the site shows
 
+- **Players** (third page): see below.
 - **Rankings** (second page): the AVCA coaches poll, with each team's record
   and how far it moved from last week. Choose a team to see its matches.
 - **Matches** (first page): every match this week involving a ranked team, grouped by
@@ -15,6 +16,41 @@ You do not need to run anything. GitHub does it all on a schedule.
   box score. A
   match between two ranked teams has a yellow edge. Buttons step to earlier
   and later weeks, and a menu narrows the list to one team's whole season.
+
+## Players
+
+The **Players** page ranks every regular on the 25 ranked teams against the
+rest, and each name opens a card with her percentiles.
+
+- **Impact** is the ranking number: the points a player has added over an
+  average top-25 player at her position, from official box scores. It is the
+  sum of six parts: attack (kills minus errors against her position's average
+  on the same swings), serve, serve receive, block, dig, and setting. A
+  hitter keeps three quarters of her attack value and her setters share the
+  rest by assists; a dig counts 0.3 of a point. The reasoning is at the top of
+  `pipeline/players.py`.
+- **Percentiles** compare a player with regulars at her own position on the
+  ranked teams, and only on jobs she does: a libero is not ranked on hitting.
+- **A regular** has played at least 40% of her team's sets. Part-time players
+  are listed (tick the box) but not ranked.
+- **Positions** are outside/opposite hitter, middle blocker, setter, libero and
+  defensive specialist. Schools list the last two together, so the libero is
+  worked out from who digs the most.
+
+What it cannot do: it sees only the box score, so it knows nothing about pass
+quality, who was on the court, or how strong the opponent was. When the poll
+changes, players on teams that dropped out disappear and everyone's averages
+shift a little, because the comparison is always with the current top 25.
+
+There are no player photos. No public feed carries them for college
+volleyball; they exist only on each school's own roster page.
+
+## Team logos
+
+Logos appear beside team names. They are not stored in this repository: the
+page shows them straight from ncaa.com, which has one for every school. They
+belong to the schools. To remove them, set `LOGO_URL = ""` in
+`pipeline/config.py`.
 
 ## Where to watch
 
@@ -49,7 +85,7 @@ The file `.github/workflows/update.yml` tells GitHub when to run:
 | When | What it does |
 | --- | --- |
 | Every Monday about 4pm Central, and again about 9pm | Looks for the new top 25, then refreshes scores, schedule and channels |
-| Every night about 5:47am Central | Refreshes scores, schedule and channels |
+| Every night about 5:47am Central | Refreshes scores, schedule, channels and player ratings |
 | Whenever the code changes, or you press **Run workflow** on the **Actions** tab | Everything, straight away |
 
 The poll normally comes out on Monday afternoon. If both Monday looks miss it
@@ -67,6 +103,8 @@ after a match has ended still sees its final score that evening.
 | --- | --- |
 | `pipeline/config.py` | Every setting: which poll, which day it is checked, season dates |
 | `pipeline/poll.py` | Reads the poll and decides when to look for a new one |
+| `pipeline/box.py` | Downloads and stores the box score of each ranked team's match |
+| `pipeline/players.py` | Rates the players against each other and works out percentiles |
 | `pipeline/watch.py` | Finds the TV channel or stream for each upcoming match |
 | `pipeline/web.py` | Downloads the poll page and the NCAA scoreboard |
 | `pipeline/run.py` | The job: update the poll, update the scoreboard, build the page |
@@ -78,7 +116,7 @@ Run the tests with `python tests/run_local.py`.
 Two side branches of this repository hold what the job produces:
 
 - `state`: every poll seen so far (`polls.json`), the season's matches
-  (`scoreboard.json`), the channels found (`watch.json`), and what happened on the last run (`status.json`,
+  (`scoreboard.json`), the channels found (`watch.json`), the box scores (`box.json`), and what happened on the last run (`status.json`,
   `logs/last_run.log`).
 - `gh-pages`: the finished page.
 

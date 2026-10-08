@@ -23,9 +23,16 @@ SEASON_END = (12, 24)
 # The NCAA's public scoreboard feed (the one the ncaa.com scoreboard page uses).
 FEED = "https://sdataprod.ncaa.com/"
 SCOREBOARD_QUERY = "7287cda610a9326931931080cb3a604828febe6fe3c9016a7e4a36db99efdb7c"
+BOX_QUERY = "4320484382257c2a7ac3be318db2dee09a7fb74029448825c285d5dbdda365ae"
+BOX_REFRESH_DAYS = 3    # box scores this recent are fetched again: schools send in corrections
 SPORT_CODE = "WVB"      # women's volleyball
 DIVISION = 1
 GAME_PAGE = "https://www.ncaa.com/game/"
+
+# Team logos are not stored here: the page shows them straight from ncaa.com,
+# which has one for every school under the same id the scoreboard uses, drawn
+# for a light page ("bgl") and for a dark one ("bgd"). Set to "" to show none.
+LOGO_URL = "https://www.ncaa.com/sites/default/files/images/logos/schools/{theme}/{team}.svg"
 
 # Where to watch. Channels are looked up for matches in the next WATCH_DAYS
 # days; further out, networks have usually not been announced.
