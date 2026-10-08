@@ -166,7 +166,7 @@ h2 { font: 700 1.375rem/1.2 "Barlow Condensed", sans-serif; margin: 0; }
 .team.lost .rk { background: var(--loss); color: var(--loss-ink); }   /* the loser's rank (or NR) in red */
 .team.won .rk { background: var(--win); color: var(--win-ink); }      /* the winner's in blue */
 /* before a match, the home team's rank (or NR) is a slightly darker blue */
-.game.ahead .team.home .rk { background: var(--ball-home); }
+.game.ahead .team.home .rk, .game.on .team.home .rk { background: var(--ball-home); }
 .mid { text-align: center; font: 700 1.125rem/1 "Barlow Condensed", sans-serif; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .mid.at { font: 400 .8125rem/1 Barlow, sans-serif; color: var(--ink-2); }
 .mid.odds { font: 700 .9375rem/1 Barlow, sans-serif; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 4px; }
