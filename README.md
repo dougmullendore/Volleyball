@@ -17,6 +17,24 @@ You do not need to run anything. GitHub does it all on a schedule.
   match between two ranked teams has a green edge. Buttons step to earlier
   and later weeks, and a menu narrows the list to one team's whole season.
 
+## Match pages and live box scores
+
+Every match on the Matches page links to its own page (`#/match/<id>`) with
+the set-by-set score and both teams' full box scores: each player's kills,
+errors, attempts, hitting efficiency, assists, aces, service errors, digs,
+reception errors, blocks and points, starters first, plus each team's hitting
+set by set. Player names link to their cards.
+
+- Set scores are read by the page itself from ESPN, every 20 seconds while a
+  match is on.
+- The NCAA's box score cannot be read by a web page directly, so the GitHub
+  job fetches it: on match nights (August to December, about 3pm to midnight
+  Central) it runs every 15 minutes, and when a ranked team is playing it
+  refreshes the box scores of matches under way and rebuilds the site. When
+  no ranked team is playing it stops within seconds. GitHub's scheduled runs
+  are often a few minutes late.
+- Matches in progress show a red LIVE tag on the Matches page.
+
 ## Teams
 
 The **Teams** page is a sortable table of each ranked team's stats from the

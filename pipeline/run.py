@@ -10,7 +10,7 @@ Usage:  python -m pipeline.run <state_dir> <site_output_dir>
 <state_dir> is the repository's `state` branch:
   polls.json        every poll seen, by the date it runs through
   scoreboard.json   the latest copy of each day's matches
-  watch.json        the TV channel or stream found for each upcoming match
+  watch.json        the TV channel for each upcoming match, and ESPN's id for each match
   box.json          the box score of every finished match involving a ranked team
   photos.json       the address of each player's photo on her school's roster page
   ratings.json      every team's rating, this season and last (behind the odds)
@@ -103,11 +103,11 @@ def update_poll(state: Path, now: dt.datetime, forced: bool) -> dict:
     return {"checked": True, "why": why, "found": found["through"], "new": is_new, "newest": max(polls)}
 
 
-def update_scoreboard(state: Path, season: int) -> dict:
+def update_scoreboard(state: Path, season: int, only: list[str] | None = None) -> dict:
     stored = read_json(state / "scoreboard.json", {})
     if stored.get("season") != season:
         stored = {"season": season, "days": {}}
-    days = season_days(season)
+    days = only or season_days(season)
     failed = []
     for date, contests, err in web.get_days(season, days):
         if err is not None:
@@ -166,8 +166,20 @@ def update_watch(state: Path, now: dt.datetime) -> dict:
     listings, failed = watch.fetch_listings(now.date(), log)
     found = watch.assign(soon, listings, sel["names"])
     stored = read_json(state / "watch.json", {})
-    keep = {str(g["id"]) for g in sel["games"] if g["state"] != "final"}
-    stored = {k: v for k, v in stored.items() if k in keep}           # finished matches are dropped
+    keep = {str(g["id"]) for g in sel["games"]}
+    stored = {k: v for k, v in stored.items() if k in keep}           # matches no longer listed are dropped
+    # Finished matches keep ESPN's id: the match page reads the set scores with it.
+    # Matches played before ESPN's id was kept are looked up once, a day's listings at a time.
+    past = [g for g in sel["games"] if g["state"] == "final" and not (stored.get(str(g["id"])) or {}).get("espn")
+            and str(g["id"]) not in stored]
+    if past:
+        days = sorted({dt.date.fromisoformat(g["date"]) for g in past})
+        older, _ = watch.espn_days(days)
+        for gid, w in watch.assign(past, older, sel["names"]).items():
+            if w.get("espn"):
+                stored[str(gid)] = {"channels": [], "espn": w["espn"], "flip": w["flip"], "neutral": w["neutral"]}
+        for g in past:
+            stored.setdefault(str(g["id"]), {"channels": [], "espn": None, "flip": False, "neutral": False})   # looked: none
     for g in soon:
         old = stored.get(str(g["id"])) or {}
         if isinstance(old, list):                    # the first version stored only the channels
@@ -212,6 +224,74 @@ def update_photos(state: Path, now: dt.datetime) -> dict:
     res = photos.update(stored, teams, now.date(), lambda url: web.get_bytes(url).decode("utf-8", "replace"), log)
     write_json(state / "photos.json", stored, indent=0)
     return res
+
+
+def live_now(state: Path, now: dt.datetime) -> list[str]:
+    """The scoreboard days to read again on a match-night run: those with a
+    ranked team's match that has started in the last five hours, or starts in
+    the next twenty minutes, and is not known to be over with its box score in.
+    Empty when there is nothing to do."""
+    try:
+        sel = ranked_matches(state)
+    except RuntimeError:
+        return []
+    boxes = read_json(state / "box.json", {})
+    t = now.timestamp()
+    days = set()
+    for g in sel["games"]:
+        if not g.get("start") or not (t - 5 * 3600 <= g["start"] <= t + 20 * 60):
+            continue
+        done = g["state"] == "final" and (boxes.get(str(g["id"])) or {}).get("status") == "F"
+        if not done:
+            days.add(g["date"])
+    return sorted(days)
+
+
+def update_live_boxes(state: Path, now: dt.datetime) -> dict:
+    """Box scores of ranked teams' matches under way, or finished in the last
+    five hours without a final box score yet."""
+    sel = ranked_matches(state)
+    stored = read_json(state / "box.json", {})
+    t = now.timestamp()
+    games = [g for g in sel["games"] if g.get("start") and t - 5 * 3600 <= g["start"] <= t
+             and (g["state"] == "live" or (g["state"] == "final" and (stored.get(str(g["id"])) or {}).get("status") != "F"))]
+    res = box.update_live(stored, games, log)
+    write_json(state / "box.json", stored)
+    return res
+
+
+def match_files(out: Path, listed: list[dict], boxes: dict, rated: dict) -> int:
+    """One small file per match with a box score, for the match page:
+    match/<id>.json with both teams' players (linked to their cards when rated)
+    and each team's attack set by set."""
+    ids = {p["id"] for p in rated["players"]}
+    by_number = {}
+    for p in rated["players"]:
+        if p.get("num") is not None:
+            by_number[(p["team_id"], p["num"], players._norm(p["name"].split()[-1]))] = p["id"]
+    photo = {p["id"]: p.get("photo") for p in rated["players"] if p.get("photo")}
+    (out / "match").mkdir(exist_ok=True)
+    n = 0
+    for g in listed:
+        b = boxes.get(str(g["id"]))
+        if not b or not (b.get("home") or b.get("away")):
+            continue
+        doc = {"id": g["id"], "status": b.get("status", ""), "tsets": b.get("tsets") or {}}
+        for side in ("away", "home"):
+            team, rows = g[side]["id"], []
+            for r in b.get(side) or []:
+                row = dict(zip(box.COLS, r))
+                pid = players.player_id(team, row["first"], row["last"])
+                if pid not in ids:
+                    pid = by_number.get((team, row["number"], players._norm(row["last"].split()[-1] if row["last"] else "")))
+                rows.append([row["number"], (row["first"] + " " + row["last"]).strip(), row["pos"], row["starter"],
+                             *[row[c] for c in ("sets", "k", "e", "ta", "ast", "sa", "se", "d", "ra", "re", "bs", "ba", "bhe")],
+                             pid if pid in ids else None, photo.get(pid)])
+            doc[side] = rows
+        write_json(out / "match" / f"{g['id']}.json", doc)
+        g["box"] = 1
+        n += 1
+    return n
 
 
 def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
@@ -279,12 +359,12 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
         if g["state"] in ("upcoming", "live") and g["home"]["id"] in rating and g["away"]["id"] in rating:
             neutral = isinstance(w, dict) and bool(w.get("neutral"))
             g["p"] = round(odds.match_chance(rating[g["home"]["id"]], rating[g["away"]["id"]], neutral), 3)   # the home team's chance
+        if isinstance(w, list):
+            w = {"channels": w}
         if g["state"] != "final" and w is not None:
-            if isinstance(w, list):
-                w = {"channels": w}
             g["watch"] = w.get("channels") or []      # an empty list means: looked, nothing announced
-            if w.get("espn"):
-                g["espn"] = [w["espn"], 1 if w.get("flip") else 0]   # lets the page follow the score live
+        if w and w.get("espn"):
+            g["espn"] = [w["espn"], 1 if w.get("flip") else 0]   # live score, and the match page's set scores
     if out.exists():
         shutil.rmtree(out)
     shutil.copytree(SITE_SRC, out)
@@ -297,11 +377,6 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
         assert f'"{name}"' in page, f"index.html no longer refers to {name}"
         page = page.replace(f'"{name}"', f'"{name}?v={stamp}"')
     (out / "index.html").write_text(page)
-    write_json(out / "data.json", {
-        "site": config.SITE_NAME, "updated": now.isoformat(timespec="seconds"), "season": sel["season"],
-        "poll": {"name": config.POLL_NAME, "through": through, "teams": ranked, "polls_seen": sel["polls_seen"]},
-        "game_page": config.GAME_PAGE, "live_feed": config.ESPN_SCOREBOARD, "live_seconds": config.LIVE_SECONDS,
-        "logo": config.LOGO_URL, "odds_tested": config.ODDS_TESTED, "goat": goat_info, "games": listed})
     rated = players.compute(ranked, listed, read_json(state / "box.json", {}))
     rated["through"] = max((g["date"] for g in listed if g["state"] == "final"), default=None)
     if config.SHOW_PHOTOS:
@@ -310,8 +385,15 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
             url = ((found.get(p["team_id"]) or {}).get("photos") or {}).get(p["id"])
             if url:
                 p["photo"] = url
+    boxes = read_json(state / "box.json", {})
+    with_box = match_files(out, listed, boxes, rated)
+    write_json(out / "data.json", {
+        "site": config.SITE_NAME, "updated": now.isoformat(timespec="seconds"), "season": sel["season"],
+        "poll": {"name": config.POLL_NAME, "through": through, "teams": ranked, "polls_seen": sel["polls_seen"]},
+        "game_page": config.GAME_PAGE, "live_feed": config.ESPN_SCOREBOARD, "live_seconds": config.LIVE_SECONDS,
+        "logo": config.LOGO_URL, "odds_tested": config.ODDS_TESTED, "goat": goat_info, "games": listed})
     write_json(out / "players.json", rated)
-    team_stats = teams.compute(ranked, listed, read_json(state / "box.json", {}), rating)
+    team_stats = teams.compute(ranked, listed, boxes, rating)
     write_json(out / "teams.json", team_stats)
     (out / ".nojekyll").write_text("")
     log(f"site: poll through {through}, {len(listed)} matches listed for {len(rank)} ranked teams, "
@@ -320,7 +402,7 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
     return {"poll_through": through, "matches_listed": len(listed), "teams_matched": len(rank), "unmatched": unmatched,
             "with_channel": sum(1 for g in listed if g.get("watch")),
             "players": len(rated["players"]), "regulars": rated["regulars"],
-            "with_odds": sum(1 for g in listed if "p" in g), "teams_rated": len(rating)}
+            "with_odds": sum(1 for g in listed if "p" in g), "teams_rated": len(rating), "match_pages": with_box}
 
 
 def check_teams(status: dict) -> dict:
@@ -352,6 +434,21 @@ def main(state_dir: str, out_dir: str) -> int:
             status["stages"][name] = {"ok": False, "error": repr(e)}
         write_json(state / "status.json", status, indent=1)
 
+    if os.environ.get("RUN_MODE") == "live" and not offline:
+        # a match-night run: only the matches under way or just finished
+        todo = live_now(state, now)
+        if not todo:
+            log("match-night run: no ranked team is playing right now; nothing to do")
+            return 0
+        stage("scores now", lambda: update_scoreboard(state, season_for(now.date()), todo))
+        stage("box scores now", lambda: update_live_boxes(state, now))
+        stage("site", lambda: build_site(state, out, now))
+        status["finished_utc"] = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
+        status["ok"] = all(s["ok"] for s in status["stages"].values())
+        write_json(state / "status.json", status, indent=1)
+        log("match-night run finished: " + ("OK" if status["ok"] else "WITH ERRORS"))
+        return 0 if status["ok"] else 1
+
     if not offline:
         # a failed look at the poll or the scoreboard leaves the stored copy in use
         stage("poll", lambda: update_poll(state, now, os.environ.get("CHECK_POLL") == "1"))
@@ -360,7 +457,6 @@ def main(state_dir: str, out_dir: str) -> int:
         stage("boxes", lambda: update_boxes(state, now))
         if config.SHOW_PHOTOS:
             stage("photos", lambda: update_photos(state, now))
-        (state / "news.json").unlink(missing_ok=True)      # left from the News page, since removed
     stage("site", lambda: build_site(state, out, now))
     stage("every ranked team found", lambda: check_teams(status))
     status["finished_utc"] = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")

@@ -47,11 +47,14 @@ def parse_box(doc: dict) -> dict:
     whole roster and credit everyone with every set."""
     box = ((doc or {}).get("data") or {}).get("boxscore") or {}
     is_home = {str(t.get("teamId")): bool(t.get("isHome")) for t in box.get("teams") or []}
-    out = {"home": [], "away": []}
+    out = {"home": [], "away": [], "status": box.get("status") or "", "tsets": {}}
     for tb in box.get("teamBoxscore") or []:
         home = is_home.get(str(tb.get("teamId")))
         if home is None:
             continue
+        # each team's attack set by set: [kills, errors, attempts]
+        out["tsets"]["home" if home else "away"] = [[_int(s.get("kills")), _int(s.get("attackErrors")), _int(s.get("attackAttempts"))]
+                                                    for s in ((tb.get("teamStats") or {}).get("sets") or [])]
         for p in tb.get("playerStats") or []:
             n = {k: _int(p.get(f)) for k, f in _FEED.items()}
             touched = any(v for k, v in n.items() if k != "sets")
@@ -92,3 +95,24 @@ def update(stored: dict, finals: list[dict], today: dt.date, log) -> dict:
     with_box = sum(1 for g in finals if (stored.get(str(g["id"])) or {}).get("home"))
     log(f"box scores: {len(want)} fetched ({failed} failed); {with_box} of {len(finals)} finished matches have one")
     return {"fetched": len(want), "failed": failed, "finished": len(finals), "with_box": with_box}
+
+
+def update_live(stored: dict, games: list[dict], log) -> dict:
+    """Fetch the box scores of matches under way or just finished, whatever
+    is stored for them already (the match-night runs)."""
+    def one(g):
+        try:
+            return g, parse_box(json.loads(web.get_bytes(box_url(g["id"])))), None
+        except Exception as e:
+            return g, None, e
+
+    failed = 0
+    with ThreadPoolExecutor(max_workers=config.FETCH_THREADS) as pool:
+        for g, parsed, err in pool.map(one, games):
+            if err is not None:
+                failed += 1
+            elif parsed["home"] or parsed["away"]:
+                stored[str(g["id"])] = {"date": g["date"], **parsed}
+    log(f"box scores now: {len(games)} matches under way or just finished, {failed} could not be read")
+    return {"fetched": len(games), "failed": failed}
+

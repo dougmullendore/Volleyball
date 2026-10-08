@@ -108,8 +108,13 @@ h2 { font: 700 1.375rem/1.2 "Barlow Condensed", sans-serif; margin: 0; }
 .game:first-child { border-top: 0; }
 .game.both { box-shadow: inset 3px 0 0 var(--ball); }
 .when { color: var(--ink-2); font-size: .8125rem; font-variant-numeric: tabular-nums; }
-.when.live { color: var(--teal); font-weight: 600; }
-.when.live::before { content: ""; display: inline-block; width: .5em; height: .5em; margin-right: .4em; border-radius: 50%; background: var(--teal); vertical-align: .08em; }
+.when.live { color: var(--ink); font-weight: 600; }
+/* the live indicator: a red "LIVE" tag with a pulsing dot */
+.livetag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px 2px 5px; border-radius: 3px; background: var(--loss); color: var(--loss-ink);
+  font: 700 .6875rem/1 "Barlow Condensed", sans-serif; letter-spacing: .06em; text-transform: uppercase; vertical-align: 1px; }
+.livetag .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { .livetag .dot { animation: none; } }
 .game.on { background: color-mix(in srgb, var(--teal-soft) 45%, var(--sheet)); }
 .livenote { margin: -16px 0 28px; max-width: 60ch; color: var(--teal); font-size: .875rem; font-weight: 500; }
 .team { display: flex; align-items: center; gap: 8px; min-width: 0; font-weight: 600; font-size: .9375rem; line-height: 1.25; }
@@ -229,3 +234,22 @@ h2 { font: 700 1.375rem/1.2 "Barlow Condensed", sans-serif; margin: 0; }
 @media (max-width: 420px) {
   .brand svg { display: none; }            /* room for the fourth page on narrow phones */
 }
+
+/* ---- a match's page ---- */
+.mtitle { font-size: clamp(1.75rem, 5.5vw, 2.5rem); margin-bottom: 6px; }
+.mtitle .mv { color: var(--ink-2); font-weight: 600; }
+.mstatus { margin: 0 0 18px; color: var(--ink-2); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.msets { margin: 16px 0 0; max-width: 34rem; }
+.stable th, .stable td { padding: 6px 10px; }
+.stable tbody th { font-weight: 600; white-space: nowrap; }
+.stable tbody th .rk { margin-right: 4px; }
+.stable td.won { font-weight: 700; color: var(--ink); }
+.stable td { color: var(--ink-2); }
+.stable td.tot { font-weight: 700; color: var(--ink); border-left: 1px solid var(--line); }
+.mteam { display: flex; align-items: center; gap: 8px; margin: 28px 0 10px; }
+.btable tbody tr.starter td:first-child { box-shadow: inset 3px 0 0 var(--ball); }
+.btable tfoot td { font-weight: 700; border-top: 2px solid var(--ink); color: var(--ink); }
+.btable .plain { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+.bysets { font-size: .8125rem; color: var(--ink-2); margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.bysets b { color: var(--ink); font-weight: 600; }
+

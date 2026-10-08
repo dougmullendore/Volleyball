@@ -116,6 +116,7 @@
     return " Percentages are each team's chance of winning, from this site's own ratings of results, opponents and home court; they are not betting lines." +
       (t ? " Tested on " + t.matches.toLocaleString("en-US") + " past matches, the favorite won " + Math.round(t.favorite_won * 100) + "% of the time." : "");
   }
+  function liveTag() { return el("span", { "class": "livetag" }, [el("span", { "class": "dot", "aria-hidden": "true" }), "Live"]); }
   function row(g) {
     // g.live is the score read from ESPN while the match is on (see "live scores" below)
     var L = g.live, fin = L ? L.state === "post" : g.state === "final", live = L ? L.state === "in" : g.state === "live";
@@ -149,10 +150,11 @@
       more.push(g.watch.length ? el("span", { "class": "watch" }, [el("span", { "class": "sr", text: "Watch on " }), g.watch.join(", ")])
         : el("span", { "class": "watch none", text: "No broadcast listed" }));
     }
-    if (fin || live) more.push(el("a", { href: data.game_page + g.id, text: "Box score", rel: "noopener" }));
+    if (fin || live) more.push(el("a", { href: "#/match/" + g.id, text: live ? "Live box score" : "Box score" }));
     var unplayed = !fin && !live && !note;
     return el("li", { "class": "game" + (g.away.rank && g.home.rank ? " both" : "") + (live ? " on" : "") + (unplayed ? " ahead" : ""), "data-id": g.id }, [
-      el("span", { "class": "when" + (live ? " live" : ""), text: when }), team("away", g.away, homeWon), mid, team("home", g.home, awayWon),
+      live ? el("span", { "class": "when live" }, [liveTag(), " " + (when === "In progress" ? "" : when)]) : el("span", { "class": "when", text: when }),
+      team("away", g.away, homeWon), mid, team("home", g.home, awayWon),
       el("span", { "class": "more" }, more)]);
   }
 
@@ -507,15 +509,116 @@
     });
   }
 
+  // ---- a match's own page: set scores (ESPN, live) and both teams' box scores (NCAA, via the site's job) ----
+  var matchTimers = [];
+  function stopMatch() { matchTimers.forEach(clearTimeout); matchTimers = []; }
+  var ESPN_SUMMARY = "https://site.api.espn.com/apis/site/v2/sports/volleyball/womens-college-volleyball/summary?event=";
+  var BCOLS = [   // heading, meaning, value from a row: [num, name, pos, starter, sets, k, e, ta, ast, sa, se, d, ra, re, bs, ba, bhe, id, photo]
+    ["S", "Sets played", function (r) { return r[4]; }],
+    ["K", "Kills", function (r) { return r[5]; }], ["E", "Attack errors", function (r) { return r[6]; }], ["TA", "Total attacks", function (r) { return r[7]; }],
+    ["Hit%", "Hitting efficiency", function (r) { return r[7] ? hitFmt((r[5] - r[6]) / r[7]) : ""; }],
+    ["A", "Assists", function (r) { return r[8]; }], ["SA", "Service aces", function (r) { return r[9]; }], ["SE", "Service errors", function (r) { return r[10]; }],
+    ["D", "Digs", function (r) { return r[11]; }], ["RE", "Reception errors", function (r) { return r[13]; }],
+    ["BS", "Solo blocks", function (r) { return r[14]; }], ["BA", "Block assists", function (r) { return r[15]; }],
+    ["PTS", "Points: kills, aces, solo blocks and half of each block assist", function (r) { var p = r[5] + r[9] + r[14] + r[15] / 2; return p % 1 ? p.toFixed(1) : String(p); }]
+  ];
+  function boxTable(side, rows, name) {
+    var tot = [null, "Team", "", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    rows.forEach(function (r) { for (var i = 5; i <= 16; i++) tot[i] += r[i] || 0; tot[4] = Math.max(tot[4], r[4] || 0); });
+    var head = el("tr", {}, [el("th", { scope: "col", "class": "l" }, [el("span", { text: "#" })]), el("th", { scope: "col", "class": "l", text: name })]
+      .concat(BCOLS.map(function (c) { return el("th", { scope: "col", title: c[1], text: c[0] }); })));
+    function pts(r) { return r[5] + r[9] + r[14] + r[15] / 2; }
+    rows = rows.slice().sort(function (a, b) { return (b[3] - a[3]) || (pts(b) - pts(a)) || (b[11] - a[11]); });   // starters first, then by points
+    var body = el("tbody", {}, rows.map(function (r) {
+      var who = r[17] ? el("a", { href: "#/player/" + encodeURIComponent(r[17]) }, [face({ name: r[1], photo: r[18] }), el("span", { text: r[1] })])
+        : el("span", { "class": "plain" }, [face({ name: r[1] }), el("span", { text: r[1] })]);
+      return el("tr", { "class": r[3] ? "starter" : "" }, [el("td", { "class": "l", text: r[0] == null ? "" : String(r[0]) }), el("td", { "class": "l nm" }, [who])]
+        .concat(BCOLS.map(function (c) { return el("td", { text: String(c[2](r)) }); })));
+    }));
+    var foot = el("tfoot", {}, [el("tr", {}, [el("td", {}), el("td", { "class": "l", text: "Team" })].concat(BCOLS.map(function (c) { return el("td", { text: String(c[2](tot)) }); })))]);
+    return el("div", { "class": "tablewrap", tabindex: "0", role: "region", "aria-label": name + " box score, scrolls sideways" }, [
+      el("table", { "class": "ptable btable" }, [el("thead", {}, [head]), body, foot])]);
+  }
+  function drawMatch(id) {
+    stopMatch();
+    var box = $("match"), g = data.games.filter(function (x) { return String(x.id) === String(id); })[0];
+    box.innerHTML = "";
+    if (!g) { box.appendChild(el("p", { "class": "empty", text: "This match is not on the list of ranked teams' matches." })); return; }
+    var L = g.live, live = L ? L.state === "in" : g.state === "live", fin = L ? L.state === "post" : g.state === "final";
+    var t = g.start ? new Date(g.start * 1000) : null;
+    var title = el("h1", { "class": "mtitle" }, [g.away.name, el("span", { "class": "mv", text: " at " }), g.home.name]);
+    var status = el("p", { "class": "mstatus" }, [live ? liveTag() : null,
+      el("span", { text: (live ? " " : "") + long(g.date) + (t && !isNaN(t) ? ", " + t.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : "") + (fin ? " · Final" : "") })]);
+    var list = el("ol", { "class": "games" }, [row(g)]);
+    var sets = el("div", { "class": "msets" }), boxes = el("div", { "class": "mboxes" });
+    box.appendChild(title); box.appendChild(status); box.appendChild(list); box.appendChild(sets); box.appendChild(boxes);
+    box.appendChild(el("p", { "class": "note" }, ["Set scores come from ESPN and update every 20 seconds during a match. Player stats come from the NCAA's box score; during a match they are refreshed about every 15 minutes. ",
+      el("a", { href: data.game_page + g.id, rel: "noopener", text: "Official box score on NCAA.com" }), "."]));
+
+    function readSets() {
+      if (!g.espn) { sets.innerHTML = ""; return Promise.resolve(); }
+      return fetch(ESPN_SUMMARY + g.espn[0], { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+        var comp = d && d.header && (d.header.competitions || [])[0];
+        if (!comp) return;
+        var flip = g.espn[1], by = {};
+        (comp.competitors || []).forEach(function (c) { by[c.homeAway] = c; });
+        var away = by[flip ? "home" : "away"], home = by[flip ? "away" : "home"];
+        if (!away || !home) return;
+        var n = Math.max((away.linescores || []).length, (home.linescores || []).length);
+        if (!n) { sets.innerHTML = ""; return; }
+        var st = (comp.status || {}).type || {};
+        var nowLive = st.state === "in";
+        function line(c, s) {
+          var ls = c.linescores || [];
+          var cells = [];
+          for (var i = 0; i < n; i++) {
+            var mine = ls[i] ? +ls[i].displayValue : null, other = ((c === away ? home : away).linescores || [])[i];
+            var won = mine != null && other && mine > +other.displayValue && (i < n - 1 || !nowLive);
+            cells.push(el("td", { "class": won ? "won" : "", text: mine == null ? "" : String(mine) }));
+          }
+          return el("tr", {}, [el("th", { scope: "row", "class": "l" }, [rankTag(s.rank), logo(s.id, "sm"), " " + s.name])].concat(cells).concat([el("td", { "class": "tot", text: c.score || "0" })]));
+        }
+        var head = el("tr", {}, [el("th", { scope: "col", "class": "l", text: nowLive ? (st.shortDetail || "Live") : "Set" })]);
+        for (var i = 1; i <= n; i++) head.appendChild(el("th", { scope: "col", text: String(i) }));
+        head.appendChild(el("th", { scope: "col", text: "Sets" }));
+        sets.innerHTML = "";
+        sets.appendChild(el("div", { "class": "tablewrap" }, [el("table", { "class": "ptable stable" }, [el("thead", {}, [head]), el("tbody", {}, [line(away, g.away), line(home, g.home)])])]));
+        if (nowLive) matchTimers.push(setTimeout(readSets, (data.live_seconds || 20) * 1000));
+      }).catch(function () {});
+    }
+    function readBox() {
+      return fetch("match/" + g.id + ".json", { cache: "no-cache" }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (d) {
+        boxes.innerHTML = "";
+        [["away", g.away], ["home", g.home]].forEach(function (p) {
+          var side = p[0], s = p[1];
+          boxes.appendChild(el("h2", { "class": "mteam" }, [rankTag(s.rank), logo(s.id), " " + s.name]));
+          boxes.appendChild(boxTable(side, d[side] || [], s.name));
+          var ts = (d.tsets || {})[side] || [];
+          if (ts.length) boxes.appendChild(el("p", { "class": "bysets" }, ["Hitting by set: "].concat(ts.map(function (x, i) {
+            return el("span", { "class": "bs" }, [el("b", { text: "Set " + (i + 1) + " " }), x[2] ? hitFmt((x[0] - x[1]) / x[2]) : "–", el("small", { text: " (" + x[0] + "–" + x[1] + "–" + x[2] + ")" })]);
+          }))));
+        });
+        if (d.status && d.status !== "F" && (live || !fin)) matchTimers.push(setTimeout(readBox, 60 * 1000));
+      }).catch(function () {
+        boxes.innerHTML = "";
+        boxes.appendChild(el("p", { "class": "empty", text: live ? "Player stats appear here within about 15 minutes of the first serve." :
+          fin ? "The box score has not come in yet. It usually arrives within the hour." : "Player stats appear here once the match starts." }));
+        if (live || fin) matchTimers.push(setTimeout(readBox, 60 * 1000));
+      });
+    }
+    readSets(); readBox();
+  }
+
   function route() {
-    var h = location.hash, card = /^#\/?player\/(.+)$/.exec(h);
-    var page = card ? "card" : /^#\/?players/.test(h) ? "players" : /^#\/?rankings/.test(h) ? "rankings" : /^#\/?teams/.test(h) ? "teams" : "matches";
-    ["matches", "rankings", "teams", "players", "card"].forEach(function (p) { $("page-" + p).hidden = p !== page; });
+    var h = location.hash, card = /^#\/?player\/(.+)$/.exec(h), match = /^#\/?match\/(\d+)/.exec(h);
+    stopMatch();
+    var page = match ? "match" : card ? "card" : /^#\/?players/.test(h) ? "players" : /^#\/?rankings/.test(h) ? "rankings" : /^#\/?teams/.test(h) ? "teams" : "matches";
+    ["matches", "rankings", "teams", "players", "card", "match"].forEach(function (p) { $("page-" + p).hidden = p !== page; });
     Array.prototype.forEach.call(document.querySelectorAll(".pages a"), function (a) {
-      if (a.dataset.page === (page === "card" ? "players" : page)) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
+      if (a.dataset.page === (page === "card" ? "players" : page === "match" ? "matches" : page)) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
     });
-    document.title = ({ rankings: "Top 25 rankings", teams: "Top 25 team stats", players: "Top 25 players", card: "Player card" }[page] || "Top 25 matches") + " | " + data.site;
-    if (page === "rankings") drawRanks(); else if (page === "teams") drawTeams(); else if (page === "players") drawPlayers(); else if (page === "card") drawCard(decodeURIComponent(card[1])); else draw();
+    document.title = ({ rankings: "Top 25 rankings", teams: "Top 25 team stats", players: "Top 25 players", match: "Box score", card: "Player card" }[page] || "Top 25 matches") + " | " + data.site;
+    if (page === "match") drawMatch(match[1]); else if (page === "rankings") drawRanks(); else if (page === "teams") drawTeams(); else if (page === "players") drawPlayers(); else if (page === "card") drawCard(decodeURIComponent(card[1])); else draw();
     window.scrollTo(0, 0);
   }
 

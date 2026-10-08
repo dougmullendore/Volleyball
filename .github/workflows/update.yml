@@ -5,6 +5,10 @@ on:
     - cron: '47 10 * * *'   # every night, about 5:47am Central: scores and schedule
     - cron: '13 21 * * 1'   # Monday afternoon (about 4pm Central): look for the new top 25
     - cron: '13 2 * * 2'    # Monday evening (about 9pm Central): look again in case it came out late
+    # match nights, August to December: every 15 minutes from about 3pm to midnight Central,
+    # for live box scores. A run finds nothing to do and stops within seconds if no ranked team is playing.
+    - cron: '*/15 20-23 * 8-12 *'
+    - cron: '*/15 0-5 * 8-12 *'
   workflow_dispatch:
   push:
     branches: [main]
@@ -45,14 +49,22 @@ jobs:
           # The job itself looks for a new poll on Mondays. A run started by hand or by a
           # code change looks straight away, whatever the day.
           CHECK_POLL: ${{ github.event_name != 'schedule' && '1' || '0' }}
+          # the match-night runs only refresh matches under way (see live_now in pipeline/run.py)
+          RUN_MODE: ${{ contains(github.event.schedule, '*/15') && 'live' || 'full' }}
         run: |
           set -o pipefail
-          python -m pipeline.run state dist 2>&1 | tee state/logs/last_run.log
+          python -m pipeline.run state dist 2>&1 | tee "$RUNNER_TEMP/run.log"
+          if [ "$RUN_MODE" = live ]; then
+            if [ -f dist/index.html ]; then cp "$RUNNER_TEMP/run.log" state/logs/live_run.log; fi
+          else
+            cp "$RUNNER_TEMP/run.log" state/logs/last_run.log
+          fi
 
       - name: Save what was stored
         if: always()
         run: |
           cd state
+          if [ -z "$(git status --porcelain)" ]; then echo "nothing new to store"; exit 0; fi
           git config user.name "volleyball-bot"
           git config user.email "volleyball-bot@users.noreply.github.com"
           git add -A

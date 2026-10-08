@@ -119,6 +119,17 @@ def assign(games: list[dict], listings: list[dict], names: dict) -> dict:
     return out
 
 
+def espn_days(days: list[dt.date]) -> tuple[list[dict], list[str]]:
+    """ESPN's listings for the given days, and any day that could not be read."""
+    out, failed = [], []
+    for day in days:
+        try:
+            out += parse_espn(json.loads(web.get_bytes(config.ESPN_SCOREBOARD + day.strftime("%Y%m%d"))))
+        except Exception as e:
+            failed.append(f"ESPN {day}: {e!r}"[:160])
+    return out, failed
+
+
 def fetch_listings(today: dt.date, log) -> tuple[list[dict], list[str]]:
     """Listings for the next WATCH_DAYS days from both sources, and the names
     of any source that could not be read."""
