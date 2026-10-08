@@ -412,9 +412,16 @@ def lovb_media(fetch, log, wanted: dict | None = None) -> dict:
     for full, tid in (wanted or {}).items():
         if name_key(full) in people or tid not in teams:
             continue
-        try:
-            page = fetch(LOVB_SITE + teams[tid]["href"] + "/athletes/" + re.sub(r"[^a-z0-9]+", "-", full.lower()).strip("-"))
-        except Exception:
+        page = None
+        plain = re.sub(r"['’.]", "", full.lower())                 # "Brie O'Reilly" -> brie-oreilly
+        words = plain.split()
+        for cand in dict.fromkeys([plain, full.lower(), " ".join([words[0], words[-1]]) if len(words) > 2 else plain]):
+            try:
+                page = fetch(LOVB_SITE + teams[tid]["href"] + "/athletes/" + re.sub(r"[^a-z0-9]+", "-", cand).strip("-"))
+                break
+            except Exception:
+                continue
+        if page is None:
             continue
         found = _lovb_athletes(_next_data(page))
         if found:
@@ -423,7 +430,9 @@ def lovb_media(fetch, log, wanted: dict | None = None) -> dict:
         # an older athlete page: only her picture, as the page's share image
         title = re.search(r"<title>([^<]+)</title>", page)
         img = re.search(r'<meta property="og:image" content="([^"]+)"', page)
-        if title and img and name_key(title.group(1)) == name_key(full) and "/api/media/" in img.group(1):
+        same = title and (name_key(title.group(1)) == name_key(full) or
+                          (name_key(title.group(1).split()[0]) == name_key(full.split()[0]) and name_key(title.group(1).split()[-1]) == name_key(full.split()[-1])))
+        if same and img and "/api/media/" in img.group(1):
             people[name_key(full)] = {"photo": img.group(1).replace("&amp;", "&"), "bio": {}}
     return {"teams": {k: {"logo": v["logo"]} for k, v in teams.items()}, "players": people}
 
@@ -453,15 +462,18 @@ def mlv_media(fetch, names: list[str], log) -> dict:
             break
         for p in got:
             listed.setdefault(name_key(p.get("full_name")), p["slug"])
-            listed.setdefault("~" + name_key(p.get("last_name")) + name_key(p.get("first_name"))[:3], p["slug"])
+            for w in re.split(r"[\s-]+", p.get("last_name") or ""):      # each part of a double surname
+                if len(name_key(w)) >= 3:
+                    listed.setdefault("~" + name_key(w) + name_key(p.get("first_name"))[:3], p["slug"])
         if len(got) < 200:
             break
         page_no += 1
     people = {}
     for full in names:
-        first, _, last = full.partition(" ")
-        page_slug = listed.get(name_key(full)) or listed.get("~" + name_key(last) + name_key(first)[:3]) \
-            or re.sub(r"[^a-z0-9]+", "-", full.lower()).strip("-")
+        first, _, rest = full.partition(" ")
+        tries = [listed.get(name_key(full))] + [listed.get("~" + name_key(w) + name_key(first)[:3])
+                                               for w in reversed(re.split(r"[\s-]+", rest)) if len(name_key(w)) >= 3]
+        page_slug = next((t for t in tries if t), None) or re.sub(r"[^a-z0-9]+", "-", full.lower()).strip("-")
         try:
             p = _inertia(fetch(MLV_SITE + "/player/" + page_slug)).get("player")
         except Exception:
@@ -499,7 +511,7 @@ def update_media(state: Path, today: dt.date, log) -> dict:
     for site in LEAGUES:
         path = state / "pro" / f"{site}_media.json"
         have = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
-        if have.get("finder") != 2:          # this file has learned a new way to find players since: read again
+        if have.get("finder") != 3:          # this file has learned a new way to find players since: read again
             have = {k: v for k, v in have.items() if k != "checked"}
         no_logos = not any(v.get("logo") for v in (have.get("teams") or {}).values())
         if have.get("checked") and (today - dt.date.fromisoformat(have["checked"])).days < MEDIA_DAYS and not no_logos:
@@ -527,7 +539,7 @@ def update_media(state: Path, today: dt.date, log) -> dict:
         got["players"] = {**(have.get("players") or {}), **{k: v for k, v in got["players"].items() if v.get("photo") or v.get("bio")}}
         got["teams"] = {**(have.get("teams") or {}), **{k: v for k, v in got["teams"].items() if v.get("logo") or k not in (have.get("teams") or {})}}
         got["checked"] = today.isoformat()
-        got["finder"] = 2
+        got["finder"] = 3
         path.write_text(json.dumps(got), encoding="utf-8")
         res[site] = {"teams": len(got["teams"]), "players": len(got["players"]),
                      "with_photo": sum(1 for v in got["players"].values() if v.get("photo"))}
