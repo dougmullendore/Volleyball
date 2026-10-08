@@ -193,9 +193,11 @@ def load(state: Path, site: str) -> dict | None:
     return {"season": int(season), "games": games, "boxes": boxes, "names": names, "abbr": abbr}
 
 
-def standings(games: list[dict], names: dict, through: str | None = None) -> list[dict]:
-    """Every team by wins, then win share, then set ratio, from finals up to `through`."""
-    rec = {t: {"w": 0, "l": 0, "sw": 0, "sl": 0} for t in names}
+def standings(games: list[dict], names: dict, through: str | None = None, points: bool = False) -> list[dict]:
+    """Every team by wins, then win share, then set ratio, from finals up to `through`.
+    With `points` (MLV's table): by points first, 3 for a win in three or four sets,
+    2 for a win in five, 1 for a loss in five."""
+    rec = {t: {"w": 0, "l": 0, "sw": 0, "sl": 0, "pts": 0} for t in names}
     for g in games:
         if g["state"] != "final" or (through and g["date"] > through) or g.get("round"):   # the regular season only
             continue
@@ -203,9 +205,11 @@ def standings(games: list[dict], names: dict, through: str | None = None) -> lis
             x = rec[g[s]["id"]]
             x["w" if g[s]["sets"] > g[o]["sets"] else "l"] += 1
             x["sw"] += g[s]["sets"]; x["sl"] += g[o]["sets"]
-    order = sorted(names, key=lambda t: (-rec[t]["w"], -(rec[t]["w"] / max(1, rec[t]["w"] + rec[t]["l"])),
+            five = g[s]["sets"] + g[o]["sets"] >= 5
+            x["pts"] += (2 if five else 3) if g[s]["sets"] > g[o]["sets"] else (1 if five else 0)
+    order = sorted(names, key=lambda t: (-(rec[t]["pts"] if points else 0), -rec[t]["w"], -(rec[t]["w"] / max(1, rec[t]["w"] + rec[t]["l"])),
                                          -(rec[t]["sw"] / max(1, rec[t]["sl"])), names[t]))
-    return [{"rank": i + 1, "id": t, "name": names[t], "record": f"{rec[t]['w']}-{rec[t]['l']}"} for i, t in enumerate(order)]
+    return [{"rank": i + 1, "id": t, "name": names[t], "record": f"{rec[t]['w']}-{rec[t]['l']}", "pts": rec[t]["pts"]} for i, t in enumerate(order)]
 
 
 def build(state: Path, out: Path, site: str, now: dt.datetime, words: dict, write_json, match_files, log) -> dict:
@@ -218,9 +222,9 @@ def build(state: Path, out: Path, site: str, now: dt.datetime, words: dict, writ
     games, boxes, names = s["games"], s["boxes"], s["names"]
     finals = [g for g in games if g["state"] == "final"]
     through = max((g["date"] for g in finals if not g.get("round")), default=None)
-    table = standings(games, names, through)
+    table = standings(games, names, through, points=site == "mlv")
     week_ago = (dt.date.fromisoformat(through) - dt.timedelta(days=7)).isoformat() if through else None
-    before = {t["id"]: t["rank"] for t in standings(games, names, week_ago)} if week_ago and any(g["date"] <= week_ago for g in finals) else {}
+    before = {t["id"]: t["rank"] for t in standings(games, names, week_ago, points=site == "mlv")} if week_ago and any(g["date"] <= week_ago for g in finals) else {}
     for t in table:
         t["prev"] = before.get(t["id"])
     rank = {t["id"]: t["rank"] for t in table}
@@ -263,6 +267,17 @@ def build(state: Path, out: Path, site: str, now: dt.datetime, words: dict, writ
 
     rated = players.compute(table, games, boxes)
     rated["through"] = max((g["date"] for g in finals), default=None)
+    media_file = state / "pro" / f"{site}_media.json"
+    media = json.loads(media_file.read_text(encoding="utf-8")) if media_file.exists() else {}
+    found = media.get("players") or {}
+    for p in rated["players"]:
+        m = found.get(name_key(p["name"]))
+        if m:
+            if m.get("photo"):
+                p["photo"] = m["photo"]
+            if m.get("bio"):
+                p["bio"] = m["bio"]
+    logos = {t: v["logo"] for t, v in (media.get("teams") or {}).items() if v.get("logo") and t in names}
     dest = out / site
     with_box = match_files(dest, games, boxes, rated)
     for g in games:              # set by set, for the match page
@@ -277,10 +292,186 @@ def build(state: Path, out: Path, site: str, now: dt.datetime, words: dict, writ
         "odds_tested": None, "goat": {"top": top, "weight": config.GOAT_HEAD_TO_HEAD, "weights": config.GOAT_WEIGHTS,
                                       "poll_wrong": goat.contradictions([t["id"] for t in table], finals, set(names)),
                                       "goat_wrong": goat.contradictions(ranking["order"], finals, set(names))},
-        "nr": {}, "words": words, "abbr": {t: [s["abbr"].get(t) or names[t][:3].upper(), COLORS[i % len(COLORS)]] for i, t in enumerate(sorted(names))}, "d1": [[t["id"], t["name"]] for t in table], "games": games})
+        "nr": {}, "words": words, "logos": logos,
+        "abbr": {t: [((media.get("teams") or {}).get(t) or {}).get("abbr") or s["abbr"].get(t) or names[t][:3].upper(),
+                     ((media.get("teams") or {}).get(t) or {}).get("color") or COLORS[i % len(COLORS)]] for i, t in enumerate(sorted(names))}, "d1": [[t["id"], t["name"]] for t in table], "games": games})
     write_json(dest / "players.json", rated)
     write_json(dest / "teams.json", teams.compute(table, games, boxes, rating))
     log(f"{league}: {s['season']} season, {len(games)} matches ({len(finals)} played), {len(names)} teams, "
         f"{len(rated['players'])} players, {with_box} box scores")
     return {"season": s["season"], "matches": len(games), "played": len(finals), "teams": len(names),
             "players": len(rated["players"]), "box_scores": with_box}
+
+
+# ---- logos, photos and player details, from the leagues' own websites ----
+LOVB_SITE = "https://www.lovb.com"
+MLV_SITE = "https://provolleyball.com"
+MEDIA_DAYS = 7                     # read again after this many days
+
+
+def name_key(s: str) -> str:
+    return players._norm(s or "")
+
+
+def _next_data(page: str) -> str:
+    """The text of a Next.js page's data chunks (self.__next_f.push([1, "..."]))."""
+    out = []
+    for c in re.findall(r'self\.__next_f\.push\(\[1,"(.*?)"\]\)</script>', page, re.S):
+        try:
+            out.append(json.loads('"' + c + '"'))
+        except ValueError:
+            continue
+    return "".join(out)
+
+
+def _inertia(page: str) -> dict:
+    import html as _html
+    m = re.search(r'data-page="([^"]*)"', page)
+    return json.loads(_html.unescape(m.group(1))).get("props", {}) if m else {}
+
+
+def _height(v) -> str | None:
+    m = re.match(r"\s*(\d)\s*[-' ]\s*(\d{1,2})", str(v or ""))
+    return f"{m.group(1)}-{m.group(2)}" if m else None
+
+
+def _social(links: dict) -> dict:
+    out = {}
+    for net, url in links.items():
+        if isinstance(url, str) and url.startswith("http"):
+            out[net] = url.split("?")[0].rstrip("/#")
+    return out
+
+
+def _lovb_athletes(text: str) -> dict:
+    people = {}
+    for m in re.finditer(r'\{"id":"\d+","audioUrl":.*?"xTwitter":(?:null|"[^"]*")\}', text):
+        try:
+            a = json.loads(m.group(0))
+        except ValueError:
+            continue
+        if not a.get("fullName"):
+            continue
+        bio = {}
+        if _height(a.get("height")):
+            bio["ht"] = _height(a.get("height"))
+        if a.get("collegeOrClub"):
+            bio["col"] = a["collegeOrClub"].strip()[:60]
+        soc = _social({"instagram": a.get("instagram"), "twitter": a.get("xTwitter"), "tiktok": a.get("tiktok")})
+        if soc:
+            bio["social"] = soc
+        photo = (LOVB_SITE + a["headshotUrl"]) if a.get("headshotUrl") and "filler" not in a["headshotUrl"] else None
+        people[name_key(a["fullName"])] = {"photo": photo, "bio": bio}
+    return people
+
+
+def lovb_media(fetch, log, wanted: dict | None = None) -> dict:
+    """Team logos and every listed athlete's headshot, height, college and
+    social links, from the team roster pages on lovb.com."""
+    home = _next_data(fetch(LOVB_SITE + "/teams/lovb-houston-volleyball/roster"))
+    teams, people = {}, {}
+    for m in re.finditer(r'\{"id":\d+,"fullName":"(LOVB [^"]+)","href":"(/teams/[a-z-]+)","squareLogoUrl":"([^"]+)"', home):
+        teams[slug(m.group(1))] = {"logo": LOVB_SITE + m.group(3), "href": m.group(2)}
+    for tid, t in teams.items():
+        try:
+            text = home if t["href"].endswith("houston-volleyball") else _next_data(fetch(LOVB_SITE + t["href"] + "/roster"))
+        except Exception as e:
+            log(f"LOVB roster of {tid}: {e!r}"[:120])
+            continue
+        people.update(_lovb_athletes(text))
+    # a player who has moved on since: her page under the team she played for
+    for full, tid in (wanted or {}).items():
+        if name_key(full) in people or tid not in teams:
+            continue
+        try:
+            people.update(_lovb_athletes(_next_data(fetch(LOVB_SITE + teams[tid]["href"] + "/athletes/" + re.sub(r"[^a-z0-9]+", "-", full.lower()).strip("-")))))
+        except Exception:
+            continue
+    return {"teams": {k: {"logo": v["logo"]} for k, v in teams.items()}, "players": people}
+
+
+def mlv_media(fetch, names: list[str], log) -> dict:
+    """Team logos and colours from provolleyball.com, and each player's headshot,
+    height, hometown, college and social links from her page there."""
+    teams = {}
+    for t in json.loads(fetch(MLV_SITE + "/api/teams")).get("data", []):
+        if not t.get("current_roster_id"):
+            continue
+        logo = None
+        try:
+            team = _inertia(fetch(MLV_SITE + t["permalink"])).get("team") or {}
+            logo = ((team.get("logo") or {}).get("src"))
+        except Exception:
+            pass
+        teams[slug(t["name"])] = {"logo": logo, "color": t.get("color"), "abbr": t.get("abbreviation")}
+    people = {}
+    for full in names:
+        try:
+            p = _inertia(fetch(MLV_SITE + "/player/" + re.sub(r"[^a-z0-9]+", "-", full.lower()).strip("-"))).get("player")
+        except Exception:
+            continue
+        if not p:
+            continue
+        bio = {}
+        if p.get("height_feet"):
+            bio["ht"] = f'{p["height_feet"]}-{p.get("height_inches") or 0}'
+        if p.get("weight") and str(p["weight"]).isdigit():
+            bio["wt"] = int(p["weight"])
+        if p.get("hometown"):
+            bio["home"] = p["hometown"][:60]
+        if p.get("college"):
+            bio["col"] = p["college"][:60]
+        if p.get("birth_date"):
+            bio["born"] = str(p["birth_date"])[:10]
+        links = {}
+        for s in p.get("social_links") or []:
+            net = ((s.get("social_network") or {}).get("name") or "").lower()
+            net = "twitter" if net in ("x", "twitter") else net
+            if net in ("instagram", "twitter", "tiktok"):
+                links[net] = s.get("account")
+        if _social(links):
+            bio["social"] = _social(links)
+        photo = (p.get("headshot_image") or {}).get("src")
+        if photo:
+            photo = photo.replace("rs:fit:2000:0:0", "rs:fit:400:0:0")
+        people[name_key(full)] = {"photo": photo, "bio": bio}
+    return {"teams": teams, "players": people}
+
+
+def update_media(state: Path, today: dt.date, log) -> dict:
+    """Read the leagues' websites for logos, photos and player details, once a week."""
+    fetch = lambda url: web.get_bytes(url, timeout=20, tries=2).decode("utf-8", "replace")
+    res = {}
+    for site in LEAGUES:
+        path = state / "pro" / f"{site}_media.json"
+        have = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+        if have.get("checked") and (today - dt.date.fromisoformat(have["checked"])).days < MEDIA_DAYS:
+            res[site] = "up to date"
+            continue
+        try:
+            s = load(state, site)
+            if site == "lovb":
+                wanted = {}
+                for mid, b in (s or {}).get("boxes", {}).items():
+                    g = next((g for g in s["games"] if str(g["id"]) == mid), None)
+                    for side in ("home", "away"):
+                        for r in b[side]:
+                            if g:
+                                wanted[(r[0] + " " + r[1]).strip()] = g[side]["id"]
+                got = lovb_media(fetch, log, wanted)
+            else:
+                names = sorted({(r[0] + " " + r[1]).strip() for b in (s or {}).get("boxes", {}).values() for side in ("home", "away") for r in b[side]})
+                got = mlv_media(fetch, names, log)
+        except Exception as e:
+            log(f"{site} logos and photos: {e!r}"[:160])
+            res[site] = f"failed: {e!r}"[:120]
+            continue
+        # keep what an earlier reading found for anyone this one missed
+        got["players"] = {**(have.get("players") or {}), **{k: v for k, v in got["players"].items() if v.get("photo") or v.get("bio")}}
+        got["teams"] = {**(have.get("teams") or {}), **got["teams"]}
+        got["checked"] = today.isoformat()
+        path.write_text(json.dumps(got), encoding="utf-8")
+        res[site] = {"teams": len(got["teams"]), "players": len(got["players"]),
+                     "with_photo": sum(1 for v in got["players"].values() if v.get("photo"))}
+        log(f"{site}: logos for {len(got['teams'])} teams, details for {len(got['players'])} players")
+    return res

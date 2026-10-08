@@ -534,6 +534,7 @@ def main(state_dir: str, out_dir: str) -> int:
         if config.SHOW_PHOTOS:
             stage("photos", lambda: update_photos(state, now))
         stage("pro data", lambda: pro.download(state, log))
+        stage("pro photos", lambda: pro.update_media(state, now.date(), log))
     stage("site", lambda: build_site(state, out, now))
     stage("pro leagues", lambda: build_pro(state, out, now))
     stage("every ranked team found", lambda: check_teams(status))

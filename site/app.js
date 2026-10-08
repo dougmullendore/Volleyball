@@ -28,9 +28,17 @@
   // A team's logo, served by ncaa.com and shown in one colour. With `name`, the logo
   // stands in for the team's name, so it carries the name for screen readers and on hover.
   function logo(teamId, cls, name) {
-    if (PRO() && teamId && data.abbr && data.abbr[teamId]) {
-      var a = data.abbr[teamId];
-      return el("span", { "class": "logo badge " + (cls || ""), title: name || null, "aria-label": name || null, style: a[1] ? "--team:" + a[1] : null }, [el("span", { text: a[0] })]);
+    if (PRO()) {                          // a pro team: the league's logo, or its short code in a circle
+      if (!teamId) return name ? el("span", { text: name }) : null;
+      var a = (data.abbr || {})[teamId] || [name ? name.slice(0, 3).toUpperCase() : "", null];
+      var badge = function () {
+        return el("span", { "class": "logo badge " + (cls || ""), title: name || null, "aria-label": name || null, style: a[1] ? "--team:" + a[1] : null }, [el("span", { text: a[0] })]);
+      };
+      if (!(data.logos || {})[teamId]) return badge();
+      var im = el("img", { src: data.logos[teamId], alt: name || "", title: name || null, loading: "lazy", decoding: "async" });
+      var box = el("span", { "class": "logo pro " + (cls || "") }, [im]);
+      im.addEventListener("error", function () { if (box.parentNode) box.parentNode.replaceChild(badge(), box); });
+      return box;
     }
     if (!data.logo || !teamId) return name ? el("span", { text: name }) : null;
     var img = el("img", { src: data.logo.replace("{team}", encodeURIComponent(teamId)), alt: name || "", title: name || null, loading: "lazy", decoding: "async" });
@@ -469,6 +477,7 @@
       if (age > 14 && age < 40) bits.push("Age " + age);
     }
     if (b.home) bits.push(b.home + (b.prev ? " (from " + b.prev + ")" : ""));
+    if (b.col) bits.push(b.col);
     return bits.length ? el("p", { "class": "pc-bio", text: bits.join(" \u00b7 ") }) : null;
   }
   var SOCIAL = { instagram: ["Instagram", "M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 8.2a3.2 3.2 0 1 1 0-6.4 3.2 3.2 0 0 1 0 6.4zM17.3 5.5a1.2 1.2 0 1 0 0 2.4 1.2 1.2 0 0 0 0-2.4zM7.5 2h9A5.5 5.5 0 0 1 22 7.5v9a5.5 5.5 0 0 1-5.5 5.5h-9A5.5 5.5 0 0 1 2 16.5v-9A5.5 5.5 0 0 1 7.5 2zm0 1.8A3.7 3.7 0 0 0 3.8 7.5v9a3.7 3.7 0 0 0 3.7 3.7h9a3.7 3.7 0 0 0 3.7-3.7v-9a3.7 3.7 0 0 0-3.7-3.7z"],
