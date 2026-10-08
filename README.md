@@ -101,8 +101,8 @@ school's own public roster page.
 
 Logos appear beside team names everywhere on the site, and stand in for the
 names in the Beat and Lost to boxes. Each is the school's colour logo from
-ncaa.com, shown on a small white volleyball (drawn by the stylesheet, `.logo`
-in `site/styles.css`). They are not stored in this repository: the
+ncaa.com, shown in a white circle with a green ring (`.logo` in
+`site/styles.css`). They are not stored in this repository: the
 page shows them straight from ncaa.com, which has one for every school. They
 belong to the schools. To remove them, set `LOGO_URL = ""` in
 `pipeline/config.py`.
