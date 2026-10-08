@@ -400,8 +400,8 @@
 
   // ---- players ----
   var roster = null, pstate = { pos: "", team: "", q: "", all: false, sort: "impact_set", dir: -1 };
-  var POS_ONE = { OH: "Outside or opposite hitter", MB: "Middle blocker", S: "Setter", L: "Libero", DS: "Defensive specialist" };
-  var POS_MANY = { OH: "outside and opposite hitters", MB: "middle blockers", S: "setters", L: "liberos", DS: "defensive specialists" };
+  var POS_ONE = { OH: "Outside or Opposite Hitter", MB: "Middle Blocker", S: "Setter", L: "Libero", DS: "Defensive Specialist" };
+  var POS_MANY = { OH: "Outside and Opposite Hitters", MB: "Middle Blockers", S: "Setters", L: "Liberos", DS: "Defensive Specialists" };
   var fmt = {
     d1: function (v) { return v.toFixed(1); }, d2: function (v) { return v.toFixed(2); },
     s1: function (v) { return (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(1); },
@@ -448,7 +448,7 @@
     ["rank", "#", "Rank by Impact per set among regulars", function (p) { return p.rank; }, function (v) { return String(v); }, 0],
     ["name", "Player", "", function (p) { return p.name; }, null, 0],
     ["team", "Team", "", function (p) { return p.team_rank; }, null, 0],
-    ["pos", "Pos", "OH outside or opposite hitter, MB middle blocker, S setter, L libero, DS defensive specialist", function (p) { return p.pos; }, function (v) { return v; }, 0],
+    ["pos", "Pos", "OH Outside or Opposite Hitter, MB Middle Blocker, S Setter, L Libero, DS Defensive Specialist", function (p) { return p.pos; }, function (v) { return v; }, 0],
     ["sp", "Sets", "Sets played", function (p) { return p.sp; }, function (v) { return String(v); }, 1],
     ["impact", "Impact", "Points added this season over an average player at her position", function (p) { return p.impact; }, fmt.s1, 1],
     ["impact_set", "Per set", "Impact per set played", function (p) { return val(p, "impact_set"); }, fmt.s2, 1],
@@ -568,7 +568,7 @@
         el("div", { "class": "pc-id" }, [
           el("h1", { text: p.name }),
           el("p", { "class": "pc-team" }, [logo(p.team_id), teamA(p.team_id, p.team), p.team_rank ? el("span", { text: PRO() ? " (" + ordinal(p.team_rank) + " in the standings)" : " (ranked " + p.team_rank + ")" }) : null]),
-          el("p", { text: (p.num != null ? "No. " + p.num + ", " : "") + POS_ONE[p.pos].toLowerCase() }),
+          el("p", { text: (p.num != null ? "No. " + p.num + ", " : "") + POS_ONE[p.pos] }),
           bioLine(p.bio),
           el("p", { "class": "pc-sub", text: p.sp + " sets in " + p.mp + " matches, " + p.starts + " starts" }),
           socialLinks(p.bio, p.name)]),
