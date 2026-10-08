@@ -308,7 +308,9 @@ def build(state: Path, out: Path, site: str, now: dt.datetime, words: dict, writ
         m = found.get(name_key(p["name"]))
         if not (m and m.get("photo")) and (others.get(name_key(p["name"])) or {}).get("photo"):
             m = {**others[name_key(p["name"])], "bio": {**(others[name_key(p["name"])].get("bio") or {}), **((m or {}).get("bio") or {})}}
-        if m:
+        o = (others.get(name_key(p["name"])) or {}).get("bio") or {}
+        if m and not (m.get("bio") or {}).get("social") and o.get("social"):     # her links from the other league's site
+            m = {**m, "bio": {**(m.get("bio") or {}), "social": o["social"]}}
             if m.get("photo"):
                 p["photo"] = m["photo"]
             if m.get("bio"):
