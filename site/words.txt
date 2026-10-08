@@ -82,3 +82,24 @@ match.ncaa_link = Official box score on NCAA.com
 
 # ---- bottom of every page ----
 footer.about = Match times are shown in your own time zone. Scores and schedules come from the NCAA's public scoreboard, and scores of matches in progress from ESPN's; rankings are the AVCA coaches poll as published on ncaa.com. Channels come from ESPN's and the Big Ten's schedules and can change, so check before you tune in; streaming services need their own subscription. Player ratings are worked out by this site from official box scores. Team logos and player photos belong to their schools; logos are shown from ncaa.com and photos from each school's own roster page. Not affiliated with or endorsed by the NCAA, the AVCA or any school.
+
+# ---- the LOVB and MLV pages (the site's lovb/ and mlv/ folders) ----
+# These replace the lines above on the pro league pages. {league} is LOVB or MLV.
+pro.matches_title = {league} Matches
+pro.matches_lede = Every {league} match, week by week.
+pro.matches_all_teams = All teams
+pro.rankings_title = {league} Standings
+pro.rankings_lede = The {league} standings, through matches of {date}.
+pro.rankings_lede_goat = This site's own ranking of the {league} teams: head to head first, then strength of schedule, the standings and record.
+pro.rankings_button_poll = Standings
+pro.rankings_note = Teams are placed by wins, then by share of matches won, then by sets won to sets lost; play-off matches do not count. Change is against a week earlier. Under each team are its results this season against the others, with their places. Choose a team to see its page.
+pro.rankings_note_goat = Beside each team are its results this season against the others, with their GOAT places. Std is the team's place in the standings.
+pro.teams_title = {league} Team Stats
+pro.teams_lede = How each {league} team attacks, serves, blocks and defends, per set, and what its opponents manage against it.
+pro.teams_note = Per-set numbers count every set with a box score. Rating is where this site's rating of results places the team; SOS ranks the teams by how strong their opponents have been. Choose a column heading to sort.
+pro.team_players_note = # is her rank by Impact per set among all {league} regulars; part-time players are greyed and not ranked. Choose a name for her card.
+pro.players_title = {league} Players
+pro.players_lede = Every regular in the {league}, ranked by Impact per set: the points she adds per set over an average {league} player at her position.
+pro.players_note = Impact compares each player with the league's other regulars, from the official match statistics. A block counts whole (the league's statistics do not split solo and shared blocks).
+pro.match_note = Scores and statistics from the league's official match centre, collected by the volleydata project.
+pro.footer_about = Match times are shown in your own time zone. Results and statistics are the leagues' own, collected by the volleydata project (github.com/awosoga/volleydata). Player ratings, standings changes and the GOAT ranking are worked out by this site. Not affiliated with or endorsed by LOVB, MLV or any team.

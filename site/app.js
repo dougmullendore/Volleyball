@@ -28,6 +28,10 @@
   // A team's logo, served by ncaa.com and shown in one colour. With `name`, the logo
   // stands in for the team's name, so it carries the name for screen readers and on hover.
   function logo(teamId, cls, name) {
+    if (PRO() && teamId && data.abbr && data.abbr[teamId]) {
+      var a = data.abbr[teamId];
+      return el("span", { "class": "logo badge " + (cls || ""), title: name || null, "aria-label": name || null, style: a[1] ? "--team:" + a[1] : null }, [el("span", { text: a[0] })]);
+    }
     if (!data.logo || !teamId) return name ? el("span", { text: name }) : null;
     var img = el("img", { src: data.logo.replace("{team}", encodeURIComponent(teamId)), alt: name || "", title: name || null, loading: "lazy", decoding: "async" });
     var pic = el("span", { "class": "logo " + (cls || "") }, [img]);
@@ -55,17 +59,24 @@
   }
   // The site's wording, from words.txt (see the top of that file). {name} is filled from `vars`.
   function W(key, vars) {
-    var s = ((data && data.words) || {})[key];
+    var ws = (data && data.words) || {}, s = PRO() && ws["pro." + key.replace(".", "_")] != null ? ws["pro." + key.replace(".", "_")] : ws[key];
+    vars = vars || {};
+    if (data && data.league_name && vars.league == null) vars.league = data.league_name;
     if (s == null) return "";
     return s.replace(/\{(\w+)\}/g, function (m, k) { return vars && vars[k] != null ? String(vars[k]) : m; });
   }
+  // a pro league's copy of the site (lovb/, mlv/): every team in the league is "ranked", by the standings
+  function PRO() { return !!(data && data.pro); }
   // ---- Top 25 or all of Division I: one switch, remembered, used by every page that has it ----
   var scope = "top25";
   try { if (localStorage.getItem("scope") === "d1") scope = "d1"; } catch (e) {}
-  function isD1() { return scope === "d1"; }
+  function isD1() { return !PRO() && scope === "d1"; }
+  // who a player is measured against, in words
+  function POOL() { return PRO() ? "an average " + data.league_name + " player" : isD1() ? "an average Division I player" : "an average top-25 player"; }
   function rankOf(id) { for (var i = 0; i < data.poll.teams.length; i++) if (data.poll.teams[i].id === id) return data.poll.teams[i]; return null; }
   function setScope(s) { scope = s; try { localStorage.setItem("scope", s); } catch (e) {} }
   function scopeSwitch(redraw, lockTop) {
+    if (PRO()) return el("span", { "class": "noscope" });
     return el("div", { "class": "scope", role: "group", "aria-label": "Which teams" }, [["top25", W("scope.top25")], ["d1", W("scope.d1")]].map(function (o) {
       var on = lockTop ? o[0] === "d1" : scope === o[0];      // a team outside the top 25 is always shown against all of D1
       return el("button", { type: "button", "aria-pressed": String(on), disabled: lockTop && o[0] === "top25",
@@ -107,7 +118,7 @@
     [["avca", W("rankings.button_poll")], ["goat", W("rankings.button_goat")]].forEach(function (o) {
       bar.appendChild(el("button", { type: "button", "aria-pressed": String(rankView === o[0]), text: o[1], onclick: function () { rankView = o[0]; drawRanks(); } }));
     });
-    (goatView ? ["GOAT", "Team", "Record", "AVCA"] : ["AVCA", "Team", "Record", "Change"]).forEach(function (h) { head.appendChild(el("span", { text: h })); });
+    (goatView ? ["GOAT", "Team", "Record", PRO() ? "Std" : "AVCA"] : [PRO() ? "#" : "AVCA", "Team", "Record", "Change"]).forEach(function (h) { head.appendChild(el("span", { text: h })); });
     // on a wide screen the Beat and Lost to boxes sit in the row, under these two headings
     head.appendChild(el("span", { "class": "wide beat", text: W("rankings.beat") }));
     head.appendChild(el("span", { "class": "wide lostto", text: W("rankings.lost_to") }));
@@ -132,7 +143,8 @@
     var through = day(data.poll.through).toLocaleDateString(undefined, { month: "long", day: "numeric" });
     $("rank-lede").textContent = goatView ? W("rankings.lede_goat") : W("rankings.lede", { poll: data.poll.name, date: through });
     $("rank-note").textContent = goatView ? W("rankings.note_goat") : W("rankings.note");
-    $("goat-note").textContent = !goatView ? "" : "Every Division I team is ranked on four things, most important first: head to head, strength of schedule (the average rating of the teams played), its place in the AVCA poll, and its record. " +
+    $("goat-note").textContent = !goatView ? "" : PRO() ? "Every team is ranked on four things, most important first: head to head, strength of schedule (the average rating of the teams played), its place in the standings, and its record. " +
+      "A team is ranked above one it has beaten unless the other three say the gap is wide. The standings put a team below one it has beaten " + G.poll_wrong + " times; the GOAT ranking does " + G.goat_wrong + " times." : "Every Division I team is ranked on four things, most important first: head to head, strength of schedule (the average rating of the teams played), its place in the AVCA poll, and its record. " +
       "A team is ranked above one it has beaten unless the other three say the gap is wide. Elsewhere on the site, teams outside the poll are numbered from 26 in this order. " +
       "Among the poll's 25 teams, the poll ranks a team below one it has beaten " + G.poll_wrong + " times; the GOAT ranking does " + G.goat_wrong + " times.";
     var out = $("goat-out");
@@ -185,7 +197,7 @@
     }
     if (fin || live) more.push(el("a", { href: "#/match/" + g.id, text: live ? W("matches.live_box_score") : W("matches.box_score") }));
     var unplayed = !fin && !live && !note;
-    return el("li", { "class": "game" + (g.away.rank && g.home.rank ? " both" : "") + (live ? " on" : "") + (unplayed ? " ahead" : ""), "data-id": g.id }, [
+    return el("li", { "class": "game" + (!PRO() && g.away.rank && g.home.rank ? " both" : "") + (live ? " on" : "") + (unplayed ? " ahead" : ""), "data-id": g.id }, [
       live ? el("span", { "class": "when live" }, [liveTag(), " " + (when === "In progress" ? "" : when)]) : el("span", { "class": "when", text: when }),
       team("away", g.away, homeWon, awayWon), mid, team("home", g.home, awayWon, homeWon),
       el("span", { "class": "more" }, more)]);
@@ -309,12 +321,13 @@
     if (w !== thisWeek && first && thisWeek >= first && thisWeek <= last) nav.appendChild(el("button", { type: "button", text: W("matches.this_week"), onclick: function () { state.week = thisWeek; draw(); } }));
     nav.appendChild(el("button", { type: "button", text: W("matches.later"), disabled: !last || w >= last, onclick: function () { state.week = addDays(w, 7); draw(); } }));
     if (!games.length) {
-      holder.appendChild(el("p", { "class": "empty", text: "No ranked team has a match this week. Try an earlier or later week." }));
+      holder.appendChild(el("p", { "class": "empty", text: (PRO() ? "No matches" : "No ranked team has a match") + " this week. Try an earlier or later week." }));
       return;
     }
     listInto(holder, games);
     var both = games.filter(function (g) { return g.away.rank && g.home.rank; }).length;
-    holder.appendChild(el("p", { "class": "note", text: games.length + " matches this week" + (both ? ", " + both + " of them between two ranked teams (marked with a green edge)" : "") +
+    if (PRO()) holder.appendChild(el("p", { "class": "note", text: games.length + " matches this week. The visiting team is on the left. Numbers are places in the standings. Choose a team to see its whole season." }));
+    else holder.appendChild(el("p", { "class": "note", text: games.length + " matches this week" + (both ? ", " + both + " of them between two ranked teams (marked with a green edge)" : "") +
       ". The visiting team is on the left, and the channel or streaming service is on the right for matches in the next two weeks. Numbers are this week's rankings, also for earlier weeks. Choose a team to see its whole season." }));
     if (games.some(function (g) { return g.p != null && g.state !== "final"; })) holder.appendChild(el("p", { "class": "note", text: oddsNote().trim() }));
   }
@@ -332,7 +345,7 @@
   };
   // key, label, what it means, format
   var CARD = [
-    ["Impact, in points added per set", "Against an average top-25 player at her position.", [
+    ["Impact, in points added per set", "", [
       ["impact_set", "All of it", "Everything below added together", fmt.s2],
       ["att", "Attack", "Kills minus errors, against the position's average on the same number of swings. She keeps three quarters; her setters get the rest", fmt.s2],
       ["srv", "Serve", "Aces minus service errors, against the average on the same number of serves", fmt.s2],
@@ -371,7 +384,7 @@
     ["team", "Team", "", function (p) { return p.team_rank; }, null, 0],
     ["pos", "Pos", "OH outside or opposite hitter, MB middle blocker, S setter, L libero, DS defensive specialist", function (p) { return p.pos; }, function (v) { return v; }, 0],
     ["sp", "Sets", "Sets played", function (p) { return p.sp; }, function (v) { return String(v); }, 1],
-    ["impact", "Impact", "Points added this season over an average top-25 player at her position", function (p) { return p.impact; }, fmt.s1, 1],
+    ["impact", "Impact", "Points added this season over an average player at her position", function (p) { return p.impact; }, fmt.s1, 1],
     ["impact_set", "Per set", "Impact per set played", function (p) { return val(p, "impact_set"); }, fmt.s2, 1],
     ["k_set", "K/S", "Kills per set", function (p) { return val(p, "k_set"); }, fmt.d2, 1],
     ["hit", "Hit%", "Hitting efficiency: kills minus errors, divided by swings", function (p) { return p.tot.ta >= 10 ? val(p, "hit") : null; }, fmt.hit, 1],
@@ -487,7 +500,7 @@
         face(p, "big"),
         el("div", { "class": "pc-id" }, [
           el("h1", { text: p.name }),
-          el("p", { "class": "pc-team" }, [logo(p.team_id), teamA(p.team_id, p.team), p.team_rank ? el("span", { text: " (ranked " + p.team_rank + ")" }) : null]),
+          el("p", { "class": "pc-team" }, [logo(p.team_id), teamA(p.team_id, p.team), p.team_rank ? el("span", { text: PRO() ? " (" + ordinal(p.team_rank) + " in the standings)" : " (ranked " + p.team_rank + ")" }) : null]),
           el("p", { text: (p.num != null ? "No. " + p.num + ", " : "") + POS_ONE[p.pos].toLowerCase() }),
           bioLine(p.bio),
           el("p", { "class": "pc-sub", text: p.sp + " sets in " + p.mp + " matches, " + p.starts + " starts" }),
@@ -502,7 +515,8 @@
         var rows = sec[2].filter(function (m) { return pctOf(p, m[0]) != null; });
         if (!rows.length) return;
         var box = el("section", { "class": "pc-sec" }, [el("h2", { text: sec[0] })]);
-        if (sec[1]) box.appendChild(el("p", { "class": "pc-secnote", text: sec[1] }));
+        var secnote = sec[1] || (sec === CARD[0] ? "Against " + POOL() + " at her position." : "");
+        if (secnote) box.appendChild(el("p", { "class": "pc-secnote", text: secnote }));
         rows.forEach(function (m) {
           var pc = pctOf(p, m[0]), v = val(p, m[0]);
           box.appendChild(el("div", { "class": "prow", title: m[2] || null }, [
@@ -519,7 +533,7 @@
         ["Digs", t.d], ["Receptions", t.ra], ["Reception errors", t.re], ["Solo blocks", t.bs], ["Block assists", t.ba], ["Points", t.pts]];
       art.appendChild(el("section", { "class": "pc-sec" }, [el("h2", { text: "Season totals" }),
         el("dl", { "class": "totals" }, totals.reduce(function (a, x) { return a.concat([el("div", {}, [el("dt", { text: x[0] }), el("dd", { text: String(x[1]) })])]); }, []))]));
-      art.appendChild(el("p", { "class": "note", text: "The number beside each bar is her percentile among " + many + " who play regularly for a top-25 team and do that job: 90 means better than 90% of them. The tick marks the middle." +
+      art.appendChild(el("p", { "class": "note", text: "The number beside each bar is her percentile among " + many + " who play regularly " + (PRO() ? "in " + data.league_name : isD1() ? "in Division I" : "for a top-25 team") + " and do that job: 90 means better than 90% of them. The tick marks the middle." +
         (roster.through ? " Through matches of " + short(roster.through) + "." : "") }));
       var defs = [];
       CARD.forEach(function (sec) { sec[2].forEach(function (m) { if (m[2] && pctOf(p, m[0]) != null) defs.push(el("div", {}, [el("dt", { text: m[1] }), el("dd", { text: m[2] + "." })])); }); });
@@ -695,10 +709,24 @@
     var cmp = el("div", { "class": "gc-cmp" });
     var card = el("section", { "class": "gcard", "aria-label": "Match summary" }, [scoreLine(g), sets, oddsLine(g), cmp]);
     box.appendChild(title); box.appendChild(status); box.appendChild(card); box.appendChild(boxes);
-    box.appendChild(el("p", { "class": "note" }, [W("match.note") + " ",
-      el("a", { href: data.game_page + g.id, rel: "noopener", text: W("match.ncaa_link") }), "."]));
+    box.appendChild(el("p", { "class": "note" }, data.game_page ? [W("match.note") + " ",
+      el("a", { href: data.game_page + g.id, rel: "noopener", text: W("match.ncaa_link") }), "."] : [W("match.note")]));
 
+    function setTable(a, h, label) {        // [points per set] for each side
+      var n = Math.max(a.length, h.length), head = el("tr", {}, [el("th", { scope: "col", "class": "l", text: label })]);
+      for (var i = 1; i <= n; i++) head.appendChild(el("th", { scope: "col", text: String(i) }));
+      head.appendChild(el("th", { scope: "col", text: "Sets" }));
+      function line(mine, other, s) {
+        var cells = [];
+        for (var i = 0; i < n; i++) cells.push(el("td", { "class": mine[i] > other[i] ? "won" : "", text: mine[i] == null ? "" : String(mine[i]) }));
+        return el("tr", {}, [el("th", { scope: "row", "class": "l" }, [el("span", { "class": "stm" }, [rankTag(s.rank, s.id), logo(s.id, "sm"), teamA(s.id, s.name)])])].concat(cells)
+          .concat([el("td", { "class": "tot", text: s.sets == null ? "0" : String(s.sets) })]));
+      }
+      sets.innerHTML = "";
+      sets.appendChild(el("div", { "class": "tablewrap" }, [el("table", { "class": "ptable stable" }, [el("thead", {}, [head]), el("tbody", {}, [line(a, h, g.away), line(h, a, g.home)])])]));
+    }
     function readSets() {
+      if (g.setpts) { setTable(g.setpts[0], g.setpts[1], "Set"); return Promise.resolve(); }
       if (!g.espn) { sets.innerHTML = ""; return Promise.resolve(); }
       return fetch(ESPN_SUMMARY + g.espn[0], { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
         var comp = d && d.header && (d.header.competitions || [])[0];
@@ -801,10 +829,10 @@
         return el("div", { "class": "tile" + (place && place <= 5 ? " top" : "") }, [el("span", { "class": "lab", text: c[1] }),
           el("b", { text: v == null ? "–" : c[2](v) }), el("span", { "class": "plc", text: place ? ordinal(place) + " of " + vals.length : "" })]);
       });
-      tiles.push(el("div", { "class": "tile" }, [el("span", { "class": "lab", text: "Rating" }), el("b", { text: row1.power ? ordinal(row1.power) : "–" }), el("span", { "class": "plc", text: "in Division I, by this site's rating" })]));
+      tiles.push(el("div", { "class": "tile" }, [el("span", { "class": "lab", text: "Rating" }), el("b", { text: row1.power ? ordinal(row1.power) : "–" }), el("span", { "class": "plc", text: (PRO() ? "in " + data.league_name : "in Division I") + ", by this site's rating" })]));
       tiles.push(el("div", { "class": "tile" }, [el("span", { "class": "lab", text: "Schedule strength" }), el("b", { text: row1.sos_rank ? ordinal(row1.sos_rank) : "–" }), el("span", { "class": "plc", text: "hardest of " + d.teams.length })]));
       stats.appendChild(el("div", { "class": "tiles" }, tiles));
-      stats.appendChild(el("p", { "class": "note", text: row1.w + "-" + row1.l + " in matches, " + row1.sw + "-" + row1.sl + " in sets. Per-set stats from " + row1.matches + " box scores; places are among " + (which === "d1" ? "all " + d.teams.length + " Division I teams" : "the 25 ranked teams") + ". " }));
+      stats.appendChild(el("p", { "class": "note", text: row1.w + "-" + row1.l + " in matches, " + row1.sw + "-" + row1.sl + " in sets. Per-set stats from " + row1.matches + " box scores; places are among " + (PRO() ? "the " + d.teams.length + " " + data.league_name + " teams" : which === "d1" ? "all " + d.teams.length + " Division I teams" : "the 25 ranked teams") + ". " }));
       stats.lastChild.appendChild(el("a", { href: "#/teams", text: "All team stats" }));
     }).catch(function () {});
     loadRoster(which).then(function () {
@@ -844,11 +872,17 @@
   fetch("data.json", { cache: "no-cache" }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (d) {
     data = d;
     $("brand").textContent = d.site;
+    var base = d.league ? "../" : "";
+    var lg = $("leagues");
+    if (lg) [["", "College"], ["lovb", "LOVB"], ["mlv", "MLV"]].forEach(function (o) {
+      lg.appendChild(el("a", { href: base + (o[0] ? o[0] + "/" : ""), "aria-current": (d.league || "") === o[0] ? "page" : null, text: o[1] }));
+    });
+    if (d.pro) document.body.classList.add("pro");
     Array.prototype.forEach.call(document.querySelectorAll("[data-w]"), function (n) { var s = W(n.getAttribute("data-w")); if (s) n.textContent = s; });
     $("lede").textContent = W("matches.lede", { poll: d.poll.name });
     var u = new Date(d.updated);
     $("foot-updated").textContent = "Scores and schedule updated " + (isNaN(u) ? d.updated : u.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })) +
-      ". Rankings: " + d.poll.name + " through " + day(d.poll.through).toLocaleDateString(undefined, { dateStyle: "long" }) + ".";
+      (d.poll.through ? ". " + (d.pro ? "Standings" : "Rankings: " + d.poll.name) + " through " + day(d.poll.through).toLocaleDateString(undefined, { dateStyle: "long" }) : "") + ".";
     window.addEventListener("hashchange", route);
     route();
     pollLive();

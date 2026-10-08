@@ -323,3 +323,20 @@ Arkansas's roster page shows no photos, so its photos come from each
 player's own page. Tennessee Tech's and Central Connecticut's sites put a
 "prove you are human" check in front of every page, so their players have no
 photos or details. Each school's roster address is in `rosters/pages.csv`.
+
+## LOVB and MLV
+
+The site also has a copy for each of the two pro leagues, League One Volleyball
+(the `lovb/` folder of the site) and Major League Volleyball (`mlv/`), reached
+from the College / LOVB / MLV tabs at the top of every page. They have the same
+pages: matches, standings with the GOAT ranking, team stats, players with their
+cards, team pages and box scores. Every team in the league is "ranked", by the
+standings: wins, then share of matches won, then sets won to sets lost, regular
+season only.
+
+Their results and statistics come from the volleydata project
+(github.com/awosoga/volleydata), which collects them from the leagues' own
+match centres and publishes them as files; `pipeline/pro.py` reads them every
+night. Until the new seasons start in January they show the 2026 seasons. The
+leagues have no logos or player photos on the site yet: each team is shown with
+its short code in a coloured circle, and players with their initials.

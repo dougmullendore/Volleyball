@@ -68,7 +68,8 @@ def rank(games: list[dict], rating: dict, teams: set, avca: dict) -> dict:
             opp.setdefault(t, []).append(rating.get(g[other]["id"], floor))
     sos = _percentile({t: (sum(opp[t]) / len(opp[t])) if opp.get(t) else floor for t in teams})
     rec = _percentile({t: won.get(t, 0) / played[t] if played.get(t) else 0.0 for t in teams})
-    poll = {t: (26 - avca[t]) / 25 if t in avca else 0.0 for t in teams}
+    size = max(avca.values(), default=25)        # 25 for the college poll; the number of teams in a pro league
+    poll = {t: (size + 1 - avca[t]) / size if t in avca else 0.0 for t in teams}
     ws, wp, wr = config.GOAT_WEIGHTS
     score = {t: ws * sos[t] + wp * poll[t] + wr * rec[t] for t in teams}
     order = sorted(teams, key=lambda t: (-score[t], t))

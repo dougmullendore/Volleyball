@@ -28,7 +28,7 @@ import sys
 import traceback
 from pathlib import Path
 
-from . import box, config, goat, odds, photos, players, poll, teams, watch, web
+from . import box, config, goat, odds, photos, players, poll, pro, teams, watch, web
 
 SITE_SRC = Path(__file__).resolve().parents[1] / "site"
 
@@ -466,6 +466,20 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
             "with_odds": sum(1 for g in listed if "p" in g), "teams_rated": len(rating), "match_pages": with_box}
 
 
+def build_pro(state: Path, out: Path, now: dt.datetime) -> dict:
+    """The LOVB and MLV copies of the site, in out/lovb/ and out/mlv/ (see pipeline/pro.py)."""
+    words, res = read_words(), {}
+    for site in pro.LEAGUES:
+        dest = out / site
+        if dest.exists():
+            shutil.rmtree(dest)
+        dest.mkdir(parents=True)
+        for name in ("index.html", "app.js", "styles.css"):
+            shutil.copy(out / name, dest / name)
+        res[site] = pro.build(state, out, site, now, words, write_json, match_files, log)
+    return res
+
+
 def check_teams(status: dict) -> dict:
     """Make the run fail, so GitHub sends an email, if a ranked school could
     not be matched to a scoreboard team. The site is still published, but
@@ -504,6 +518,7 @@ def main(state_dir: str, out_dir: str) -> int:
         stage("scores now", lambda: update_scoreboard(state, season_for(now.date()), todo))
         stage("box scores now", lambda: update_live_boxes(state, now))
         stage("site", lambda: build_site(state, out, now))
+        stage("pro leagues", lambda: build_pro(state, out, now))
         status["finished_utc"] = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
         status["ok"] = all(s["ok"] for s in status["stages"].values())
         write_json(state / "status.json", status, indent=1)
@@ -518,7 +533,9 @@ def main(state_dir: str, out_dir: str) -> int:
         stage("boxes", lambda: update_boxes(state, now))
         if config.SHOW_PHOTOS:
             stage("photos", lambda: update_photos(state, now))
+        stage("pro data", lambda: pro.download(state, log))
     stage("site", lambda: build_site(state, out, now))
+    stage("pro leagues", lambda: build_pro(state, out, now))
     stage("every ranked team found", lambda: check_teams(status))
     status["finished_utc"] = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
     status["ok"] = all(s["ok"] for s in status["stages"].values())
