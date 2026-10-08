@@ -123,7 +123,7 @@
   function drawRanks() {
     var ol = $("ranks"), bar = $("rank-sort"), head = $("ranks-head"), G = data.goat || {}, goatView = rankView === "goat" && G.top;
     ol.innerHTML = ""; bar.innerHTML = ""; head.innerHTML = "";
-    [["avca", W("rankings.button_poll")], ["goat", W("rankings.button_goat")]].forEach(function (o) {
+    if (!PRO()) [["avca", W("rankings.button_poll")], ["goat", W("rankings.button_goat")]].forEach(function (o) {
       bar.appendChild(el("button", { type: "button", "aria-pressed": String(rankView === o[0]), text: o[1], onclick: function () { rankView = o[0]; drawRanks(); } }));
     });
     (goatView ? ["GOAT", "Team", "Record", PRO() ? "Std" : "AVCA"] : [PRO() ? "#" : "AVCA", "Team", "Record", "Change"]).forEach(function (h) { head.appendChild(el("span", { text: h })); });

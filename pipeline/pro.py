@@ -289,7 +289,7 @@ def build(state: Path, out: Path, site: str, now: dt.datetime, words: dict, writ
         "updated": now.isoformat(timespec="seconds"), "season": s["season"],
         "poll": {"name": poll_name, "through": through, "teams": table, "polls_seen": []},
         "game_page": None, "live_feed": None, "live_seconds": config.LIVE_SECONDS, "logo": None,
-        "odds_tested": None, "goat": {"top": top, "weight": config.GOAT_HEAD_TO_HEAD, "weights": config.GOAT_WEIGHTS,
+        "odds_tested": None, "goat": {"top": [], "weight": config.GOAT_HEAD_TO_HEAD, "weights": config.GOAT_WEIGHTS,
                                       "poll_wrong": goat.contradictions([t["id"] for t in table], finals, set(names)),
                                       "goat_wrong": goat.contradictions(ranking["order"], finals, set(names))},
         "nr": {}, "words": words, "logos": logos,
@@ -413,9 +413,18 @@ def lovb_media(fetch, log, wanted: dict | None = None) -> dict:
         if name_key(full) in people or tid not in teams:
             continue
         try:
-            people.update(_lovb_athletes(_next_data(fetch(LOVB_SITE + teams[tid]["href"] + "/athletes/" + re.sub(r"[^a-z0-9]+", "-", full.lower()).strip("-")))))
+            page = fetch(LOVB_SITE + teams[tid]["href"] + "/athletes/" + re.sub(r"[^a-z0-9]+", "-", full.lower()).strip("-"))
         except Exception:
             continue
+        found = _lovb_athletes(_next_data(page))
+        if found:
+            people.update(found)
+            continue
+        # an older athlete page: only her picture, as the page's share image
+        title = re.search(r"<title>([^<]+)</title>", page)
+        img = re.search(r'<meta property="og:image" content="([^"]+)"', page)
+        if title and img and name_key(title.group(1)) == name_key(full) and "/api/media/" in img.group(1):
+            people[name_key(full)] = {"photo": img.group(1).replace("&amp;", "&"), "bio": {}}
     return {"teams": {k: {"logo": v["logo"]} for k, v in teams.items()}, "players": people}
 
 
@@ -434,10 +443,27 @@ def mlv_media(fetch, names: list[str], log) -> dict:
         except Exception:
             pass
         teams[slug(t["name"])] = {"logo": logo, "color": t.get("color"), "abbr": t.get("abbreviation")}
+    # every player the league lists, to find each one's page address (slug)
+    listed, page_no = {}, 1
+    while page_no < 20:
+        try:
+            got = json.loads(web.get_bytes(f"{MLV_SITE}/api/players?per_page=200&page={page_no}", timeout=20, tries=2,
+                                           headers={"Accept": "application/json"})).get("data") or []
+        except Exception:
+            break
+        for p in got:
+            listed.setdefault(name_key(p.get("full_name")), p["slug"])
+            listed.setdefault("~" + name_key(p.get("last_name")) + name_key(p.get("first_name"))[:3], p["slug"])
+        if len(got) < 200:
+            break
+        page_no += 1
     people = {}
     for full in names:
+        first, _, last = full.partition(" ")
+        page_slug = listed.get(name_key(full)) or listed.get("~" + name_key(last) + name_key(first)[:3]) \
+            or re.sub(r"[^a-z0-9]+", "-", full.lower()).strip("-")
         try:
-            p = _inertia(fetch(MLV_SITE + "/player/" + re.sub(r"[^a-z0-9]+", "-", full.lower()).strip("-"))).get("player")
+            p = _inertia(fetch(MLV_SITE + "/player/" + page_slug)).get("player")
         except Exception:
             continue
         if not p:
@@ -473,8 +499,8 @@ def update_media(state: Path, today: dt.date, log) -> dict:
     for site in LEAGUES:
         path = state / "pro" / f"{site}_media.json"
         have = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
-        if site == "mlv" and "storage.googleapis.com" in json.dumps(have):   # stored before _small(): read again
-            have = {}
+        if have.get("finder") != 2:          # this file has learned a new way to find players since: read again
+            have = {k: v for k, v in have.items() if k != "checked"}
         no_logos = not any(v.get("logo") for v in (have.get("teams") or {}).values())
         if have.get("checked") and (today - dt.date.fromisoformat(have["checked"])).days < MEDIA_DAYS and not no_logos:
             res[site] = "up to date"
@@ -501,6 +527,7 @@ def update_media(state: Path, today: dt.date, log) -> dict:
         got["players"] = {**(have.get("players") or {}), **{k: v for k, v in got["players"].items() if v.get("photo") or v.get("bio")}}
         got["teams"] = {**(have.get("teams") or {}), **{k: v for k, v in got["teams"].items() if v.get("logo") or k not in (have.get("teams") or {})}}
         got["checked"] = today.isoformat()
+        got["finder"] = 2
         path.write_text(json.dumps(got), encoding="utf-8")
         res[site] = {"teams": len(got["teams"]), "players": len(got["players"]),
                      "with_photo": sum(1 for v in got["players"].values() if v.get("photo"))}
