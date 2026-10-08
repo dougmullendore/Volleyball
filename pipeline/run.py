@@ -439,6 +439,8 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
             url = ((found.get(p["team_id"]) or {}).get("photos") or {}).get(p["id"])
             if url:
                 p["photo"] = url
+            if (SITE_SRC / "photos" / f'{p["id"]}.jpg').exists():   # a photo kept on this site, for schools that block the job
+                p["photo"] = f'photos/{p["id"]}.jpg'
             bio = ((found.get(p["team_id"]) or {}).get("bios") or {}).get(p["id"])
             if bio:
                 p["bio"] = bio
