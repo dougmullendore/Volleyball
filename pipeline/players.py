@@ -83,9 +83,11 @@ def _r(v, nd=2):
     return None if v is None else round(v, nd)
 
 
-def compute(ranked: list[dict], games: list[dict], boxes: dict) -> dict:
+def compute(ranked: list[dict], games: list[dict], boxes: dict, logs: dict | None = None) -> dict:
     """Every player on the given teams (the ranked 25, or all of Division I), with totals,
-    rates, impact and percentiles, each measured against the players of those teams."""
+    rates, impact and percentiles, each measured against the players of those teams.
+    If `logs` is given it is filled with each player's match-by-match lines, oldest first:
+    {player id: [[match, date, opponent id, opponent, at home, result, sets, k, e, ta, ast, sa, se, d, re, bs, ba], ...]}."""
     rank = {t["id"]: t for t in ranked if t["id"]}
     players, team_sets, team_matches = {}, {t: 0 for t in rank}, {t: 0 for t in rank}
     same_player = {}
@@ -127,6 +129,12 @@ def compute(ranked: list[dict], games: list[dict], boxes: dict) -> dict:
                 key = POS_GROUPS.get(r["pos"]) or POS_GROUPS.get(r["pos"].split("/")[0])
                 if key:
                     p["votes"][key] = p["votes"].get(key, 0) + max(1, r["sets"])
+                if logs is not None:
+                    other = "away" if side == "home" else "home"
+                    mine, theirs = g[side].get("sets"), g[other].get("sets")
+                    result = "" if mine is None or theirs is None else f"{'W' if mine > theirs else 'L'} {mine}-{theirs}"
+                    logs.setdefault(pid, []).append([g["id"], g["date"], g[other]["id"], g[other].get("name") or g[other]["id"], int(side == "home"), result, r["sets"],
+                                                     r["k"], r["e"], r["ta"], r["ast"], r["sa"], r["se"], r["d"], r["re"], r["bs"], r["ba"]])
                 p["mp"] += 1
                 p["starts"] += r["starter"]
                 p["team_ta"] += team_ta

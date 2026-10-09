@@ -53,6 +53,12 @@ ROSTER_PATHS = ["/sports/womens-volleyball/roster", "/sports/volleyball/roster",
                 "/sports/w-volley/roster", "/sports/wvb/roster", "/sports/womens-volleyball/roster/",
                 "/sports/volleyball/roster/", "/sports/wvolley/roster", "/sports/vb/roster"]
 
+# Career stats: a player's earlier seasons at the same school are added up from
+# those seasons' box scores, read once from the feed and kept. There are about
+# 5,000 a season, so they are read a few thousand per run until all are in.
+CAREER_SEASONS = 4            # how many seasons before this one
+CAREER_BOXES_PER_RUN = 4000
+
 # Odds: each team's chance of winning, from this site's own ratings (see
 # pipeline/odds.py). These settings were chosen by testing on 2022-2026 results.
 ODDS_STEP = 0.18          # how far a rating moves per surprising set, early in the season

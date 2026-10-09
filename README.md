@@ -108,6 +108,58 @@ quality, who was on the court, or how strong the opponent was. When the poll
 changes, players on teams that dropped out disappear and everyone's averages
 shift a little, because the comparison is always with the current top 25.
 
+## More on each player card
+
+Below her ratings and season totals, each card shows (`pipeline/cards.py`):
+
+- **Season highs:** her most kills, assists, digs, blocks, aces and points in
+  a match, with the opponent and date, and how many double-doubles and
+  triple-doubles she has (ten or more in two, or three, of kills, assists,
+  digs, blocks and aces).
+- **Against ranked teams** (college): her numbers in matches against teams now
+  in the top 25.
+- **Career:** a line for each season and a career total.
+- **Match by match:** every match she has played this season, newest first,
+  each linking to its box score.
+
+These are written one file per team (`cards/<team>.json` on the site), so a
+card loads only its own team's lines.
+
+### Where career numbers come from
+
+- **College:** the site keeps box scores for the current season only, so the
+  four seasons before it are read once from the NCAA's feed and added up
+  player by player (`pipeline/careers.py`, kept in `careers.json` on the
+  `state` branch). That is about 5,000 box scores a season, so they are read
+  4,000 per run, newest season first; until every earlier season is in, cards
+  say so and show this season only. A player is the same player from one
+  season to the next when she is at the same school under the same name; a
+  transfer starts again at her new school.
+- **LOVB and MLV:** every season in the volleydata files, by player name, with
+  a line for each team she has played for.
+
+## Awards race
+
+The **Awards** page (fifth page, on the college, LOVB and MLV sites) shows
+who leads for the season's awards (`pipeline/awards.py`).
+
+- **Statistical leaders** are counts: kills, assists, digs, blocks, aces and
+  points per set, and hitting percentage, among players who have played at
+  least 40% of their team's sets (and, for hitting percentage, taken at least
+  3.33 swings a set, as the NCAA requires of its own leaders).
+- **National Player of the Year, Freshman of the Year** and the best outside
+  or opposite hitter, middle blocker, setter and libero or defensive
+  specialist are voted on, so each list is the site's reading of the numbers,
+  not a forecast of the vote. Every regular gets a score out of 100: her place
+  among the others on Impact added this season (70%) and on how strong her
+  team is by the site's rating (30%; for the pro leagues, its place in the
+  standings). The pro leagues have a Most Valuable Player and no freshman list.
+- A freshman is anyone her school lists as a freshman or first-year player,
+  redshirt freshmen included; players whose roster page lists no class cannot
+  be counted.
+- Each list shows the top five (ten on request). Once a week has passed, an
+  arrow shows how far each name has moved in the last week.
+
 ## Player photos
 
 No feed carries player photos for college volleyball, so they come from each
@@ -266,6 +318,9 @@ leaves the old site up; GitHub emails you, and the run log names the line.
 | `pipeline/poll.py` | Reads the poll and decides when to look for a new one |
 | `pipeline/box.py` | Downloads and stores the box score of each ranked team's match |
 | `pipeline/players.py` | Rates the players against each other and works out percentiles |
+| `pipeline/cards.py` | Each card's extras: every match, season highs, against ranked teams, career |
+| `pipeline/careers.py` | Reads earlier college seasons' box scores for the career tables |
+| `pipeline/awards.py` | The awards races: statistical leaders, and a score for the voted awards |
 | `pipeline/photos.py` | Finds each player's photo on her school's roster page |
 | `rosters/pages.csv` | The roster page of each ranked school; add a line when a new school is ranked |
 | `pipeline/goat.py` | The GOAT ranking: the rating order rearranged to respect head-to-head results |

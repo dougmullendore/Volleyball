@@ -14,6 +14,8 @@ Usage:  python -m pipeline.run <state_dir> <site_output_dir>
   box.json          the box score of every finished match involving a ranked team
   photos.json       the address of each player's photo on her school's roster page
   ratings.json      every team's rating, this season and last (behind the odds)
+  careers.json      players' earlier seasons, added up from those seasons' box scores
+  awards.json       each day's leaders in the awards races, to show who has moved
   status.json       what happened on the last run
 """
 from __future__ import annotations
@@ -28,7 +30,7 @@ import sys
 import traceback
 from pathlib import Path
 
-from . import box, config, goat, odds, photos, players, poll, pro, teams, watch, web
+from . import awards, box, cards, careers, config, goat, odds, photos, players, poll, pro, teams, watch, web
 
 SITE_SRC = Path(__file__).resolve().parents[1] / "site"
 
@@ -242,6 +244,22 @@ def update_photos(state: Path, now: dt.datetime) -> dict:
     return res
 
 
+def update_careers(state: Path, season: int) -> dict:
+    """Read some more of the earlier seasons' box scores, for the career tables (see pipeline/careers.py)."""
+    stored = read_json(state / "careers.json", {})
+    res = careers.update(stored, season, parse_contest, log)
+    write_json(state / "careers.json", stored)
+    return res
+
+
+def write_cards(dest: Path, extras: dict) -> int:
+    """cards/<team>.json: what each of a team's players' cards shows beyond her ratings."""
+    (dest / "cards").mkdir(parents=True, exist_ok=True)
+    for team, doc in extras.items():
+        write_json(dest / "cards" / f"{team}.json", doc)
+    return len(extras)
+
+
 def live_now(state: Path, now: dt.datetime) -> list[str]:
     """The scoreboard days to read again on a match-night run: those with a
     Division I match that has started in the last five hours, or starts in
@@ -432,7 +450,8 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
     # Division I. The site's "Top 25 / All D1" switch chooses which file it reads.
     boxes = read_json(state / "box.json", {})
     rated = players.compute(ranked, listed, boxes)
-    rated_d1 = players.compute(d1, every, boxes)
+    lines = {}                                  # every Division I player's matches, for her card
+    rated_d1 = players.compute(d1, every, boxes, lines)
     found = read_json(state / "photos.json", {}) if config.SHOW_PHOTOS else {}
     for r, games in ((rated, listed), (rated_d1, every)):
         r["through"] = max((g["date"] for g in games if g["state"] == "final"), default=None)
@@ -446,6 +465,16 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
             if bio:
                 p["bio"] = bio
     with_box = match_files(out, every, boxes, rated_d1)
+    # What each card shows beyond the ratings: every match, season highs, how she
+    # has done against ranked teams, and her career (see pipeline/cards.py).
+    past, all_in = careers.by_player(read_json(state / "careers.json", {}))
+    write_cards(out, cards.build(rated_d1, lines, past, season, set(in_poll), all_in))
+    # The awards races (see pipeline/awards.py), with each leader's place a week ago.
+    floor = min(rating.values(), default=0.0)
+    races = awards.compute(rated_d1, awards._places({t["id"]: rating.get(t["id"], floor) for t in d1}))
+    seen = awards.track(races, read_json(state / "awards.json", {}), now.date().isoformat())
+    write_json(state / "awards.json", seen)
+    write_json(out / "awards.json", {"races": races, "through": rated_d1["through"]})
     write_json(out / "data.json", {
         "site": config.SITE_NAME, "updated": now.isoformat(timespec="seconds"), "season": sel["season"],
         "poll": {"name": config.POLL_NAME, "through": through, "teams": ranked, "polls_seen": sel["polls_seen"]},
@@ -484,7 +513,7 @@ def build_pro(state: Path, out: Path, now: dt.datetime) -> dict:
         (dest / "manifest.json").write_text((out / "manifest.json").read_text().replace("#6d28d9", colour))
         page = (dest / "index.html").read_text().replace('content="#6d28d9"', f'content="{colour}"')
         (dest / "index.html").write_text(page)
-        res[site] = pro.build(state, out, site, now, words, write_json, match_files, log)
+        res[site] = pro.build(state, out, site, now, words, write_json, match_files, log, write_cards)
     return res
 
 
@@ -546,6 +575,7 @@ def main(state_dir: str, out_dir: str) -> int:
         stage("boxes", lambda: update_boxes(state, now))
         if config.SHOW_PHOTOS:
             stage("photos", lambda: update_photos(state, now))
+        stage("careers", lambda: update_careers(state, season_for(now.date())))
         stage("pro data", lambda: pro.download(state, log))
         stage("pro schedules", lambda: pro.update_schedules(state, log))
         stage("pro box scores now", lambda: pro.live_boxes(state, now, log))

@@ -551,6 +551,134 @@
     return out.length ? el("p", { "class": "pc-social" }, out) : null;
   }
 
+  // ---- a card's extras, from cards/<team>.json: season highs, against ranked teams, career, every match ----
+  var cardFiles = {};
+  function loadCards(team) {
+    if (!cardFiles[team]) cardFiles[team] = fetch("cards/" + encodeURIComponent(team) + ".json", { cache: "no-cache" }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); });
+    cardFiles[team].catch(function () { delete cardFiles[team]; });
+    return cardFiles[team];
+  }
+  function num1(v) { return v % 1 ? v.toFixed(1) : String(v); }
+  function perSet(v, sets) { return sets ? (v / sets).toFixed(2) : ""; }
+  // a match line: [match, date, opponent id, opponent, at home, result, sets, k, e, ta, ast, sa, se, d, re, bs, ba]
+  var LOG = [["S", "Sets played", function (r) { return r[6]; }], ["K", "Kills", function (r) { return r[7]; }], ["E", "Attack errors", function (r) { return r[8]; }],
+    ["TA", "Total attacks", function (r) { return r[9]; }], ["Hit%", "Hitting efficiency", function (r) { return r[9] ? hitFmt((r[7] - r[8]) / r[9]) : ""; }],
+    ["A", "Assists", function (r) { return r[10]; }], ["SA", "Service aces", function (r) { return r[11]; }], ["SE", "Service errors", function (r) { return r[12]; }],
+    ["D", "Digs", function (r) { return r[13]; }], ["RE", "Reception errors", function (r) { return r[14]; }], ["BS", "Solo blocks", function (r) { return r[15]; }],
+    ["BA", "Block assists", function (r) { return r[16]; }], ["PTS", "Points: kills, aces, solo blocks and half of each block assist", function (r) { return num1(r[7] + r[11] + r[15] + r[16] / 2); }]];
+  // a season of a career: [season, team, matches, sets, k, e, ta, ast, sa, se, d, re, bs, ba]
+  var CAREER = [["MP", "Matches played", function (r) { return r[2]; }], ["SP", "Sets played", function (r) { return r[3]; }], ["K", "Kills", function (r) { return r[4]; }],
+    ["K/S", "Kills per set", function (r) { return perSet(r[4], r[3]); }], ["Hit%", "Hitting efficiency", function (r) { return r[6] ? hitFmt((r[4] - r[5]) / r[6]) : ""; }],
+    ["A", "Assists", function (r) { return r[7]; }], ["A/S", "Assists per set", function (r) { return perSet(r[7], r[3]); }], ["SA", "Service aces", function (r) { return r[8]; }],
+    ["D", "Digs", function (r) { return r[10]; }], ["D/S", "Digs per set", function (r) { return perSet(r[10], r[3]); }],
+    ["BLK", "Blocks: solo blocks plus half of each block assist", function (r) { return num1(r[12] + r[13] / 2); }], ["B/S", "Blocks per set", function (r) { return perSet(r[12] + r[13] / 2, r[3]); }],
+    ["PTS", "Points: kills, aces and blocks", function (r) { return num1(r[4] + r[8] + r[12] + r[13] / 2); }], ["P/S", "Points per set", function (r) { return perSet(r[4] + r[8] + r[12] + r[13] / 2, r[3]); }]];
+  function cardExtras(box, p) {
+    loadCards(p.team_id).then(function (file) {
+      var c = file[p.id];
+      box.innerHTML = "";
+      if (!c) return;
+      function opp(id, name) { return el("span", { "class": "tcell tm" }, [PRO() ? null : rankTag((rankOf(id) || {}).rank, id), logo(id), teamA(id, name)]); }
+      if (c.highs.length) {
+        var highs = el("section", { "class": "pc-sec" }, [el("h2", { text: "Season highs" }),
+          el("dl", { "class": "totals highs" }, c.highs.map(function (h) {
+            return el("div", {}, [el("dt", { text: h[0] }), el("dd", { text: num1(h[1]) }),
+              el("a", { "class": "hwhen", href: "#/match/" + h[5], text: "vs " + h[3] + ", " + short(h[4]) })]);
+          }))]);
+        if (c.dd || c.td) highs.appendChild(el("p", { "class": "pc-secnote", text: [c.dd ? c.dd + (c.dd === 1 ? " double-double" : " double-doubles") : "", c.td ? c.td + (c.td === 1 ? " triple-double" : " triple-doubles") : ""].filter(Boolean).join(", ") +
+          " (ten or more in two, or three, of kills, assists, digs, blocks and aces)." }));
+        box.appendChild(highs);
+      }
+      if (c.ranked) {
+        var r = c.ranked, sets = r.sp, splits = [["Matches", r.mp], ["Team's record", r.w + "-" + (r.mp - r.w)], ["Sets", sets], ["Kills per set", perSet(r.k, sets)],
+          ["Hitting", r.ta ? hitFmt((r.k - r.e) / r.ta) : "–"], ["Assists per set", perSet(r.ast, sets)], ["Digs per set", perSet(r.d, sets)], ["Blocks per set", perSet(r.blk, sets)], ["Aces", r.sa]];
+        box.appendChild(el("section", { "class": "pc-sec" }, [el("h2", { text: "Against ranked teams" }),
+          el("p", { "class": "pc-secnote", text: "Her matches this season against teams now in the top 25." }),
+          el("dl", { "class": "totals" }, splits.map(function (x) { return el("div", {}, [el("dt", { text: x[0] }), el("dd", { text: String(x[1]) })]); }))]));
+      }
+      var car = c.career;
+      if (car && car.seasons.length) {
+        var line = function (label, team, row, cls) {
+          return el("tr", { "class": cls || "" }, [el("th", { scope: "row", "class": "l", text: label }), el("td", { "class": "l", text: team })]
+            .concat(CAREER.map(function (k) { return el("td", { text: String(k[2](row)) }); })));
+        };
+        var head = el("tr", {}, [el("th", { scope: "col", "class": "l", text: "Season" }), el("th", { scope: "col", "class": "l", text: "Team" })]
+          .concat(CAREER.map(function (k) { return el("th", { scope: "col", title: k[1], text: k[0] }); })));
+        var years = {};
+        car.seasons.forEach(function (s) { years[s[0]] = 1; });
+        var n = Object.keys(years).length;
+        box.appendChild(el("section", { "class": "pc-sec" }, [el("h2", { text: "Career" }),
+          el("div", { "class": "tablewrap", tabindex: "0", role: "region", "aria-label": p.name + " career, scrolls sideways" }, [
+            el("table", { "class": "ptable btable cartable" }, [el("thead", {}, [head]),
+              el("tbody", {}, car.seasons.map(function (s, i) { return line(String(s[0]), s[1], s, i === car.seasons.length - 1 ? "now" : ""); })),
+              el("tfoot", {}, [line("Career", n + (n === 1 ? " season" : " seasons"), car.total)])])]),
+          el("p", { "class": "note", text: car.known ? W("players.career_note") : W("players.career_wait") })]));
+      }
+      if (c.games.length) {
+        var all = false, log = el("section", { "class": "pc-sec" }, [el("h2", { text: "Match by match" })]);
+        var table = function () {
+          while (log.childNodes.length > 1) log.removeChild(log.lastChild);
+          var rows = all ? c.games : c.games.slice(0, 10);
+          var lhead = el("tr", {}, [el("th", { scope: "col", "class": "l", text: "Date" }), el("th", { scope: "col", "class": "l", text: "Opponent" }), el("th", { scope: "col", "class": "l", text: "Result" })]
+            .concat(LOG.map(function (k) { return el("th", { scope: "col", title: k[1], text: k[0] }); })));
+          var body = el("tbody", {}, rows.map(function (r) {
+            return el("tr", {}, [el("td", { "class": "l", text: short(r[1]) }), el("td", { "class": "l" }, [el("span", { "class": "tcell tm" }, [r[4] ? "vs" : "at"].concat([opp(r[2], r[3])]))]),
+              el("td", { "class": "l" }, [el("a", { href: "#/match/" + r[0], "class": "res " + (r[5].charAt(0) === "W" ? "w" : "l"), text: r[5] || "Box score" })])]
+              .concat(LOG.map(function (k) { return el("td", { text: String(k[2](r)) }); })));
+          }));
+          log.appendChild(el("div", { "class": "tablewrap", tabindex: "0", role: "region", "aria-label": p.name + " match by match, scrolls sideways" }, [
+            el("table", { "class": "ptable tptable logtable" }, [el("thead", {}, [lhead]), body])]));
+          if (c.games.length > 10) log.appendChild(el("p", { "class": "more" }, [el("button", { type: "button", "class": "morebtn",
+            text: all ? "Show the latest 10 only" : "Show all " + c.games.length + " matches", onclick: function () { all = !all; table(); } })]));
+        };
+        table();
+        box.appendChild(log);
+      }
+    }).catch(function () {
+      box.innerHTML = "";
+      box.appendChild(el("p", { "class": "empty", text: "Her matches and career could not be loaded." }));
+    });
+  }
+
+  // ---- the awards race: the leaders for each award and each statistic ----
+  var awardData = null, awardOpen = {};
+  function drawAwards() {
+    var box = $("awards");
+    box.innerHTML = "";
+    box.appendChild(el("p", { "class": "empty", text: "Loading the races…" }));
+    (awardData ? Promise.resolve(awardData) : fetch("awards.json", { cache: "no-cache" }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (d) { awardData = d; return d; })).then(function (d) {
+      box.innerHTML = "";
+      var grid = el("div", { "class": "agrid" });
+      d.races.forEach(function (race) {
+        var all = !!awardOpen[race.key], rows = all ? race.rows : race.rows.slice(0, 5);
+        var card = el("section", { "class": "acard" }, [el("h2", { text: race.title }), el("p", { "class": "afor", text: race["for"] + (race.counted ? "" : " · " + W("awards.scored")) })]);
+        if (!race.rows.length) card.appendChild(el("p", { "class": "empty", text: W("awards.none") }));
+        card.appendChild(el("ol", { "class": "arows" }, rows.map(function (r, i) {
+          var move = r.was == null ? null : r.was === 0 ? el("span", { "class": "amove up", title: "Not in the top ten a week ago", text: "new" })
+            : r.was > i + 1 ? el("span", { "class": "amove up", title: "Up from " + ordinal(r.was) + " a week ago", text: "▲" + (r.was - i - 1) })
+            : r.was < i + 1 ? el("span", { "class": "amove down", title: "Down from " + ordinal(r.was) + " a week ago", text: "▼" + (i + 1 - r.was) }) : null;
+          return el("li", { "class": i === 0 ? "lead" : "" }, [
+            el("span", { "class": "rk", text: String(i + 1) }),
+            face(r, i === 0 ? "md" : "sm2"),
+            el("span", { "class": "awho" }, [
+              el("a", { "class": "aname", href: "#/player/" + encodeURIComponent(r.id), text: r.name }),
+              el("span", { "class": "ateam" }, [logo(r.team, "sm"), r.team_name + " · " + (POS_ONE[r.pos] || r.pos)]),
+              el("span", { "class": "astats", text: r.stats.join(" · ") })]),
+            el("span", { "class": "ascore" }, [r.score != null ? el("b", { title: W("awards.score_title"), text: r.score.toFixed(0) }) : null, move])]);
+        })));
+        if (race.rows.length > 5) card.appendChild(el("p", { "class": "more" }, [el("button", { type: "button", "class": "morebtn", text: all ? "Show the top 5" : "Show the top " + race.rows.length,
+          onclick: function () { awardOpen[race.key] = !all; drawAwards(); } })]));
+        grid.appendChild(card);
+      });
+      box.appendChild(grid);
+      box.appendChild(el("p", { "class": "note", text: (d.through ? "Through matches of " + short(d.through) + ". " : "") + W("awards.note") }));
+    }).catch(function () {
+      box.innerHTML = "";
+      box.appendChild(el("p", { "class": "empty", text: "The races could not be loaded. Reload the page to try again." }));
+    });
+  }
+
   function drawCard(id) {
     var holder = $("card");
     holder.innerHTML = "";
@@ -600,6 +728,9 @@
         ["Digs", t.d], ["Receptions", t.ra], ["Reception errors", t.re], ["Solo blocks", t.bs], ["Block assists", t.ba], ["Points", t.pts]];
       art.appendChild(el("section", { "class": "pc-sec" }, [el("h2", { text: "Season totals" }),
         el("dl", { "class": "totals" }, totals.reduce(function (a, x) { return a.concat([el("div", {}, [el("dt", { text: x[0] }), el("dd", { text: String(x[1]) })])]); }, []))]));
+      var extra = el("div", { "class": "pc-extra" }, [el("p", { "class": "empty", text: "Loading her matches and career…" })]);
+      art.appendChild(extra);
+      cardExtras(extra, p);
       art.appendChild(el("p", { "class": "note", text: "The number beside each bar is her percentile among " + many + " who play regularly " + (PRO() ? "in " + data.league_name : isD1() ? "in Division I" : "for a top-25 team") + " and do that job: 90 means better than 90% of them. The tick marks the middle." +
         (roster.through ? " Through matches of " + short(roster.through) + "." : "") }));
       var defs = [];
@@ -926,13 +1057,13 @@
   function route() {
     var h = location.hash, card = /^#\/?player\/(.+)$/.exec(h), match = /^#\/?match\/(\d+)/.exec(h), tm = /^#\/?team\/(.+)$/.exec(h);
     stopMatch();
-    var page = tm ? "team" : match ? "match" : card ? "card" : /^#\/?players/.test(h) ? "players" : /^#\/?rankings/.test(h) ? "rankings" : /^#\/?teams/.test(h) ? "teams" : "matches";
-    ["matches", "rankings", "teams", "players", "card", "match", "team"].forEach(function (p) { $("page-" + p).hidden = p !== page; });
+    var page = tm ? "team" : match ? "match" : card ? "card" : /^#\/?awards/.test(h) ? "awards" : /^#\/?players/.test(h) ? "players" : /^#\/?rankings/.test(h) ? "rankings" : /^#\/?teams/.test(h) ? "teams" : "matches";
+    ["matches", "rankings", "teams", "players", "awards", "card", "match", "team"].forEach(function (p) { $("page-" + p).hidden = p !== page; });
     Array.prototype.forEach.call(document.querySelectorAll(".pages a"), function (a) {
       if (a.dataset.page === (page === "card" ? "players" : page === "match" ? "matches" : page === "team" ? "teams" : page)) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
     });
-    document.title = ({ rankings: W("rankings.title"), teams: W("teams.title"), players: W("players.title"), match: W("matches.box_score"), team: "Team", card: "Player card" }[page] || W("matches.title")) + " | " + data.site;
-    if (page === "team") drawTeam(decodeURIComponent(tm[1])); else if (page === "match") drawMatch(match[1]); else if (page === "rankings") drawRanks(); else if (page === "teams") drawTeams(); else if (page === "players") drawPlayers(); else if (page === "card") drawCard(decodeURIComponent(card[1])); else draw();
+    document.title = ({ rankings: W("rankings.title"), teams: W("teams.title"), players: W("players.title"), awards: W("awards.title"), match: W("matches.box_score"), team: "Team", card: "Player card" }[page] || W("matches.title")) + " | " + data.site;
+    if (page === "team") drawTeam(decodeURIComponent(tm[1])); else if (page === "match") drawMatch(match[1]); else if (page === "rankings") drawRanks(); else if (page === "teams") drawTeams(); else if (page === "players") drawPlayers(); else if (page === "awards") drawAwards(); else if (page === "card") drawCard(decodeURIComponent(card[1])); else draw();
     window.scrollTo(0, 0);
   }
 

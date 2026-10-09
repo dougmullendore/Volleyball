@@ -13,6 +13,7 @@ nav.matches = Matches
 nav.rankings = Rankings
 nav.teams = Teams
 nav.players = Players
+nav.awards = Awards
 
 # ---- the Top 25 / All D1 switch (Matches, Teams, Players, team pages, player cards) ----
 scope.top25 = Top 25
@@ -74,6 +75,16 @@ players.lede_d1 = Every regular in Division I, ranked against the rest by Impact
 players.note = Impact compares each player only with players on this week's top 25 teams, from official box scores. It cannot see pass quality or who was on the court, and it does not adjust for the opponent. A transfer counts as a new player at her new school.
 players.note_d1 = Impact compares each player with every regular in Division I, from official box scores. It cannot see pass quality or who was on the court, and it does not adjust for the opponent, so players on weaker schedules can rate higher here than in the Top 25 view.
 players.back = All players
+players.career_note = Each season's line is added up from that season's box scores. A player who changed schools starts again at her new one.
+players.career_wait = Only this season so far: her earlier seasons at this school are still being read, a few thousand box scores at a time, and will appear here within a few days.
+
+# ---- Awards page ----
+awards.title = Awards Race
+awards.lede = Who leads for player of the year, freshman of the year and the best at each position, and who leads Division I in each statistic.
+awards.scored = this site's score
+awards.score_title = This site's score out of 100: 70% her Impact this season, 30% how strong her team is
+awards.none = Nobody yet: this race needs a few more matches.
+awards.note = The statistical leaders are counts, among players who have played at least 40% of their team's sets (and, for hitting percentage, taken at least 3.33 swings a set). The awards are voted on at the end of the season, so each list is this site's reading of the numbers, not a forecast of the vote: every regular is placed among the others on her Impact this season (70%) and on how strong her team is by this site's rating (30%), and the two make a score out of 100. A freshman is anyone her school lists as a freshman or first-year player. An arrow shows how far a name has moved in the last week.
 
 # ---- a match's own page ----
 match.back = All Matches
@@ -84,6 +95,10 @@ match.ncaa_link = Official box score on NCAA.com
 footer.about = Match times are shown in your own time zone. Scores and schedules come from the NCAA's public scoreboard, and scores of matches in progress from ESPN's; rankings are the AVCA coaches poll as published on ncaa.com. Channels come from ESPN's and the Big Ten's schedules and can change, so check before you tune in; streaming services need their own subscription. Player ratings are worked out by this site from official box scores. Team logos and player photos belong to their schools; logos are shown from ncaa.com and photos from each school's own roster page. Not affiliated with or endorsed by the NCAA, the AVCA or any school.
 
 # ---- the LOVB and MLV pages (the site's lovb/ and mlv/ folders) ----
+pro.awards_title = {league} Awards Race
+pro.awards_lede = Who leads for most valuable player and the best at each position in the {league}, and who leads the league in each statistic.
+pro.awards_note = The statistical leaders are counts, among players who have played at least 40% of their team's sets. The awards are voted on, so each list is this site's reading of the numbers, not a forecast of the vote: every regular is placed among the others on her Impact this season (70%) and on her team's place in the standings (30%), and the two make a score out of 100. An arrow shows how far a name has moved in the last week.
+pro.players_career_note = Each season's line is added up from the league's own match statistics. A player who changed teams has a line for each.
 # These replace the lines above on the pro league pages. {league} is LOVB or MLV.
 pro.nav_rankings = Standings
 pro.matches_title = {league} Matches

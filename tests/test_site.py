@@ -573,9 +573,10 @@ def test_player_bios_are_read_from_roster_data():
                        "social": {"instagram": "https://www.instagram.com/solia.angilau", "twitter": "https://x.com/solia"}}}
 
 
-def test_pro_schedule_adds_coming_and_live_matches(tmp_path):
+def test_pro_schedule_adds_coming_and_live_matches(tmp_path=None):
     import json, time
     from pipeline import pro
+    tmp_path = tmp_path or Path(tempfile.mkdtemp())          # run_local.py passes no folder
     (tmp_path / "pro").mkdir()
     now = int(time.time())
     sched = {"season": 2027, "games": [
@@ -596,3 +597,128 @@ def test_pro_schedule_adds_coming_and_live_matches(tmp_path):
     (tmp_path / "pro" / "lovb_schedule.json").write_text(json.dumps(sched))
     games, season = pro.merge_schedule(tmp_path, "lovb", list(old), 2026)
     assert season == 2026 and len(games) == 1
+
+
+# ------------------------------------------- cards: matches, highs and career --
+from pipeline import awards, cards, careers  # noqa: E402
+
+
+def hitters_season(n=12):
+    """`n` teams with one outside hitter and one setter each, three matches apiece against team "x"."""
+    ranked, games, boxes = [], [], {}
+    for t in range(n):
+        ranked.append({"id": f"t{t}", "rank": t + 1, "name": f"Team {t}"})
+        for m in range(3):
+            gid = 10 * t + m
+            games.append({"id": gid, "state": "final", "date": f"2026-10-0{m + 1}", "home": {"id": f"t{t}", "name": f"Team {t}", "sets": 3},
+                          "away": {"id": "t0" if t else "t1", "name": "Other", "sets": m}})
+            hitter = dict.fromkeys(box.COLS, 0) | {"first": "Ann", "last": f"Hitter{t}", "number": 1, "pos": "OH", "starter": 1, "sets": 3 + m,
+                                                    "k": 10 + t + m, "e": 4, "ta": 40, "sv": 12, "sa": m, "d": 10 + m, "bs": 1, "ba": 2}
+            setter = dict.fromkeys(box.COLS, 0) | {"first": "Sue", "last": f"Setter{t}", "number": 2, "pos": "S", "starter": 1, "sets": 3 + m,
+                                                    "ast": 30 + t, "d": 8, "sv": 10}
+            boxes[str(gid)] = {"home": [[hitter[c] for c in box.COLS], [setter[c] for c in box.COLS]], "away": []}
+    return ranked, games, boxes
+
+
+def test_a_card_lists_every_match_with_highs_and_career():
+    ranked, games, boxes = hitters_season()
+    lines = {}
+    rated = players.compute(ranked, games, boxes, lines)
+    pid = "t3~hitter~ann"
+    assert [r[:7] for r in lines[pid]] == [[30, "2026-10-01", "t0", "Other", 1, "W 3-0", 3], [31, "2026-10-02", "t0", "Other", 1, "W 3-1", 4],
+                                           [32, "2026-10-03", "t0", "Other", 1, "W 3-2", 5]]
+    assert lines[pid][2][7:] == [15, 4, 40, 0, 2, 0, 12, 0, 1, 2]          # k, e, ta, ast, sa, se, d, re, bs, ba
+    earlier = {pid: [[2025, "Team 3", 30, 100, 300, 100, 800, 10, 20, 30, 250, 15, 8, 40], [2026, "Team 3", 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]}
+    files = cards.build(rated, lines, earlier, 2026, {"t0"}, True)
+    assert set(files) == {f"t{t}" for t in range(12)} and set(files["t3"]) == {pid, "t3~setter~sue"}
+    c = files["t3"][pid]
+    assert [g[0] for g in c["games"]] == [32, 31, 30]                         # newest first
+    assert c["highs"][0] == ["Kills", 15, "t0", "Other", "2026-10-03", 32] and [h[0] for h in c["highs"]] == ["Kills", "Digs", "Blocks", "Aces", "Points"]
+    assert c["highs"][-1][1] == 15 + 2 + 1 + 1 and c["dd"] == 3 and c["td"] == 0      # kills and digs in double figures every match
+    assert c["ranked"] == {"mp": 3, "sp": 12, "k": 42, "e": 12, "ta": 120, "ast": 0, "sa": 3, "d": 33, "blk": 6.0, "w": 3}
+    # the career: last season as kept, this season counted from this season's box scores (not the kept copy of it)
+    assert [r[0] for r in c["career"]["seasons"]] == [2025, 2026] and c["career"]["seasons"][1] == [2026, "Team 3", 3, 12, 42, 12, 120, 0, 3, 0, 33, 0, 3, 6]
+    assert c["career"]["total"] == ["", "", 33, 112, 342, 112, 920, 10, 23, 30, 283, 15, 11, 46] and c["career"]["known"]
+    other = files["t0"]["t0~hitter~ann"]
+    assert "ranked" not in other and len(other["career"]["seasons"]) == 1 and other["career"]["total"][2:] == other["career"]["seasons"][0][2:]
+    assert cards.build(rated, lines, {}, 2026, set(), False)["t3"][pid]["career"]["known"] is False
+
+
+def test_earlier_seasons_are_added_up_a_few_at_a_time():
+    parsed = one_box()
+    into = {}
+    careers.add_box(into, parsed, {"home": ["east-tenn-st", "ETSU"], "away": ["mercer", "Mercer"]})
+    careers.add_box(into, parsed, {"home": ["east-tenn-st", "ETSU"], "away": ["mercer", "Mercer"]})
+    etsu = {k: v for k, v in into.items() if k.startswith("east-tenn-st~")}
+    assert sum(v[3] for v in etsu.values()) == 80 and sum(v[5] for v in etsu.values()) == 232 and all(v[1] == 2 for v in etsu.values())
+    aylward = next(v for k, v in etsu.items() if "aylward" in k)
+    assert aylward[:6] == ["ETSU", 2, aylward[2], 12, 6, 44] and aylward[2] >= 2
+    kept = {"v": careers.VERSION, "seasons": {"2025": {"todo": [], "done": True, "players": {"a~b~c": ["A", 20, 70, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]}},
+                                             "2024": {"todo": [[1, "a", "A", "b", "B"]], "done": False, "players": {"a~b~c": ["A", 1, 3, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9]}},
+                                             "2023": {"todo": None, "done": False, "players": {}}}}
+    rows, all_in = careers.by_player(kept)
+    assert rows == {"a~b~c": [[2025, "A", 20, 70, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]]} and not all_in      # a season is shown only once it is finished
+    kept["seasons"]["2024"]["done"] = kept["seasons"]["2023"]["done"] = True
+    rows, all_in = careers.by_player(kept)
+    assert [r[0] for r in rows["a~b~c"]] == [2024, 2025] and all_in
+    assert careers.by_player({}) == ({}, False)
+    assert careers.season_days(2025)[0] == "2025-08-15" and careers.season_days(2025)[-1] == "2025-12-24"
+
+
+# ------------------------------------------------------------- the awards --
+def test_who_is_a_freshman():
+    for year in ("Freshman", "Fr.", "First Year", "1st", "1st Year", "R-Fr.", "Redshirt Freshman", "RS Freshman", "freshman"):
+        assert awards.is_freshman(year), year
+    for year in ("Sophomore", "Junior", "Senior", "Fifth Year", "Graduate Student", "R-So.", "2nd Year", "4th", None, ""):
+        assert not awards.is_freshman(year), year
+
+
+def test_the_awards_races():
+    ranked, games, boxes = hitters_season()
+    rated = players.compute(ranked, games, boxes)
+    for p in rated["players"]:
+        if p["name"] in ("Ann Hitter2", "Ann Hitter9", "Sue Setter4"):
+            p["bio"] = {"yr": "Freshman"}
+    strength = {f"t{t}": 1 - t / 11 for t in range(12)}
+    races = awards.compute(rated, strength)
+    by = {r["key"]: r for r in races}
+    assert [r["key"] for r in races] == ["poy", "foy", "oh", "s", "kills", "hitting", "assists", "digs", "blocks", "aces", "points"]
+    assert by["poy"]["title"] == "National Player of the Year" and not by["poy"]["counted"] and by["kills"]["counted"]
+    assert len(by["poy"]["rows"]) == 10 and all(0 <= r["score"] <= 100 for r in by["poy"]["rows"])
+    assert [r["score"] for r in by["poy"]["rows"]] == sorted((r["score"] for r in by["poy"]["rows"]), reverse=True)
+    assert {r["name"] for r in by["foy"]["rows"]} == {"Ann Hitter2", "Ann Hitter9", "Sue Setter4"}
+    assert all(r["pos"] == "OH" for r in by["oh"]["rows"]) and all(r["pos"] == "S" for r in by["s"]["rows"])
+    kills = by["kills"]["rows"]
+    assert kills[0]["name"] == "Ann Hitter11" and kills[0]["stats"] == ["5.50 a set", "12 sets", "3 matches"] and kills[0]["score"] is None
+    assert by["assists"]["rows"][0]["name"] == "Sue Setter11" and by["hitting"]["rows"][0]["stats"][0] == ".450"
+    assert by["blocks"]["rows"][0]["stats"][0] == "0.50 a set" and all(r["pos"] == "OH" for r in by["blocks"]["rows"])
+    pro = awards.compute(rated, strength, "LOVB")
+    assert pro[0]["title"] == "Most Valuable Player" and "foy" not in {r["key"] for r in pro} and "the LOVB" in pro[0]["for"]
+    # who has moved since a week ago
+    seen = awards.track(races, {}, "2026-10-04")
+    assert list(seen) == ["2026-10-04"] and "was" not in kills[0] and seen["2026-10-04"]["kills"][0] == kills[0]["id"]
+    then = {"2026-10-01": {**seen["2026-10-04"], "kills": [kills[1]["id"], kills[0]["id"]]}}
+    seen = awards.track(races, then, "2026-10-09")
+    assert [r["was"] for r in kills[:3]] == [2, 1, 0] and list(seen) == ["2026-10-01", "2026-10-09"]
+
+
+def test_the_site_carries_cards_and_awards():
+    """An offline build from stored data writes each team's card file and the awards races."""
+    game = next(g for g in (run.parse_contest(c) for c in contests()) if g["id"] == 6627461)
+    with tempfile.TemporaryDirectory() as tmp:
+        state, out = Path(tmp) / "state", Path(tmp) / "out"
+        run.write_json(state / "polls.json", {"2026-10-04": [{"rank": 1, "school": game["home"]["name"], "record": "1-0", "prev": 1},
+                                                             {"rank": 2, "school": game["away"]["name"], "record": "0-1", "prev": 2}]})
+        run.write_json(state / "scoreboard.json", {"season": 2026, "days": {game["date"]: [game]}})
+        run.write_json(state / "box.json", {"6627461": {"date": game["date"], **one_box()}})
+        res = run.build_site(state, out, dt.datetime(2026, 10, 5, 11, tzinfo=UTC))
+        assert res["match_pages"] == 1
+        files = sorted(p.name for p in (out / "cards").iterdir())
+        assert files == sorted([game["home"]["id"] + ".json", game["away"]["id"] + ".json"])
+        mine = json.loads((out / "cards" / (game["home"]["id"] + ".json")).read_text())
+        one = next(iter(mine.values()))
+        assert len(one["games"]) == 1 and one["games"][0][:2] == [6627461, game["date"]] and one["career"]["seasons"][0][0] == 2026
+        assert one["career"]["known"] is False and "ranked" in one              # the other team is ranked second
+        races = json.loads((out / "awards.json").read_text())
+        assert [r["key"] for r in races["races"]][:2] == ["poy", "foy"] and races["through"] == game["date"]
+        assert list(json.loads((state / "awards.json").read_text())) == ["2026-10-05"]

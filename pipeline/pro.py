@@ -19,7 +19,7 @@ import json
 import re
 from pathlib import Path
 
-from . import box, config, odds, players, teams, web
+from . import awards, box, cards, config, odds, players, teams, web
 
 LEAGUES = {
     # site folder: (volleydata name, league name, standings name)
@@ -202,6 +202,41 @@ def load(state: Path, site: str) -> dict | None:
     return {"season": season_n, "games": games, "boxes": boxes, "names": names, "abbr": abbr}
 
 
+def careers(state: Path, site: str) -> dict:
+    """{player's name key: [[season, team, matches, sets, k, e, ta, ast, sa, se, d, re, bs, ba], ...]} for every
+    season in the league's files, oldest first. A player who changed teams has a line for each."""
+    lg = LEAGUES[site][0]
+    folder = state / "pro"
+    season_of = {r["match_id"]: int(r["season"]) for r in _rows(folder / f"{lg}_schedule.csv")
+                 if "all" not in (r["phase"] or "").lower().replace("-", "")}
+    per = {}
+    for r in _rows(folder / f"{lg}_player_boxscore.csv"):
+        year = season_of.get(r["match_id"])
+        if year is None:
+            continue
+        who = ((r["first_name"] or "") + " " + (r["last_name"] or "")).strip() or r["player_name"]
+        m = per.setdefault((year, short_name(r["team_name"]), name_key(who), r["match_id"]), [0] * 11)
+        if _f(r.get("serves")) + _f(r.get("attack_attempts")) + _f(r.get("receptions")) + _f(r.get("successful_digs")) \
+                + _f(r.get("assists")) + _f(r.get("block_points")) + _f(r.get("block_touches")) > 0 or r.get("set_starting_position") not in ("", None):
+            m[0] += 1
+        for i, col in enumerate(("attack_kills", "attack_errors", "attack_attempts", "assists", "serve_aces", "serve_errors",
+                                 "successful_digs", "reception_errors", "block_points")):
+            m[1 + i] += _f(r[col])
+    seasons = {}
+    for (year, team, who, _), m in per.items():
+        if m[0] <= 0:
+            continue
+        row = seasons.setdefault((who, year, team), [year, team, 0, 0] + [0] * 10)
+        row[2] += 1
+        row[3] += m[0]
+        for i in range(10):
+            row[4 + i] += m[1 + i]
+    out = {}
+    for (who, year, team), row in sorted(seasons.items(), key=lambda kv: (kv[0][1], kv[0][2])):
+        out.setdefault(who, []).append(row)
+    return out
+
+
 def standings(games: list[dict], names: dict, through: str | None = None, points: bool = False) -> list[dict]:
     """Every team by wins, then win share, then set ratio, from finals up to `through`.
     With `points` (MLV's table): by points first, 3 for a win in three or four sets,
@@ -237,7 +272,7 @@ def standings(games: list[dict], names: dict, through: str | None = None, points
     return out
 
 
-def build(state: Path, out: Path, site: str, now: dt.datetime, words: dict, write_json, match_files, log) -> dict:
+def build(state: Path, out: Path, site: str, now: dt.datetime, words: dict, write_json, match_files, log, write_cards=None) -> dict:
     """Write one league's site into out/<site>/ (the page files are copied by the caller)."""
     lg, league, poll_name = LEAGUES[site]
     s = load(state, site)
@@ -268,7 +303,8 @@ def build(state: Path, out: Path, site: str, now: dt.datetime, words: dict, writ
         elif g["id"] in pregame:
             g["p0"] = round(pregame[g["id"]], 3)
 
-    rated = players.compute(table, games, boxes)
+    lines = {}                      # every player's matches, for her card
+    rated = players.compute(table, games, boxes, lines)
     rated["through"] = max((g["date"] for g in finals), default=None)
     media_file = state / "pro" / f"{site}_media.json"
     media = json.loads(media_file.read_text(encoding="utf-8")) if media_file.exists() else {}
@@ -293,6 +329,16 @@ def build(state: Path, out: Path, site: str, now: dt.datetime, words: dict, writ
     logos = {t: v["logo"] for t, v in (media.get("teams") or {}).items() if v.get("logo") and t in names}
     dest = out / site
     with_box = match_files(dest, games, boxes, rated)
+    if write_cards:                 # every match, season highs and career on each card
+        earlier = careers(state, site)
+        mine = {p["id"]: earlier.get(name_key(p["name"])) or [] for p in rated["players"]}
+        write_cards(dest, cards.build(rated, lines, mine, int(s["season"]), set(), True))
+    # the awards races, with each leader's place a week ago
+    races = awards.compute(rated, {t["id"]: 1 - (t["rank"] - 1) / max(1, len(table) - 1) for t in table}, league)
+    seen_file = state / "pro" / f"{site}_awards.json"
+    seen = awards.track(races, json.loads(seen_file.read_text(encoding="utf-8")) if seen_file.exists() else {}, now.date().isoformat())
+    seen_file.write_text(json.dumps(seen), encoding="utf-8")
+    write_json(dest / "awards.json", {"races": races, "through": rated["through"]})
     for g in games:              # set by set, for the match page
         b = boxes.get(str(g["id"])) or {}
         if b.get("setpts"):
