@@ -600,7 +600,7 @@ def test_pro_schedule_adds_coming_and_live_matches(tmp_path=None):
 
 
 # ------------------------------------------- cards: matches, highs and career --
-from pipeline import awards, cards, careers  # noqa: E402
+from pipeline import cards, careers  # noqa: E402
 
 
 def hitters_season(n=12):
@@ -665,45 +665,8 @@ def test_earlier_seasons_are_added_up_a_few_at_a_time():
     assert careers.season_days(2025)[0] == "2025-08-15" and careers.season_days(2025)[-1] == "2025-12-24"
 
 
-# ------------------------------------------------------------- the awards --
-def test_who_is_a_freshman():
-    for year in ("Freshman", "Fr.", "First Year", "1st", "1st Year", "R-Fr.", "Redshirt Freshman", "RS Freshman", "freshman"):
-        assert awards.is_freshman(year), year
-    for year in ("Sophomore", "Junior", "Senior", "Fifth Year", "Graduate Student", "R-So.", "2nd Year", "4th", None, ""):
-        assert not awards.is_freshman(year), year
-
-
-def test_the_awards_races():
-    ranked, games, boxes = hitters_season()
-    rated = players.compute(ranked, games, boxes)
-    for p in rated["players"]:
-        if p["name"] in ("Ann Hitter2", "Ann Hitter9", "Sue Setter4"):
-            p["bio"] = {"yr": "Freshman"}
-    strength = {f"t{t}": 1 - t / 11 for t in range(12)}
-    races = awards.compute(rated, strength)
-    by = {r["key"]: r for r in races}
-    assert [r["key"] for r in races] == ["poy", "foy", "oh", "s", "kills", "hitting", "assists", "digs", "blocks", "aces", "points"]
-    assert by["poy"]["title"] == "National Player of the Year" and not by["poy"]["counted"] and by["kills"]["counted"]
-    assert len(by["poy"]["rows"]) == 10 and all(0 <= r["score"] <= 100 for r in by["poy"]["rows"])
-    assert [r["score"] for r in by["poy"]["rows"]] == sorted((r["score"] for r in by["poy"]["rows"]), reverse=True)
-    assert {r["name"] for r in by["foy"]["rows"]} == {"Ann Hitter2", "Ann Hitter9", "Sue Setter4"}
-    assert all(r["pos"] == "OH" for r in by["oh"]["rows"]) and all(r["pos"] == "S" for r in by["s"]["rows"])
-    kills = by["kills"]["rows"]
-    assert kills[0]["name"] == "Ann Hitter11" and kills[0]["stats"] == ["5.50 a set", "12 sets", "3 matches"] and kills[0]["score"] is None
-    assert by["assists"]["rows"][0]["name"] == "Sue Setter11" and by["hitting"]["rows"][0]["stats"][0] == ".450"
-    assert by["blocks"]["rows"][0]["stats"][0] == "0.50 a set" and all(r["pos"] == "OH" for r in by["blocks"]["rows"])
-    pro = awards.compute(rated, strength, "LOVB")
-    assert pro[0]["title"] == "Most Valuable Player" and "foy" not in {r["key"] for r in pro} and "the LOVB" in pro[0]["for"]
-    # who has moved since a week ago
-    seen = awards.track(races, {}, "2026-10-04")
-    assert list(seen) == ["2026-10-04"] and "was" not in kills[0] and seen["2026-10-04"]["kills"][0] == kills[0]["id"]
-    then = {"2026-10-01": {**seen["2026-10-04"], "kills": [kills[1]["id"], kills[0]["id"]]}}
-    seen = awards.track(races, then, "2026-10-09")
-    assert [r["was"] for r in kills[:3]] == [2, 1, 0] and list(seen) == ["2026-10-01", "2026-10-09"]
-
-
-def test_the_site_carries_cards_and_awards():
-    """An offline build from stored data writes each team's card file and the awards races."""
+def test_the_site_carries_cards():
+    """An offline build from stored data writes each team's card file."""
     game = next(g for g in (run.parse_contest(c) for c in contests()) if g["id"] == 6627461)
     with tempfile.TemporaryDirectory() as tmp:
         state, out = Path(tmp) / "state", Path(tmp) / "out"
@@ -719,6 +682,3 @@ def test_the_site_carries_cards_and_awards():
         one = next(iter(mine.values()))
         assert len(one["games"]) == 1 and one["games"][0][:2] == [6627461, game["date"]] and one["career"]["seasons"][0][0] == 2026
         assert one["career"]["known"] is False and "ranked" in one              # the other team is ranked second
-        races = json.loads((out / "awards.json").read_text())
-        assert [r["key"] for r in races["races"]][:2] == ["poy", "foy"] and races["through"] == game["date"]
-        assert list(json.loads((state / "awards.json").read_text())) == ["2026-10-05"]

@@ -19,7 +19,7 @@ import json
 import re
 from pathlib import Path
 
-from . import awards, box, cards, config, odds, players, teams, web
+from . import box, cards, config, odds, players, teams, web
 
 LEAGUES = {
     # site folder: (volleydata name, league name, standings name)
@@ -333,12 +333,6 @@ def build(state: Path, out: Path, site: str, now: dt.datetime, words: dict, writ
         earlier = careers(state, site)
         mine = {p["id"]: earlier.get(name_key(p["name"])) or [] for p in rated["players"]}
         write_cards(dest, cards.build(rated, lines, mine, int(s["season"]), set(), True))
-    # the awards races, with each leader's place a week ago
-    races = awards.compute(rated, {t["id"]: 1 - (t["rank"] - 1) / max(1, len(table) - 1) for t in table}, league)
-    seen_file = state / "pro" / f"{site}_awards.json"
-    seen = awards.track(races, json.loads(seen_file.read_text(encoding="utf-8")) if seen_file.exists() else {}, now.date().isoformat())
-    seen_file.write_text(json.dumps(seen), encoding="utf-8")
-    write_json(dest / "awards.json", {"races": races, "through": rated["through"]})
     for g in games:              # set by set, for the match page
         b = boxes.get(str(g["id"])) or {}
         if b.get("setpts"):

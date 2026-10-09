@@ -15,7 +15,6 @@ Usage:  python -m pipeline.run <state_dir> <site_output_dir>
   photos.json       the address of each player's photo on her school's roster page
   ratings.json      every team's rating, this season and last (behind the odds)
   careers.json      players' earlier seasons, added up from those seasons' box scores
-  awards.json       each day's leaders in the awards races, to show who has moved
   status.json       what happened on the last run
 """
 from __future__ import annotations
@@ -30,7 +29,7 @@ import sys
 import traceback
 from pathlib import Path
 
-from . import awards, box, cards, careers, config, goat, odds, photos, players, poll, pro, teams, watch, web
+from . import box, cards, careers, config, goat, odds, photos, players, poll, pro, teams, watch, web
 
 SITE_SRC = Path(__file__).resolve().parents[1] / "site"
 
@@ -469,12 +468,6 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
     # has done against ranked teams, and her career (see pipeline/cards.py).
     past, all_in = careers.by_player(read_json(state / "careers.json", {}))
     write_cards(out, cards.build(rated_d1, lines, past, season, set(in_poll), all_in))
-    # The awards races (see pipeline/awards.py), with each leader's place a week ago.
-    floor = min(rating.values(), default=0.0)
-    races = awards.compute(rated_d1, awards.above_average({t["id"]: rating.get(t["id"], floor) for t in d1}))
-    seen = awards.track(races, read_json(state / "awards.json", {}), now.date().isoformat())
-    write_json(state / "awards.json", seen)
-    write_json(out / "awards.json", {"races": races, "through": rated_d1["through"]})
     write_json(out / "data.json", {
         "site": config.SITE_NAME, "updated": now.isoformat(timespec="seconds"), "season": sel["season"],
         "poll": {"name": config.POLL_NAME, "through": through, "teams": ranked, "polls_seen": sel["polls_seen"]},

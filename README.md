@@ -138,28 +138,6 @@ card loads only its own team's lines.
 - **LOVB and MLV:** every season in the volleydata files, by player name, with
   a line for each team she has played for.
 
-## Awards race
-
-The **Awards** page (fifth page, on the college, LOVB and MLV sites) shows
-who leads for the season's awards (`pipeline/awards.py`).
-
-- **Statistical leaders** are counts: kills, assists, digs, blocks, aces and
-  points per set, and hitting percentage, among players who have played at
-  least 40% of their team's sets (and, for hitting percentage, taken at least
-  3.33 swings a set, as the NCAA requires of its own leaders).
-- **National Player of the Year, Freshman of the Year** and the best outside
-  or opposite hitter, middle blocker, setter and libero or defensive
-  specialist are voted on, so each list is the site's reading of the numbers,
-  not a forecast of the vote. Every regular gets a score out of 100: her Impact added this
-  season as a share of the leader's (70%) and how far her
-  team's rating is above the Division I average, as a share of the best
-  team's (30%; for the pro leagues, its place in the standings). The pro leagues have a Most Valuable Player and no freshman list.
-- A freshman is anyone her school lists as a freshman or first-year player,
-  redshirt freshmen included; players whose roster page lists no class cannot
-  be counted.
-- Each list shows the top five (ten on request). Once a week has passed, an
-  arrow shows how far each name has moved in the last week.
-
 ## Player photos
 
 No feed carries player photos for college volleyball, so they come from each
@@ -320,7 +298,6 @@ leaves the old site up; GitHub emails you, and the run log names the line.
 | `pipeline/players.py` | Rates the players against each other and works out percentiles |
 | `pipeline/cards.py` | Each card's extras: every match, season highs, against ranked teams, career |
 | `pipeline/careers.py` | Reads earlier college seasons' box scores for the career tables |
-| `pipeline/awards.py` | The awards races: statistical leaders, and a score for the voted awards |
 | `pipeline/photos.py` | Finds each player's photo on her school's roster page |
 | `rosters/pages.csv` | The roster page of each ranked school; add a line when a new school is ranked |
 | `pipeline/goat.py` | The GOAT ranking: the rating order rearranged to respect head-to-head results |
