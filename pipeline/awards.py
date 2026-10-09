@@ -6,9 +6,9 @@ play regularly (and, for hitting percentage, who take at least MIN_SWINGS
 swings a set, as the NCAA requires of its own leaders).
 
 The awards themselves are voted on, so nobody can know them. For each, every
-eligible regular gets a score from 0 to 100: her place among the others on
-Impact added this season (see pipeline/players.py) and on how strong her team
-is, mixed with the weights in RECIPE. These are a reading of the numbers,
+eligible regular gets a score from 0 to 100: her Impact added this season (see
+pipeline/players.py) as a share of the leader's, and how strong her team is
+among the teams, mixed with the weights in RECIPE. These are a reading of the numbers,
 not a forecast of the vote. Impact here always measures a player against
 everyone in the pool (all of Division I, or the whole league).
 
@@ -83,7 +83,8 @@ def compute(rated: dict, strength: dict, pro: str | None = None) -> list[dict]:
 
     def voted(pool):
         team = {p["id"]: strength.get(p["team_id"], 0.0) for p in pool}
-        mine = _places({p["id"]: p["impact"] for p in pool})
+        best = max([p["impact"] for p in pool] + [0.0]) or 1.0      # against the leader, so the top of the list spreads out
+        mine = {p["id"]: max(0.0, p["impact"]) / best for p in pool}
         scored = [(100 * (RECIPE["impact"] * mine[p["id"]] + RECIPE["team"] * team[p["id"]]), p) for p in pool]
         scored.sort(key=lambda x: (-x[0], -x[1]["impact"], x[1]["id"]))
         return [line(p, s, [f"{p['impact']:+.1f} Impact"] + _stats(p)) for s, p in scored[:TOP]]
