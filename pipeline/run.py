@@ -471,7 +471,7 @@ def build_site(state: Path, out: Path, now: dt.datetime) -> dict:
     write_cards(out, cards.build(rated_d1, lines, past, season, set(in_poll), all_in))
     # The awards races (see pipeline/awards.py), with each leader's place a week ago.
     floor = min(rating.values(), default=0.0)
-    races = awards.compute(rated_d1, awards._places({t["id"]: rating.get(t["id"], floor) for t in d1}))
+    races = awards.compute(rated_d1, awards.above_average({t["id"]: rating.get(t["id"], floor) for t in d1}))
     seen = awards.track(races, read_json(state / "awards.json", {}), now.date().isoformat())
     write_json(state / "awards.json", seen)
     write_json(out / "awards.json", {"races": races, "through": rated_d1["through"]})

@@ -7,8 +7,9 @@ swings a set, as the NCAA requires of its own leaders).
 
 The awards themselves are voted on, so nobody can know them. For each, every
 eligible regular gets a score from 0 to 100: her Impact added this season (see
-pipeline/players.py) as a share of the leader's, and how strong her team is
-among the teams, mixed with the weights in RECIPE. These are a reading of the numbers,
+pipeline/players.py) as a share of the leader's, and how far her team's rating
+is above the Division I average as a share of the best team's (for a pro
+league, the team's place in the standings), mixed with the weights in RECIPE. These are a reading of the numbers,
 not a forecast of the vote. Impact here always measures a player against
 everyone in the pool (all of Division I, or the whole league).
 
@@ -17,7 +18,6 @@ redshirt freshmen included.
 """
 from __future__ import annotations
 
-import bisect
 import datetime as dt
 import re
 
@@ -38,12 +38,14 @@ LEADERS = [   # key, title, value from a player row, how to show it, who may lea
 ]
 
 
-def _places(values: dict) -> dict:
-    """Each value's place among all of them, 0 (lowest) to 1 (highest); ties share."""
-    xs = sorted(values.values())
-    n = len(xs) or 1
-    return {k: (bisect.bisect_left(xs, v) + 0.5 * (bisect.bisect_right(xs, v) - bisect.bisect_left(xs, v))) / n
-            for k, v in values.items()}
+def above_average(values: dict) -> dict:
+    """How far each value is above the average, as a share of the best one's
+    lead over it: 1 for the best, 0 for anything average or below."""
+    if not values:
+        return {}
+    mean = sum(values.values()) / len(values)
+    top = max(values.values()) - mean
+    return {k: max(0.0, v - mean) / top if top > 0 else 0.0 for k, v in values.items()}
 
 
 def is_freshman(year: str | None) -> bool:

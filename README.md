@@ -151,9 +151,9 @@ who leads for the season's awards (`pipeline/awards.py`).
   or opposite hitter, middle blocker, setter and libero or defensive
   specialist are voted on, so each list is the site's reading of the numbers,
   not a forecast of the vote. Every regular gets a score out of 100: her Impact added this
-  season as a share of the leader's (70%) and how strong her
-  team is by the site's rating (30%; for the pro leagues, its place in the
-  standings). The pro leagues have a Most Valuable Player and no freshman list.
+  season as a share of the leader's (70%) and how far her
+  team's rating is above the Division I average, as a share of the best
+  team's (30%; for the pro leagues, its place in the standings). The pro leagues have a Most Valuable Player and no freshman list.
 - A freshman is anyone her school lists as a freshman or first-year player,
   redshirt freshmen included; players whose roster page lists no class cannot
   be counted.

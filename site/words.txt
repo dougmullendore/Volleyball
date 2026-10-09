@@ -84,7 +84,7 @@ awards.lede = Who leads for player of the year, freshman of the year and the bes
 awards.scored = this site's score
 awards.score_title = This site's score out of 100: 70% her Impact this season, 30% how strong her team is
 awards.none = Nobody yet: this race needs a few more matches.
-awards.note = The statistical leaders are counts, among players who have played at least 40% of their team's sets (and, for hitting percentage, taken at least 3.33 swings a set). The awards are voted on at the end of the season, so each list is this site's reading of the numbers, not a forecast of the vote: every regular is scored on her Impact this season as a share of the leader's (70%) and on how strong her team is by this site's rating (30%), and the two make a score out of 100. A freshman is anyone her school lists as a freshman or first-year player. An arrow shows how far a name has moved in the last week.
+awards.note = The statistical leaders are counts, among players who have played at least 40% of their team's sets (and, for hitting percentage, taken at least 3.33 swings a set). The awards are voted on at the end of the season, so each list is this site's reading of the numbers, not a forecast of the vote: every regular is scored on her Impact this season as a share of the leader's (70%) and on how far her team's rating is above the Division I average, as a share of the best team's (30%), and the two make a score out of 100. A freshman is anyone her school lists as a freshman or first-year player. An arrow shows how far a name has moved in the last week.
 
 # ---- a match's own page ----
 match.back = All Matches
