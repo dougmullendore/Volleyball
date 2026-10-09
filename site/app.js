@@ -175,8 +175,7 @@
     var through = day(data.poll.through).toLocaleDateString(undefined, { month: "long", day: "numeric" });
     $("rank-lede").textContent = goatView ? W("rankings.lede_goat") : W("rankings.lede", { poll: data.poll.name, date: through });
     $("rank-note").textContent = goatView ? W("rankings.note_goat") : W("rankings.note");
-    $("goat-note").textContent = !goatView ? "" : PRO() ? "Every team is ranked on four things, most important first: head to head, strength of schedule (the average rating of the teams played), its place in the standings, and its record. " +
-      "A team is ranked above one it has beaten unless the other three say the gap is wide. The standings put a team below one it has beaten " + G.poll_wrong + " times; the GOAT ranking does " + G.goat_wrong + " times." : "Every Division I team is ranked on four things, most important first: head to head, strength of schedule (the average rating of the teams played), its place in the AVCA poll, and its record. " +
+    $("goat-note").textContent = !goatView ? "" : "Every Division I team is ranked on four things, most important first: head to head, strength of schedule (the average rating of the teams played), its place in the AVCA poll, and its record. " +
       "A team is ranked above one it has beaten unless the other three say the gap is wide. Elsewhere on the site, teams outside the poll are numbered from 26 in this order. " +
       "Among the poll's 25 teams, the poll ranks a team below one it has beaten " + G.poll_wrong + " times; the GOAT ranking does " + G.goat_wrong + " times.";
     var out = $("goat-out");
@@ -613,7 +612,7 @@
   }
 
   // ---- the teams page: each ranked team's stats, from box scores ----
-  var teamStats = null, tstate = { sort: "rank", dir: 1 };
+  var tstate = { sort: "rank", dir: 1 };
   var teamSets = {};
   function loadTeams(which) {      // the ranked 25, or all of Division I
     which = which || scope;

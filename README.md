@@ -329,7 +329,7 @@ photos or details. Each school's roster address is in `rosters/pages.csv`.
 The site also has a copy for each of the two pro leagues, League One Volleyball
 (the `lovb/` folder of the site) and Major League Volleyball (`mlv/`), reached
 from the College / LOVB / MLV tabs at the top of every page. They have the same
-pages: matches, standings with the GOAT ranking, team stats, players with their
+pages: matches, standings, team stats, players with their
 cards, team pages and box scores. Every team in the league is "ranked", by the
 standings: wins, then share of matches won, then sets won to sets lost, regular
 season only.

@@ -4,7 +4,7 @@ Their results and box scores come from the volleydata project
 (github.com/awosoga/volleydata), which collects them from the leagues' own
 match centres and publishes them as CSV files. Each league gets its own copy
 of the site, in a folder of the published site (lovb/, mlv/), built from the
-same pages as the college site: matches, standings with the GOAT ranking,
+same pages as the college site: matches, standings,
 team stats, players and box scores.
 
 A league's standings take the place of the college poll: every team in the
@@ -19,7 +19,7 @@ import json
 import re
 from pathlib import Path
 
-from . import box, config, goat, odds, players, teams, web
+from . import box, config, odds, players, teams, web
 
 LEAGUES = {
     # site folder: (volleydata name, league name, standings name)
@@ -268,32 +268,6 @@ def build(state: Path, out: Path, site: str, now: dt.datetime, words: dict, writ
         elif g["id"] in pregame:
             g["p0"] = round(pregame[g["id"]], 3)
 
-    # the GOAT order of the league's teams, and each team's results against the others
-    ranking = goat.rank(games, rating, set(names), rank)
-    results = goat.head_to_head(finals)
-    place = {t: i + 1 for i, t in enumerate(ranking["order"])}
-
-    def versus(tid, among):
-        beat, lost = [], []
-        for other in sorted(among, key=among.get):
-            wins, losses, _ = results.get((tid, other), (0, 0, []))
-            if wins:
-                beat.append([among[other], names[other], wins, other])
-            if losses:
-                lost.append([among[other], names[other], losses, other])
-        return beat, lost
-
-    for t in table:
-        t["goat"] = place.get(t["id"])
-        t["beat"], t["lost"] = versus(t["id"], rank)
-    top = []
-    for i, tid in enumerate(ranking["order"]):
-        won = sum(v[0] for (a, _), v in results.items() if a == tid)
-        lost = sum(v[1] for (a, _), v in results.items() if a == tid)
-        b, l = versus(tid, place)
-        top.append({"rank": i + 1, "id": tid, "name": names[tid], "avca": rank.get(tid), "score_rank": ranking["base"][tid],
-                    "factors": ranking["factors"][tid], "record": f"{won}-{lost}", "beat": b, "lost": l})
-
     rated = players.compute(table, games, boxes)
     rated["through"] = max((g["date"] for g in finals), default=None)
     media_file = state / "pro" / f"{site}_media.json"
@@ -328,9 +302,7 @@ def build(state: Path, out: Path, site: str, now: dt.datetime, words: dict, writ
         "updated": now.isoformat(timespec="seconds"), "season": s["season"],
         "poll": {"name": poll_name, "through": through, "teams": table, "polls_seen": []},
         "game_page": None, "live_feed": None, "live_seconds": config.LIVE_SECONDS, "logo": None,
-        "odds_tested": None, "goat": {"top": [], "weight": config.GOAT_HEAD_TO_HEAD, "weights": config.GOAT_WEIGHTS,
-                                      "poll_wrong": goat.contradictions([t["id"] for t in table], finals, set(names)),
-                                      "goat_wrong": goat.contradictions(ranking["order"], finals, set(names))},
+        "odds_tested": None, "goat": {},
         "nr": {}, "words": words, "logos": logos,
         "abbr": {t: [((media.get("teams") or {}).get(t) or {}).get("abbr") or s["abbr"].get(t) or names[t][:3].upper(),
                      ((media.get("teams") or {}).get(t) or {}).get("color") or COLORS[i % len(COLORS)]] for i, t in enumerate(sorted(names))}, "d1": [[t["id"], t["name"]] for t in table], "games": games})
