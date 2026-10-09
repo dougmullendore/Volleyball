@@ -28,12 +28,6 @@ LEAGUES = {
 }
 FILES = ["schedule", "player_boxscore", "player_info", "pbp"]
 DATA_URL = "https://github.com/awosoga/volleydata/releases/download/{lg}-{tag}/{lg}_{kind}{season}.csv"
-# Each finished season's champion and runner-up, shown as gold and silver trophies
-# until the next season starts (neither league plays for third, so no bronze).
-CHAMPIONS = {
-    ("lovb", 2026): ["austin", "salt-lake"],
-    ("mlv", 2026): ["dallas-pulse", "omaha-supernovas"],
-}
 # badge colours, one per team
 COLORS = ["#1d4ed8", "#b91c1c", "#047857", "#7c3aed", "#c2410c", "#0e7490", "#a21caf", "#4d7c0f", "#be123c", "#334155"]
 # volleystation's position numbers
@@ -337,7 +331,6 @@ def build(state: Path, out: Path, site: str, now: dt.datetime, words: dict, writ
         "odds_tested": None, "goat": {"top": [], "weight": config.GOAT_HEAD_TO_HEAD, "weights": config.GOAT_WEIGHTS,
                                       "poll_wrong": goat.contradictions([t["id"] for t in table], finals, set(names)),
                                       "goat_wrong": goat.contradictions(ranking["order"], finals, set(names))},
-        "medals": {t: i + 1 for i, t in enumerate(CHAMPIONS.get((site, s["season"])) or [x["id"] for x in table[:3]])},
         "nr": {}, "words": words, "logos": logos,
         "abbr": {t: [((media.get("teams") or {}).get(t) or {}).get("abbr") or s["abbr"].get(t) or names[t][:3].upper(),
                      ((media.get("teams") or {}).get(t) or {}).get("color") or COLORS[i % len(COLORS)]] for i, t in enumerate(sorted(names))}, "d1": [[t["id"], t["name"]] for t in table], "games": games})
