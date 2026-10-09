@@ -48,11 +48,11 @@ errors, attempts, hitting efficiency, assists, aces, service errors, digs,
 reception errors, blocks and points, starters first, plus each team's hitting
 set by set. Player names link to their cards.
 
-- Set scores are read by the page itself from ESPN, every 20 seconds while a
+- Set scores are read by the page itself from ESPN, every 15 seconds while a
   match is on.
 - The NCAA's box score cannot be read by a web page directly, so the GitHub
   job fetches it: on match nights (August to December, about 11am to 1am
-  Central) it runs every 10 minutes, and when any D1 match is under way it
+  Central) it runs every 5 minutes, and when any D1 match is under way it
   refreshes the box scores of matches under way and rebuilds the site. When
   nothing is being played it stops within seconds. GitHub's scheduled runs
   are often a few minutes late.
@@ -196,7 +196,7 @@ page says so in its footer.
 ## Live scores
 
 While a ranked team's match is being played, the page itself re-reads ESPN's
-public scoreboard every 20 seconds and updates that match's row: sets won in
+public scoreboard every 15 seconds and updates that match's row: sets won in
 big numbers, points in the current set in small ones, and "Final" when it
 ends. This happens in the reader's browser, so it needs no extra runs on
 GitHub. It starts 15 minutes before a match's listed start time, pauses while
@@ -212,7 +212,8 @@ The file `.github/workflows/update.yml` tells GitHub when to run:
 | --- | --- |
 | Every Monday about 4pm Central, and again about 9pm | Looks for the new top 25, then refreshes scores, schedule and channels |
 | Every night about 5:47am Central, and again about 11:47am | Refreshes scores, schedule, channels, ratings, GOAT ranking and player photos |
-| Every 10 minutes, 11am to 1am Central, August to December | Live scores and box scores of matches under way |
+| Every night about 11:47pm Central | A third full refresh, so the night's results are complete by morning |
+| Every 5 minutes, 11am to 1am Central, January to May and August to December | Live scores and box scores of matches under way (college, LOVB, MLV) |
 | Whenever the code changes, or you press **Run workflow** on the **Actions** tab | Everything, straight away |
 
 The poll normally comes out on Monday afternoon. If both Monday looks miss it

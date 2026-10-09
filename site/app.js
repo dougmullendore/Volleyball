@@ -253,7 +253,7 @@
     });
     return out;
   }
-  // MLV: the league's own match centre, read straight from the page every 20 seconds
+  // MLV: the league's own match centre, read straight from the page every 15 seconds
   var MLV_EVENT = "https://provolleyball.com/api/schedule-events/";
   function pollMlv() {
     var now = Date.now() / 1000, every = (data.live_seconds || 20) * 1000;
