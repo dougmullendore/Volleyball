@@ -2,7 +2,7 @@
 (function () {
   "use strict";
   var $ = function (id) { return document.getElementById(id); };
-  var data = null, state = { week: null, team: null };
+  var data = null, state = { week: null, day: null, team: null };
 
   function el(tag, attrs, kids) {
     var n = document.createElement(tag);
@@ -329,13 +329,13 @@
   }
   document.addEventListener("visibilitychange", function () { if (data && !document.hidden) pollLive(); });
 
-  function listInto(holder, games, newestFirst) {
+  function listInto(holder, games, newestFirst, asGiven) {
     var days = {}, order = [];
     games.forEach(function (g) { if (!days[g.date]) { days[g.date] = []; order.push(g.date); } days[g.date].push(g); });
     if (newestFirst) order.reverse();
-    else if (order.indexOf(today) > 0) { order.splice(order.indexOf(today), 1); order.unshift(today); }   // today's matches first
+    else if (!asGiven && order.indexOf(today) > 0) { order.splice(order.indexOf(today), 1); order.unshift(today); }   // today's matches first
     order.forEach(function (d) {
-      holder.appendChild(el("h3", { "class": "day" + (d === today ? " today" : ""), text: (d === today ? "Today, " : "") + long(d) }));
+      holder.appendChild(el("h3", { "class": "day" + (d === today ? " today" : ""), text: (d === today ? "Today, " : d === addDays(today, 1) ? "Tomorrow, " : d === addDays(today, -1) ? "Yesterday, " : "") + long(d) }));
       holder.appendChild(el("ol", { "class": "games" }, days[d].map(row)));
     });
   }
@@ -376,24 +376,43 @@
       return;
     }
 
-    if (!state.week) {       // open on this week, or the nearest week that has matches
-      var now = monday(today);
-      state.week = !first ? now : now < first ? first : now > last ? last : now;
+    var w, end, games, three = !PRO();
+    if (three) {
+      // College: three days at a time. Opened on today, they are today, tomorrow and yesterday.
+      var days = shown.map(function (g) { return g.date; }).sort(), firstDay = days[0], lastDay = days[days.length - 1];
+      if (!state.day) state.day = !firstDay ? today : today < firstDay ? firstDay : today > lastDay ? lastDay : today;
+      var mid = state.day;
+      w = addDays(mid, -1); end = addDays(mid, 1);
+      games = shown.filter(function (g) { return g.date >= w && g.date <= end; });
+      if (mid === today) {          // today first, then tomorrow, then yesterday
+        var rank = {}; rank[today] = 0; rank[end] = 1; rank[w] = 2;
+        games = games.map(function (g, i) { return [rank[g.date], i, g]; }).sort(function (a, b) { return a[0] - b[0] || a[1] - b[1]; }).map(function (x) { return x[2]; });
+      }
+      head.textContent = mid === today ? W("matches.three_days") : short(w) + " to " + short(end);
+      nav.appendChild(el("button", { type: "button", text: W("matches.earlier"), disabled: !firstDay || w <= firstDay, onclick: function () { state.day = addDays(mid, -3); draw(); } }));
+      if (mid !== today && firstDay && today >= firstDay && today <= lastDay) nav.appendChild(el("button", { type: "button", text: W("matches.today"), onclick: function () { state.day = today; draw(); } }));
+      nav.appendChild(el("button", { type: "button", text: W("matches.later"), disabled: !lastDay || end >= lastDay, onclick: function () { state.day = addDays(mid, 3); draw(); } }));
+    } else {
+      if (!state.week) {       // open on this week, or the nearest week that has matches
+        var now = monday(today);
+        state.week = !first ? now : now < first ? first : now > last ? last : now;
+      }
+      var thisWeek = monday(today);
+      w = state.week; end = addDays(w, 6);
+      games = shown.filter(function (g) { return g.date >= w && g.date <= end; });
+      head.textContent = (w === thisWeek ? "This week, " : "Week of ") + short(w) + " to " + short(end);
+      nav.appendChild(el("button", { type: "button", text: W("pro.matches_earlier"), disabled: !first || w <= first, onclick: function () { state.week = addDays(w, -7); draw(); } }));
+      if (w !== thisWeek && first && thisWeek >= first && thisWeek <= last) nav.appendChild(el("button", { type: "button", text: W("pro.matches_this_week"), onclick: function () { state.week = thisWeek; draw(); } }));
+      nav.appendChild(el("button", { type: "button", text: W("pro.matches_later"), disabled: !last || w >= last, onclick: function () { state.week = addDays(w, 7); draw(); } }));
     }
-    var w = state.week, end = addDays(w, 6), thisWeek = monday(today);
-    var games = shown.filter(function (g) { return g.date >= w && g.date <= end; });
-    head.textContent = (w === thisWeek ? "This week, " : "Week of ") + short(w) + " to " + short(end);
-    nav.appendChild(el("button", { type: "button", text: W("matches.earlier"), disabled: !first || w <= first, onclick: function () { state.week = addDays(w, -7); draw(); } }));
-    if (w !== thisWeek && first && thisWeek >= first && thisWeek <= last) nav.appendChild(el("button", { type: "button", text: W("matches.this_week"), onclick: function () { state.week = thisWeek; draw(); } }));
-    nav.appendChild(el("button", { type: "button", text: W("matches.later"), disabled: !last || w >= last, onclick: function () { state.week = addDays(w, 7); draw(); } }));
     if (!games.length) {
-      holder.appendChild(el("p", { "class": "empty", text: (PRO() ? "No matches" : "No ranked team has a match") + " this week. Try an earlier or later week." }));
+      holder.appendChild(el("p", { "class": "empty", text: PRO() ? "No matches this week. Try an earlier or later week." : (isD1() ? "No matches" : "No ranked team has a match") + " in these three days. Try earlier or later days." }));
       return;
     }
-    listInto(holder, games);
+    listInto(holder, games, false, three);
     var both = games.filter(function (g) { return g.away.rank && g.home.rank; }).length;
     if (PRO()) holder.appendChild(el("p", { "class": "note", text: games.length + " matches this week. The visiting team is on the left. Numbers are places in the standings. Choose a team to see its whole season." }));
-    else holder.appendChild(el("p", { "class": "note", text: games.length + " matches this week" + (both ? ", " + both + " of them between two ranked teams (marked with a green edge)" : "") +
+    else holder.appendChild(el("p", { "class": "note", text: games.length + (games.length === 1 ? " match" : " matches") + " in these three days" + (both ? ", " + both + " of them between two ranked teams (marked with a green edge)" : "") +
       ". The visiting team is on the left, and the channel or streaming service is on the right for matches in the next two weeks. Numbers are this week's rankings, also for earlier weeks. Choose a team to see its whole season." }));
     if (games.some(function (g) { return g.p != null && g.state !== "final"; })) holder.appendChild(el("p", { "class": "note", text: oddsNote().trim() }));
   }

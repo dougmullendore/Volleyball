@@ -1,6 +1,6 @@
 # GOAT Volleyball
 
-Every Division I women's college volleyball match, week by week, with the
+Every Division I women's college volleyball match, day by day, with the
 AVCA poll, a GOAT ranking of all D1 teams, team and player stats, and a page
 for every team and match. A Top 25 / All D1 switch narrows any page to the
 ranked teams.
@@ -12,12 +12,13 @@ You do not need to run anything. GitHub does it all on a schedule.
 - **Players** (third page): see below.
 - **Rankings** (second page): the AVCA coaches poll, with each team's record
   and how far it moved from last week. Choose a team to see its matches.
-- **Matches** (first page): every match this week involving a ranked team, grouped by
-  day. Upcoming matches show the start time in the reader's own time zone and
+- **Matches** (first page): today's, tomorrow's and yesterday's matches
+  involving a ranked team, grouped by day, today first. Upcoming matches show the start time in the reader's own time zone and
   where to watch; and each team's chance of winning; finished ones show the score in sets and link to the NCAA's
   box score. A
-  match between two ranked teams has a blue edge. Buttons step to earlier
-  and later weeks, and a menu narrows the list to one team's whole season.
+  match between two ranked teams has a blue edge. Buttons step three
+  days earlier or later (the LOVB and MLV pages, with far fewer matches,
+  still show a week at a time), and a menu narrows the list to one team's whole season.
 
 ## Beat and Lost to
 
